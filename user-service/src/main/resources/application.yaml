@@ -2,14 +2,21 @@ spring:
   application:
     name: user-service
 
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:user-service/.env[.properties]
+
   datasource:
-    url: jdbc:postgresql://localhost:5432/user_db
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:5432/${POSTGRES_DB}
     username: postgres
-    password: password
+    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
+
   flyway:
     enabled: true
     baseline-on-migrate: true
+
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate

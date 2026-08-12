@@ -1,4 +1,4 @@
-CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
-    email CITEXT NOT NULL
-);
+-- CREATE TABLE users (
+--     id BIGSERIAL PRIMARY KEY,
+--     email CITEXT NOT NULL
+-- );

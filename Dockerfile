@@ -11,7 +11,7 @@ ARG MODULE_NAME
 COPY . .
 
 RUN --mount=type=cache,target=/home/gradle/.gradle \
-    ./gradlew :${MODULE_NAME}:bootJar --no-daemon
+    gradle :${MODULE_NAME}:bootJar --no-daemon
 
 FROM eclipse-temurin:25-jre-alpine
 

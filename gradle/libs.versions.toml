@@ -1,0 +1,146 @@
+[versions]
+spring-boot = "4.1.0"
+spring-dependency-management = "1.1.7"
+
+flyway = "13.2.0"
+postgresql = "42.7.13"
+
+resilience4j = "2.3.0"
+
+grpc = "1.76.0"
+grpc-spring = "1.1.0.RELEASE"
+
+spring-ai = "2.0.0"
+
+
+[libraries]
+
+# =========================
+# Spring Boot
+# =========================
+
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+
+spring-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
+spring-data-jdbc = { module = "org.springframework.boot:spring-boot-starter-data-jdbc" }
+spring-jdbc = { module = "org.springframework.boot:spring-boot-starter-jdbc" }
+
+spring-security = { module = "org.springframework.boot:spring-boot-starter-security" }
+spring-oauth2-client = { module = "org.springframework.boot:spring-boot-starter-oauth2-client" }
+spring-oauth2-resource-server = { module = "org.springframework.boot:spring-boot-starter-oauth2-resource-server" }
+
+spring-graphql = { module = "org.springframework.boot:spring-boot-starter-graphql" }
+
+spring-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
+
+spring-websocket = { module = "org.springframework.boot:spring-boot-starter-websocket" }
+
+spring-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
+spring-data-mongodb = { module = "org.springframework.boot:spring-boot-starter-data-mongodb" }
+spring-data-elasticsearch = { module = "org.springframework.boot:spring-boot-starter-data-elasticsearch" }
+
+spring-kafka = { module = "org.springframework.kafka:spring-kafka" }
+
+spring-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
+
+spring-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+
+spring-devtools = { module = "org.springframework.boot:spring-boot-devtools" }
+
+spring-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor" }
+
+
+# =========================
+# Database / Migration
+# =========================
+
+flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
+
+flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
+
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+
+h2 = { module = "com.h2database:h2" }
+
+
+# =========================
+# HTTP
+# =========================
+
+http-client = { module = "org.springframework.boot:spring-boot-starter-restclient" }
+
+
+# =========================
+# gRPC
+# =========================
+
+grpc-client = { module = "org.springframework.grpc:spring-grpc-spring-boot-starter" }
+
+
+# =========================
+# Observability
+# =========================
+
+micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+
+zipkin-reporter = { module = "io.zipkin.reporter2:zipkin-reporter-brave" }
+
+
+# =========================
+# REST Docs
+# =========================
+
+spring-restdocs = { module = "org.springframework.restdocs:spring-restdocs-mockmvc" }
+
+
+# =========================
+# Resilience4j
+# =========================
+
+resilience4j-spring-boot = { module = "io.github.resilience4j:resilience4j-spring-boot3", version.ref = "resilience4j" }
+
+resilience4j-circuitbreaker = { module = "io.github.resilience4j:resilience4j-circuitbreaker", version.ref = "resilience4j" }
+
+resilience4j-retry = { module = "io.github.resilience4j:resilience4j-retry", version.ref = "resilience4j" }
+
+resilience4j-ratelimiter = { module = "io.github.resilience4j:resilience4j-ratelimiter", version.ref = "resilience4j" }
+
+
+# =========================
+# AI
+# =========================
+
+spring-ai-anthropic = { module = "org.springframework.ai:spring-ai-starter-model-anthropic", version.ref = "spring-ai" }
+
+spring-ai-google-genai = { module = "org.springframework.ai:spring-ai-starter-model-google-genai", version.ref = "spring-ai" }
+
+
+# =========================
+# Lombok
+# =========================
+
+lombok = { module = "org.projectlombok:lombok" }
+
+
+# =========================
+# Testing
+# =========================
+
+spring-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+
+testcontainers = { module = "org.testcontainers:testcontainers" }
+
+testcontainers-junit = { module = "org.testcontainers:junit-jupiter" }
+
+testcontainers-postgresql = { module = "org.testcontainers:postgresql" }
+
+testcontainers-mongodb = { module = "org.testcontainers:mongodb" }
+
+testcontainers-kafka = { module = "org.testcontainers:kafka" }
+
+
+[plugins]
+
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency-management" }

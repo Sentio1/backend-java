@@ -11,6 +11,14 @@ allprojects {
     repositories {
         mavenLocal()
         mavenCentral()
+
+        maven {
+            url = uri("https://maven.pkg.github.com/Sentio1/backend-java")
+            credentials {
+                username = findProperty("gpr.user") as String? ?: System.getenv("GITHUB_ACTOR") ?: ""
+                password = findProperty("gpr.token") as String? ?: System.getenv("GITHUB_TOKEN") ?: ""
+            }
+        }
     }
 }
 

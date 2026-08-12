@@ -4,21 +4,15 @@ plugins {
 	id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "com.sentio"
-version = "0.0.1-SNAPSHOT"
 description = "user-service"
 
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(25)
-	}
-}
-
-repositories {
-	mavenCentral()
-}
 
 dependencies {
+	// custom starters
+	implementation("com.lisovskyi:lisovskyi-security-starter:0.1.2")
+	implementation("com.lisovskyi:lisovskyi-jpa-starter:0.2.0")
+	implementation("com.lisovskyi:lisovskyi-web-error-starter:0.1.1")
+
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -27,6 +21,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation("org.flywaydb:flyway-database-postgresql")
+	implementation("org.mapstruct:mapstruct:1.6.3")
 
 	compileOnly("org.projectlombok:lombok")
 
@@ -34,6 +29,7 @@ dependencies {
 
 	runtimeOnly("org.postgresql:postgresql")
 
+	annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
 	annotationProcessor("org.projectlombok:lombok")
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 

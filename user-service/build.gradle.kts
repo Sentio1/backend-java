@@ -50,6 +50,8 @@ dependencies {
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-tasks.withType<Test> {
-	useJUnitPlatform()
+tasks.register<Exec>("dopplerRun") {
+	group = "application"
+	description = "Run application with Doppler"
+	commandLine("doppler", "run", "--", "./gradlew", "bootRun")
 }

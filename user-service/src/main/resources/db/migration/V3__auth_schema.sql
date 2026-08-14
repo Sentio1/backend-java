@@ -1,5 +1,11 @@
+CREATE SEQUENCE IF NOT EXISTS user_seq_gen                START WITH 1 INCREMENT BY 50;
+CREATE SEQUENCE IF NOT EXISTS user_identity_seq_gen       START WITH 1 INCREMENT BY 50;
+CREATE SEQUENCE IF NOT EXISTS organization_seq_gen        START WITH 1 INCREMENT BY 50;
+CREATE SEQUENCE IF NOT EXISTS organization_member_seq_gen START WITH 1 INCREMENT BY 50;
+CREATE SEQUENCE IF NOT EXISTS refresh_token_seq_gen       START WITH 1 INCREMENT BY 50;
+
 CREATE TABLE users (
-    id                  BIGSERIAL PRIMARY KEY,
+    id                  BIGINT PRIMARY KEY,
     email               CITEXT NOT NULL UNIQUE,
     password_hash       VARCHAR(72),           -- null для чистого OAuth; bcrypt = 60 символів
     phone_number        VARCHAR(20) UNIQUE,    -- E.164, nullable
@@ -18,7 +24,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE organizations (
-    id                      BIGSERIAL PRIMARY KEY,
+    id                      BIGINT PRIMARY KEY,
     name                    VARCHAR(255) NOT NULL,
     slug                    VARCHAR(100) NOT NULL UNIQUE,
     edrpou                  VARCHAR(10),                 -- ЄДРПОУ бюро, якщо юрособа
@@ -31,7 +37,7 @@ CREATE TABLE organizations (
 );
 
 CREATE TABLE user_identities (
-    id                  BIGSERIAL PRIMARY KEY,
+    id                  BIGINT PRIMARY KEY,
     user_id             BIGINT NOT NULL REFERENCES users(id),
     provider            auth_provider NOT NULL,
     provider_user_id    VARCHAR(255) NOT NULL,   -- sub із токена
@@ -45,7 +51,7 @@ CREATE UNIQUE INDEX user_identities_user_id_provider_idx
     ON user_identities (user_id, provider);
 
 CREATE TABLE organization_members (
-    id                  BIGSERIAL PRIMARY KEY,
+    id                  BIGINT PRIMARY KEY,
     organization_id     BIGINT NOT NULL REFERENCES organizations(id),
     user_id             BIGINT NOT NULL REFERENCES users(id),
     role                org_role NOT NULL DEFAULT 'LAWYER',
@@ -65,7 +71,7 @@ CREATE INDEX organization_members_user_id_idx
 
 
 CREATE TABLE refresh_tokens (
-    id              BIGSERIAL PRIMARY KEY,
+    id              BIGINT PRIMARY KEY,
     user_id         BIGINT NOT NULL REFERENCES users(id),
     token_hash      VARCHAR(64) NOT NULL UNIQUE,  -- зберігаємо хеш, не токен
     user_agent      VARCHAR(255),

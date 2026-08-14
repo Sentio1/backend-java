@@ -2,13 +2,15 @@ package com.sentio.user_service.organization.entity;
 
 import com.lisovskyi.jpa.autoconfigure.entity.CreationTimestampedEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.sentio.user_service.organization.enums.OrgRole;
+import com.sentio.user_service.user.entity.User;
+import jakarta.persistence.*;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "organization_members")
@@ -18,5 +20,20 @@ import lombok.experimental.SuperBuilder;
 @SequenceSize(size = 50)
 public class OrganizationMember extends CreationTimestampedEntity {
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id", nullable = false, referencedColumnName = "id")
+    private Organization organization;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, referencedColumnName = "id")
+    private User user;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Builder.Default
+    private OrgRole role = OrgRole.LAWYER;
+
+    @Column(name = "joined_at")
+    private Instant joinedAt;
 }

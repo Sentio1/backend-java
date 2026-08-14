@@ -13,7 +13,7 @@ grpc-spring = "1.1.0.RELEASE"
 spring-ai = "2.0.0"
 
 # Custom starters
-lisovskyi-security = "0.2.5"
+lisovskyi-security = "0.3.3"
 lisovskyi-jpa = "0.2.0"
 lisovskyi-web-error = "0.1.4"
 

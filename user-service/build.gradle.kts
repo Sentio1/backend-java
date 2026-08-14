@@ -22,6 +22,7 @@ dependencies {
 	implementation("org.flywaydb:flyway-database-postgresql")
 	implementation(libs.mapstruct.core)
 	implementation(libs.resilience4j.spring.boot)
+	implementation(libs.spring.oauth2.client)
 
 	compileOnly("org.projectlombok:lombok")
 

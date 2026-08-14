@@ -22,6 +22,7 @@ import com.sentio.user_service.user.UserRepository;
 import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.entity.UserIdentity;
 import com.sentio.user_service.user.enums.AuthProvider;
+import com.sentio.user_service.user.enums.PlatformRole;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -109,7 +110,7 @@ public class AuthService {
                 .orgName(organization.getName())
                 .build();
 
-        return new AuthResult(generateAuthResponse(user), userContextResponse);
+        return new AuthResult(generateAuthResponse(user, organizationMember), userContextResponse);
     }
 
     @Transactional
@@ -133,7 +134,7 @@ public class AuthService {
                 .orgName(organizationMember.getOrganization().getName())
                 .build();
 
-        return new AuthResult(generateAuthResponse(user), userContext);
+        return new AuthResult(generateAuthResponse(user, organizationMember), userContext);
     }
 
     @Transactional
@@ -150,7 +151,12 @@ public class AuthService {
             throw new UnauthorizedException("Refresh token has expired");
         }
 
-        AuthTokens authTokens = generateAuthResponse(refreshToken.getUser());
+
+        long userId = refreshToken.getUser().getId();
+        OrganizationMember organizationMember = organizationMemberRepository.findByUserIdAndIsDefaultTrue(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("OrganizationMember", "userId", userId));
+
+        AuthTokens authTokens = generateAuthResponse(refreshToken.getUser(), organizationMember);
         refreshToken.setRevokedAt(Instant.now());
         refreshTokenRepository.save(refreshToken);
 
@@ -196,10 +202,20 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("Organization", "slug", slug));
     }
 
-    private AuthTokens generateAuthResponse(User user) {
+    private AuthTokens generateAuthResponse(User user, OrganizationMember membership) {
         SecurityUser securityUser = new SecurityUser(user);
 
-        String accessToken = jwtService.generateToken(securityUser);
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("org_id", membership.getOrganization().getId());
+
+        List<String> roles = new ArrayList<>();
+        roles.add(membership.getRole().name()); // OWNER, LAWYER, ASSISTANT
+        if (user.getPlatformRole() == PlatformRole.ADMIN) {
+            roles.add("ADMIN");
+        }
+        extraClaims.put("roles", roles);
+
+        String accessToken = jwtService.generateToken(securityUser, extraClaims);
         String refreshToken = opaqueTokenService.generate();
         String hashedRefreshToken = opaqueTokenService.hash(refreshToken);
 

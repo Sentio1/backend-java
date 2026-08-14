@@ -45,7 +45,8 @@ resilience4j:
 
 app:
   jwt:
-    signing-key: ${JWT_SECRET_TOKEN}
+    private-key: ${JWT_PRIVATE_KEY}
+    previous-private-key: ${JWT_PREVIOUS_PRIVATE_KEY}
     issuer: sentio-startup
     refresh-token-expiration: 2592000000
 

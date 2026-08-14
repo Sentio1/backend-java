@@ -66,7 +66,8 @@ public class AuthController {
 
         setCookies(response, tokens);
 
-        return ResponseEntity.ok()
+        return ResponseEntity
+                .ok()
                 .body(userContext);
     }
 
@@ -81,7 +82,9 @@ public class AuthController {
         AuthTokens tokens = authService.refresh(refreshToken);
         setCookies(response, tokens);
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity
+                .noContent().
+                build();
     }
 
     @PostMapping("/logout")
@@ -97,7 +100,9 @@ public class AuthController {
         authService.logout(accessToken, refreshToken);
         clearCookies(response);
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity
+                .noContent()
+                .build();
     }
 
 

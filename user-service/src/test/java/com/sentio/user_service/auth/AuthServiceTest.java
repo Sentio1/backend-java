@@ -33,6 +33,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,8 +56,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
-    private static final String DUMMY_SIGNING_KEY =
-            "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
+    // Test-only RSA private key (PKCS8 DER, base64) - never the real Doppler key.
+    private static final String DUMMY_PRIVATE_KEY =
+            "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDZrWu2iGsRL6OUKzPyqj/TMbtEEIEHrrJgEOsYqNawp/1UctJ1jtvkJ6oK5lOAMpIPNPc9p87XrwNUng/adBH1eG1RFR/FK0vgCgETxY9TFFGuaMR4qZhOxVHWfFvqrREuZc0/Pen0LJZak6usJyc3SAyrxij6IOsiNEDxvQwVSadcp36L5FUJ93RpepTJl1c4ktFmlhU8wouM6vgflHHRVUe9OySmL8ODw1iJcnPydZ1ewq4iutlBRp7puH3Isb7vW8kVu3qOW7H1n/XKLkMuKjENaSwBIz3+eCMtBIa9xaCW6DEVEURhtulAxuGUOrlEUaPAJVitEM/cgFxh6DXhAgMBAAECggEAEMz6CI1YaCvrXfMEsCjUQsZum/cDInbpFRGRN6bGZT2eB5/SHxku3xnxnaQ/0x/0FoDhyUwzooGDSgtmEVgOj8ni9BRjjpoEIe9bvG0t3f1uPX4gFekPFJtVsO6JwJ/peNGKKSSr8zjixOxrXl7qP7HLqpFhlcanJ01tqsrKzTSs6cOxmpJuqF0KxJgTOY+uVhiULWxu0f8c9jHPFrRQ8OgnXrX++vSAfv9keEL7gbIKxfKunGUen3nXHi3FMJ5I82e9TSjAYDohbcZOZYSVEGrk4FXlC8j6XohR/4outKdKmAfbEQvDPZ2oT8T56d/T2/mznS4eBqq1+g7XAMKfzQKBgQDs9vN7O+vJb59c7pnWxOEVXgrpBn9KOXuPkKwzDVvGMTKTyeyAe8S5QyY8AFGsS30Z2MW4IRYxjgTwxjpGRVkLUiKxvl/qXUUoNYbBFf4WKLfsRQ1AK3DIdzzw2alHkcdWQ/YDlW8UDBHs6YdkDoUwbf/SX9R/r/+Vwht2Ty3yJQKBgQDrKdacn4QURiGG7gmBZJXfLLa72cntxecknCKQw8E4+BQ236ocIKA76fL2A2r2DY44i2sZTaK7ITjeiKs6kWeg0L9WYbExuoHwJxQmGVjGHiI548nxCdzP6vmHLlakNg1ikA+DoTjhH27phHdrDpxU1ROZvHC4wroRkC+6u6IiDQKBgC6xktTrv9CXsD1tvt61OO0u9NNqNlb38MMfbO86aKUrOJ4qofHHccJX2wbjwTREQ8h+EKfxzR/CrnKLfRwvuhYi/zcrHldePaxor78IiGLxbxydlrjYVocKB/YlzdeOgEsdZTLblWHL5xRaCBXNTq12X3yi6YqnsaNe9m5ft9wJAoGBAKr+oyUEAKBVVm+sipDhuPCsrLrvZBtW+fnu5ltpXAi2qswz2pfVSW4HcTldxtrfhHitN9UQVLHJOHbn3coajMWsxFRleNj2CyG66LXDXH/CzZRWhDKWv08YRxT6ptmEzDrNEdre0mMv3hBC2CqqVxaAUV5KXZSbU30N4QbhBMXJAoGAUKVTdahVmA2+qSPd7fh6eqMk2iTUCjNoeVWUQPnDhDpmiPr5tIRrFGCewRFWgkj96s1gthxGz8Hmmu+RzCYpaCHQkZCZgt34Wgf7AdWAzUCskjTADqb3FzrAWQjWGfsy6VBaADNJcsyiEhonseO27M7hPLj85vMtfTE+cdJBaEA=";
 
     @Mock
     private UserRepository userRepository;
@@ -78,7 +80,7 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         jwtProperties = new JwtProperties();
-        jwtProperties.setSigningKey(DUMMY_SIGNING_KEY);
+        jwtProperties.setPrivateKey(DUMMY_PRIVATE_KEY);
         jwtProperties.setIssuer("sentio-test");
         jwtProperties.setAccessTokenExpiration(900_000L);
         jwtProperties.setRefreshTokenExpiration(604_800_000L);
@@ -316,6 +318,15 @@ class AuthServiceTest {
                     .build();
             when(refreshTokenRepository.findByTokenHash(hashedToken)).thenReturn(Optional.of(existing));
 
+            Organization org = Organization.builder().name("Acme Legal").slug("acme").build();
+            OrganizationMember member = OrganizationMember.builder()
+                    .user(user)
+                    .organization(org)
+                    .role(OrgRole.LAWYER)
+                    .isDefault(true)
+                    .build();
+            when(organizationMemberRepository.findByUserIdAndIsDefaultTrue(1L)).thenReturn(Optional.of(member));
+
             AuthTokens tokens = authService.refresh(rawToken);
 
             assertThat(tokens.accessToken()).isNotBlank();
@@ -376,7 +387,7 @@ class AuthServiceTest {
 
         private String issueAccessToken() {
             User user = persistedUser(1L, "user@sentio.dev", "password123");
-            return jwtService.generateToken(new SecurityUser(user));
+            return jwtService.generateToken(new SecurityUser(user), Map.of());
         }
 
         @Test

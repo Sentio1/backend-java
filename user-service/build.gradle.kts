@@ -33,6 +33,11 @@ dependencies {
 	annotationProcessor(libs.mapstruct.processor)
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 	annotationProcessor("org.projectlombok:lombok")
+	// Without this, MapStruct's processor can't see Lombok-generated getters/setters
+	// in the same compilation round (processor ordering isn't guaranteed) - it silently
+	// maps only inherited/pre-compiled properties and leaves the rest null instead of
+	// failing loudly. This makes the two run in the correct order regardless.
+	annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jdbc-test")

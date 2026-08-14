@@ -1,4 +1,4 @@
-package com.sentio.user_service.user;
+package com.sentio.user_service.user.repository;
 
 import com.sentio.user_service.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;

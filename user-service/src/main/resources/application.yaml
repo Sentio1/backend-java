@@ -7,6 +7,18 @@ spring:
   datasource:
     driver-class-name: org.postgresql.Driver
 
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+              - openid
+
 server:
   servlet:
     context-path: /api/v1
@@ -56,8 +68,14 @@ app:
       - http://localhost:5173
       - http://localhost:3000
     bcrypt-strength: 12
+    public-paths:
+      - /oauth2/**
+      - /login/oauth2/**
 
   cookie:
     # в prod поміняти на true
     secure: false
 
+  oauth:
+    success-redirect-uri: http://localhost:5173/dashboard
+    failure-redirect-uri: http://localhost:5173/login

@@ -1,28 +1,27 @@
 package com.sentio.user_service.auth;
 
 import com.lisovskyi.security.autoconfigure.security.jwt.JwtBlacklistService;
-import com.lisovskyi.security.autoconfigure.security.jwt.JwtProperties;
 import com.lisovskyi.security.autoconfigure.security.jwt.JwtService;
 import com.lisovskyi.security.autoconfigure.security.jwt.OpaqueTokenService;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsException;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
 import com.sentio.user_service.auth.dto.*;
+import com.sentio.user_service.auth.oauth.GoogleAccountResolver;
+import com.sentio.user_service.auth.oauth.dto.GoogleIdentity;
+import com.sentio.user_service.auth.token.TokenIssuer;
 import com.sentio.user_service.organization.OrganizationMemberRepository;
-import com.sentio.user_service.organization.OrganizationRepository;
-import com.sentio.user_service.organization.entity.Organization;
+import com.sentio.user_service.organization.OrganizationProvisioningService;
 import com.sentio.user_service.organization.entity.OrganizationMember;
 import com.sentio.user_service.organization.enums.OrgRole;
 import com.sentio.user_service.organization.enums.PlanTier;
-import com.sentio.user_service.organization.enums.SubscriptionStatus;
 import com.sentio.user_service.refresh_token.RefreshToken;
 import com.sentio.user_service.refresh_token.RefreshTokenRepository;
-import com.sentio.user_service.security.SecurityUser;
-import com.sentio.user_service.user.UserRepository;
+import com.sentio.user_service.user.dto.UserContextResponse;
 import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.entity.UserIdentity;
 import com.sentio.user_service.user.enums.AuthProvider;
-import com.sentio.user_service.user.enums.PlatformRole;
+import com.sentio.user_service.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,24 +29,32 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
 
+/**
+ * Orchestrates the auth use cases (local register/login, Google sign-in,
+ * refresh, logout). Delegates the actual mechanics to focused collaborators:
+ * {@link OrganizationProvisioningService} (creating/joining an organization),
+ * {@link GoogleAccountResolver} (who is this Google user) and {@link
+ * TokenIssuer} (JWT + refresh token issuance) - this class only wires them
+ * together and decides which one to call.
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
     private final RefreshTokenRepository refreshTokenRepository;
 
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final OpaqueTokenService opaqueTokenService;
-    private final JwtProperties jwtProperties;
     private final JwtBlacklistService jwtBlacklistService;
+
+    private final TokenIssuer tokenIssuer;
+    private final OrganizationProvisioningService organizationProvisioning;
+    private final GoogleAccountResolver googleAccountResolver;
 
     @Transactional
     public AuthResult register(RegistrationRequest request) {
@@ -55,62 +62,15 @@ public class AuthService {
             throw new ResourceAlreadyExistsException("User with email: " + request.email() + " already exists");
         }
 
-        User user = User.builder()
-                .email(request.email())
-                .password(passwordEncoder.encode(request.password()))
-                .lastName(request.lastName())
-                .firstName(request.firstName())
-                .build();
-
-        if (request.phoneNumber() != null && !request.phoneNumber().isBlank()) {
-            user.setPhoneNumber(request.phoneNumber());
-        }
-
-        if (request.middleName() != null && !request.middleName().isBlank()) {
-            user.setMiddleName(request.middleName());
-        }
-
+        User user = buildLocalUser(request);
         userRepository.save(user);
+        user.getIdentities().add(localIdentity(user));
 
-        UserIdentity userIdentity = UserIdentity.builder()
-                .user(user)
-                .provider(AuthProvider.LOCAL)
-                .providerUserId(user.getId().toString())
-                .build();
+        OrganizationMember membership = request.orgRole() == OrgRole.OWNER
+                ? createOwnedOrganization(user, request)
+                : organizationProvisioning.joinExistingOrganization(user, request.slug(), request.orgRole());
 
-        user.getIdentities().add(userIdentity);
-
-
-        Organization organization = switch (request.orgRole()) {
-            case OrgRole.OWNER ->
-                createNewOrganization(request);
-            case OrgRole.LAWYER, OrgRole.ASSISTANT -> {
-                if (request.slug() == null || request.slug().isBlank()) {
-                    throw new IllegalArgumentException("Organization slug is required to create a new organization");
-                }
-                yield findExistedOrganization(request.slug());
-            }
-        };
-
-        OrganizationMember organizationMember = OrganizationMember.builder()
-                .user(user)
-                .organization(organization)
-                .role(request.orgRole())
-                .isDefault(true)
-                .build();
-
-        organizationMemberRepository.save(organizationMember);
-
-        UserContextResponse userContextResponse = UserContextResponse.builder()
-                .id(user.getId())
-                .email(request.email())
-                .lastName(request.lastName())
-                .firstName(request.firstName())
-                .orgRole(request.orgRole().name())
-                .orgName(organization.getName())
-                .build();
-
-        return new AuthResult(generateAuthResponse(user, organizationMember), userContextResponse);
+        return new AuthResult(tokenIssuer.issue(user, membership), toUserContext(user, membership));
     }
 
     @Transactional
@@ -122,19 +82,31 @@ public class AuthService {
             throw new UnauthorizedException("Invalid email or password");
         }
 
-        OrganizationMember organizationMember = organizationMemberRepository.findByUserIdAndIsDefaultTrue(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("OrganizationMember", "userId", user.getId()));
+        OrganizationMember membership = defaultMembership(user);
+        return new AuthResult(tokenIssuer.issue(user, membership), toUserContext(user, membership));
+    }
 
-        UserContextResponse userContext = UserContextResponse.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .lastName(user.getLastName())
-                .firstName(user.getFirstName())
-                .orgRole(organizationMember.getRole().toString())
-                .orgName(organizationMember.getOrganization().getName())
-                .build();
+    @Transactional
+    public AuthResult loginOrRegisterWithGoogle(GoogleIdentity identity) {
+        User user = googleAccountResolver.resolveOrCreate(identity);
 
-        return new AuthResult(generateAuthResponse(user, organizationMember), userContext);
+        // A user that already had a default membership (existing identity, or an
+        // account we just linked) keeps it. A brand new user has none yet - give
+        // them ownership of a brand new org, same as local OWNER registration.
+        OrganizationMember membership = organizationMemberRepository.findByUserIdAndIsDefaultTrue(user.getId())
+                .orElseGet(() -> organizationProvisioning.createOwnerMembership(
+                        user, defaultOrgName(identity), null, PlanTier.SOLO));
+
+        return new AuthResult(tokenIssuer.issue(user, membership), toUserContext(user, membership));
+    }
+
+    // Google doesn't always return family_name (and in principle could omit given_name
+    // too) - naive concatenation would silently produce names like "John null".
+    private String defaultOrgName(GoogleIdentity identity) {
+        String firstName = identity.firstName() != null ? identity.firstName() : "";
+        String lastName = identity.lastName() != null ? identity.lastName() : "";
+        String name = (firstName + " " + lastName).trim();
+        return name.isBlank() ? identity.email() : name;
     }
 
     @Transactional
@@ -146,17 +118,14 @@ public class AuthService {
         if (refreshToken.getRevokedAt() != null) {
             throw new UnauthorizedException("Refresh token has been revoked");
         }
-
         if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
             throw new UnauthorizedException("Refresh token has expired");
         }
 
+        User user = refreshToken.getUser();
+        OrganizationMember membership = defaultMembership(user);
 
-        long userId = refreshToken.getUser().getId();
-        OrganizationMember organizationMember = organizationMemberRepository.findByUserIdAndIsDefaultTrue(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("OrganizationMember", "userId", userId));
-
-        AuthTokens authTokens = generateAuthResponse(refreshToken.getUser(), organizationMember);
+        AuthTokens authTokens = tokenIssuer.issue(user, membership);
         refreshToken.setRevokedAt(Instant.now());
         refreshTokenRepository.save(refreshToken);
 
@@ -180,53 +149,52 @@ public class AuthService {
         }
     }
 
-    private Organization createNewOrganization(RegistrationRequest request) {
+    private OrganizationMember createOwnedOrganization(User user, RegistrationRequest request) {
         if (request.name() == null || request.name().isBlank()) {
             throw new IllegalArgumentException("Organization name is required to create a new organization");
         }
+        return organizationProvisioning.createOwnerMembership(user, request.name(), request.edrpou(), request.plan());
+    }
 
-        Organization organization = Organization.builder()
-                .name(request.name())
-                .slug(UUID.randomUUID().toString())
-                .edrpou(request.edrpou())
-                .plan(request.plan() != null ? request.plan() : PlanTier.SOLO)
-                .subscriptionStatus(SubscriptionStatus.TRIALING)
-                .trialEndsAt(Instant.now().plus(14, ChronoUnit.DAYS))
+    private OrganizationMember defaultMembership(User user) {
+        return organizationMemberRepository.findByUserIdAndIsDefaultTrue(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("OrganizationMember", "userId", user.getId()));
+    }
+
+    private User buildLocalUser(RegistrationRequest request) {
+        User user = User.builder()
+                .email(request.email())
+                .password(passwordEncoder.encode(request.password()))
+                .lastName(request.lastName())
+                .firstName(request.firstName())
                 .build();
 
-        return organizationRepository.save(organization);
-    }
-
-    private Organization findExistedOrganization(String slug) {
-        return organizationRepository.findBySlug(slug)
-                .orElseThrow(() -> new ResourceNotFoundException("Organization", "slug", slug));
-    }
-
-    private AuthTokens generateAuthResponse(User user, OrganizationMember membership) {
-        SecurityUser securityUser = new SecurityUser(user);
-
-        Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("org_id", membership.getOrganization().getId());
-
-        List<String> roles = new ArrayList<>();
-        roles.add(membership.getRole().name()); // OWNER, LAWYER, ASSISTANT
-        if (user.getPlatformRole() == PlatformRole.ADMIN) {
-            roles.add("ADMIN");
+        if (request.phoneNumber() != null && !request.phoneNumber().isBlank()) {
+            user.setPhoneNumber(request.phoneNumber());
         }
-        extraClaims.put("roles", roles);
+        if (request.middleName() != null && !request.middleName().isBlank()) {
+            user.setMiddleName(request.middleName());
+        }
 
-        String accessToken = jwtService.generateToken(securityUser, extraClaims);
-        String refreshToken = opaqueTokenService.generate();
-        String hashedRefreshToken = opaqueTokenService.hash(refreshToken);
+        return user;
+    }
 
-        RefreshToken refreshTokenInstance = RefreshToken.builder()
-                        .tokenHash(hashedRefreshToken)
-                        .user(user)
-                        .expiresAt(Instant.now().plus(jwtProperties.getRefreshTokenExpiration(), ChronoUnit.MILLIS))
-                        .build();
+    private UserIdentity localIdentity(User user) {
+        return UserIdentity.builder()
+                .user(user)
+                .provider(AuthProvider.LOCAL)
+                .providerUserId(user.getId().toString())
+                .build();
+    }
 
-        refreshTokenRepository.save(refreshTokenInstance);
-
-        return new AuthTokens(accessToken, refreshToken);
+    private UserContextResponse toUserContext(User user, OrganizationMember membership) {
+        return UserContextResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .lastName(user.getLastName())
+                .firstName(user.getFirstName())
+                .orgRole(membership.getRole().name())
+                .orgName(membership.getOrganization().getName())
+                .build();
     }
 }

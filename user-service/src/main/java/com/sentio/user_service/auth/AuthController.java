@@ -4,6 +4,7 @@ import com.lisovskyi.security.autoconfigure.cookie.CookieService;
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
 import com.sentio.user_service.auth.dto.*;
 import com.sentio.user_service.auth.rate_limiting.RateLimitingService;
+import com.sentio.user_service.user.dto.UserContextResponse;
 import com.sentio.user_service.util.HttpRequestUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

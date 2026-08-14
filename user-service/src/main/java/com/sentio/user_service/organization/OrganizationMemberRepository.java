@@ -10,5 +10,5 @@ import java.util.Optional;
 public interface OrganizationMemberRepository extends JpaRepository<OrganizationMember, Long> {
     Optional<OrganizationMember> findByUserIdAndIsDefaultTrue(long userId);
 
-
+    Optional<OrganizationMember> findByUserIdAndOrganizationId(long userId, long organizationId);
 }

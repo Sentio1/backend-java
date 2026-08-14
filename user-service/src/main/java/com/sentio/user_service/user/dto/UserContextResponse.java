@@ -1,4 +1,4 @@
-package com.sentio.user_service.auth.dto;
+package com.sentio.user_service.user.dto;
 
 import lombok.Builder;
 

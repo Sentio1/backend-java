@@ -43,11 +43,12 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<Void> refresh() {
-
+        return null;
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout() {
         authService.logout();
+        return null;
     }
 }

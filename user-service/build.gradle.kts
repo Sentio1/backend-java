@@ -9,7 +9,7 @@ description = "user-service"
 
 dependencies {
 	// custom starters
-	implementation("com.lisovskyi:lisovskyi-security-starter:0.2.0")
+	implementation("com.lisovskyi:lisovskyi-security-starter:0.2.1")
 	implementation("com.lisovskyi:lisovskyi-jpa-starter:0.2.0")
 	implementation("com.lisovskyi:lisovskyi-web-error-starter:0.1.1")
 

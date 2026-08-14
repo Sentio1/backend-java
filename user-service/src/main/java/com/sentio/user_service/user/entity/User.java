@@ -60,5 +60,5 @@ public class User extends TimestampedEntity {
     private Instant deletedAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UserIdentity> identities = new ArrayList<>();
+    private final List<UserIdentity> identities = new ArrayList<>();
 }

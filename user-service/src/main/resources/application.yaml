@@ -10,3 +10,8 @@ spring:
 server:
   servlet:
     context-path: /api/v1
+
+app:
+  jwt:
+    signing-key: ${JWT_SECRET_TOKEN}
+    issuer: sentio-startup

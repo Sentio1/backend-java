@@ -12,12 +12,27 @@ grpc-spring = "1.1.0.RELEASE"
 
 spring-ai = "2.0.0"
 
+# Custom starters
+lisovskyi-security = "0.2.5"
+lisovskyi-jpa = "0.2.0"
+lisovskyi-web-error = "0.1.4"
+
+mapstruct = "1.6.3"
 
 [libraries]
 
 # =========================
 # Spring Boot
 # =========================
+
+# Custom starters
+lisovskyi-security = { group = "com.lisovskyi", name = "lisovskyi-security-starter", version.ref = "lisovskyi-security" }
+lisovskyi-jpa = { group = "com.lisovskyi", name = "lisovskyi-jpa-starter", version.ref = "lisovskyi-jpa" }
+lisovskyi-web-error = { group = "com.lisovskyi", name = "lisovskyi-web-error-starter", version.ref = "lisovskyi-web-error" }
+
+# Mapstruct
+mapstruct-core = { group = "org.mapstruct", name = "mapstruct", version.ref = "mapstruct" }
+mapstruct-processor = { group = "org.mapstruct", name = "mapstruct-processor", version.ref = "mapstruct" }
 
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
 

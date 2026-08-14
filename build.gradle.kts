@@ -2,12 +2,13 @@ plugins {
     alias(libs.plugins.spring.boot) apply false
     alias(libs.plugins.spring.dependency.management) apply false
     java
+    id("com.diffplug.spotless") version("8.9.0")
 }
 
 allprojects {
     group = "com.sentio"
     version = "0.0.1-SNAPSHOT"
-    
+
     repositories {
         mavenCentral()
         maven {
@@ -29,6 +30,16 @@ subprojects {
             languageVersion.set(JavaLanguageVersion.of(25))
         }
     }
+
+//    spotless {
+//        java {
+//            palantirJavaFormat()
+//
+//            removeUnusedImports()
+//            trimTrailingWhitespace()
+//            endWithNewline()
+//        }
+//    }
 
     tasks.withType<Test> {
         useJUnitPlatform()

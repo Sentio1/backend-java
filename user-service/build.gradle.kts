@@ -6,12 +6,11 @@ plugins {
 
 description = "user-service"
 
-
 dependencies {
 	// custom starters
-	implementation("com.lisovskyi:lisovskyi-security-starter:0.2.1")
-	implementation("com.lisovskyi:lisovskyi-jpa-starter:0.2.0")
-	implementation("com.lisovskyi:lisovskyi-web-error-starter:0.1.1")
+	implementation(libs.lisovskyi.security)
+	implementation(libs.lisovskyi.jpa)
+	implementation(libs.lisovskyi.web.error)
 
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
@@ -21,7 +20,8 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation("org.flywaydb:flyway-database-postgresql")
-	implementation("org.mapstruct:mapstruct:1.6.3")
+	implementation(libs.mapstruct.core)
+	implementation(libs.resilience4j.spring.boot)
 
 	compileOnly("org.projectlombok:lombok")
 
@@ -29,9 +29,9 @@ dependencies {
 
 	runtimeOnly("org.postgresql:postgresql")
 
-	annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
-	annotationProcessor("org.projectlombok:lombok")
+	annotationProcessor(libs.mapstruct.processor)
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+	annotationProcessor("org.projectlombok:lombok")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jdbc-test")

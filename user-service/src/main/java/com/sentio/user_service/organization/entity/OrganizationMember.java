@@ -34,6 +34,10 @@ public class OrganizationMember extends CreationTimestampedEntity {
     @Builder.Default
     private OrgRole role = OrgRole.LAWYER;
 
+    @Column(name = "is_default")
+    @Builder.Default
+    private boolean isDefault = false;
+
     @Column(name = "joined_at")
     private Instant joinedAt;
 }

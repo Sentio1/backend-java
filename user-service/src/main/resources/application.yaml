@@ -11,7 +11,52 @@ server:
   servlet:
     context-path: /api/v1
 
+
+resilience4j:
+  ratelimiter:
+    configs:
+      login-by-email:
+        limit-for-period: 5
+        limit-refresh-period:
+          seconds: 60
+        timeout-duration:
+          seconds: 0
+
+      login-by-ip:
+        limit-for-period: 20
+        limit-refresh-period:
+          seconds: 60
+        timeout-duration:
+          seconds: 0
+
+      register-by-email:
+        limit-for-period: 5
+        limit-refresh-period:
+          seconds: 60
+        timeout-duration:
+          seconds: 0
+
+      register-by-ip:
+        limit-for-period: 20
+        limit-refresh-period:
+          seconds: 60
+        timeout-duration:
+          seconds: 0
+
 app:
   jwt:
     signing-key: ${JWT_SECRET_TOKEN}
     issuer: sentio-startup
+    refresh-token-expiration: 2592000000
+
+  security:
+    allow-credentials: true
+    allowed-origins:
+      - http://localhost:5173
+      - http://localhost:3000
+    bcrypt-strength: 12
+
+  cookie:
+    # в prod поміняти на true
+    secure: false
+

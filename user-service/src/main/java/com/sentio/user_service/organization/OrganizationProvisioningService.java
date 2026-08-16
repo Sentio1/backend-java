@@ -50,7 +50,7 @@ public class OrganizationProvisioningService {
 
     public OrganizationMember joinExistingOrganization(User user, String slug, OrgRole role) {
         if (slug == null || slug.isBlank()) {
-            throw new IllegalArgumentException("Organization slug is required to create a new organization");
+            throw new IllegalArgumentException("Organization slug is required to join an existing organization");
         }
 
         Organization organization = organizationRepository.findBySlug(slug)

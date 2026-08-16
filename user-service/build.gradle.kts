@@ -7,6 +7,8 @@ plugins {
 description = "user-service"
 
 dependencies {
+	implementation(project(":shared-core"))
+
 	// custom starters
 	implementation(libs.lisovskyi.security)
 	implementation(libs.lisovskyi.jpa)
@@ -23,6 +25,7 @@ dependencies {
 	implementation(libs.mapstruct.core)
 	implementation(libs.resilience4j.spring.boot)
 	implementation(libs.spring.oauth2.client)
+	implementation(libs.caffeine)
 
 	compileOnly(libs.lombok)
 

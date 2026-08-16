@@ -10,6 +10,7 @@ import com.sentio.user_service.auth.dto.*;
 import com.sentio.user_service.auth.oauth.GoogleAccountResolver;
 import com.sentio.user_service.auth.oauth.dto.GoogleIdentity;
 import com.sentio.user_service.auth.token.TokenIssuer;
+import com.sentio.user_service.organization.OrganizationConstants;
 import com.sentio.user_service.organization.OrganizationMemberRepository;
 import com.sentio.user_service.organization.OrganizationProvisioningService;
 import com.sentio.user_service.organization.entity.OrganizationMember;
@@ -106,7 +107,13 @@ public class AuthService {
         String firstName = identity.firstName() != null ? identity.firstName() : "";
         String lastName = identity.lastName() != null ? identity.lastName() : "";
         String name = (firstName + " " + lastName).trim();
-        return name.isBlank() ? identity.email() : name;
+        String orgName = name.isBlank() ? identity.email() : name;
+
+        // Profile-derived, not user-typed - nothing stops Google from handing back a
+        // name longer than the organizations.name column (Organization.NAME_LENGTH).
+        return orgName.length() > OrganizationConstants.NAME_LENGTH
+                ? orgName.substring(0, OrganizationConstants.NAME_LENGTH)
+                : orgName;
     }
 
     @Transactional
@@ -145,7 +152,11 @@ public class AuthService {
         }
 
         if (accessToken != null) {
-            jwtBlacklistService.addToBlacklist(accessToken, jwtService.extractExpiration(accessToken).toEpochMilli());
+            try {
+                jwtBlacklistService.addToBlacklist(accessToken, jwtService.extractExpiration(accessToken).toEpochMilli());
+            } catch (Exception e) {
+                log.debug("Could not blacklist access token on logout, skipping", e);
+            }
         }
     }
 

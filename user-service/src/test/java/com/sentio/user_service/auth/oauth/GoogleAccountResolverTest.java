@@ -72,17 +72,23 @@ class GoogleAccountResolverTest {
         verify(userRepository, never()).save(any());
     }
 
+    // The check is hoisted above both the "link to existing account" and "create new
+    // account" branches, so an unverified Google email is rejected before we ever look
+    // up (or create) a User by email - whether or not user@sentio.dev already exists is
+    // irrelevant, which is exactly the point: without this, an attacker with an
+    // unverified Google identity for someone else's email could register/claim that
+    // email first via the new-user path, since only the "existing account" branch used
+    // to check verification.
     @Test
-    void unverifiedEmailMatchingLocalAccount_refusesToLinkAndThrowsUnauthorized() {
-        User existingLocalUser = User.builder().email("user@sentio.dev").build();
-        existingLocalUser.setId(1L);
+    void unverifiedEmail_isRejectedBeforeAnyAccountLookupOrCreation() {
         when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
                 .thenReturn(Optional.empty());
-        when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.of(existingLocalUser));
 
         assertThatThrownBy(() -> googleAccountResolver.resolveOrCreate(identity(false)))
                 .isInstanceOf(UnauthorizedException.class);
 
+        verify(userRepository, never()).findByEmail(any());
+        verify(userRepository, never()).save(any());
         verify(userIdentityRepository, never()).save(any());
     }
 

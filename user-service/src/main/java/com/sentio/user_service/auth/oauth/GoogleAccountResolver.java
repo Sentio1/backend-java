@@ -34,17 +34,16 @@ public class GoogleAccountResolver {
             return existingIdentity.get().getUser();
         }
 
+        // Google can, in rare edge cases (e.g. unverified Workspace domains), hand out
+        // a token for an email it hasn't verified. Auto-linking that to an existing
+        // local account would let an attacker take it over - refuse instead.
+        if (!identity.emailVerified()) {
+            throw new UnauthorizedException("Google account email is not verified");
+        }
+
         Optional<User> existingUserByEmail = userRepository.findByEmail(identity.email());
         if (existingUserByEmail.isPresent()) {
             User user = existingUserByEmail.get();
-
-            // Google can, in rare edge cases (e.g. unverified Workspace domains), hand out
-            // a token for an email it hasn't verified. Auto-linking that to an existing
-            // local account would let an attacker take it over - refuse instead.
-            if (!identity.emailVerified()) {
-                throw new UnauthorizedException("Google account email is not verified");
-            }
-
             linkGoogleIdentity(user, identity.sub());
             return user;
         }

@@ -13,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 
+import static com.sentio.user_service.auth.oauth.GoogleOAuth2Constants.ERROR_OAUTH_FAILED;
+
 @Component
 @Slf4j
 public class GoogleOAuth2FailureHandler implements AuthenticationFailureHandler {
@@ -28,7 +30,7 @@ public class GoogleOAuth2FailureHandler implements AuthenticationFailureHandler 
     ) throws IOException, ServletException {
         log.warn("Google OAuth2 authentication failed: {}", exception.getMessage());
         invalidateSession(request);
-        response.sendRedirect(redirectUri + "?error=oauth_failed");
+        response.sendRedirect(redirectUri + ERROR_OAUTH_FAILED);
     }
 
     private void invalidateSession(HttpServletRequest request) {

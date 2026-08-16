@@ -7,6 +7,10 @@ spring:
   datasource:
     driver-class-name: org.postgresql.Driver
 
+  data:
+    redis:
+      password: ${REDIS_PASSWORD:}
+
   security:
     oauth2:
       client:
@@ -44,31 +48,23 @@ resilience4j:
     configs:
       login-by-email:
         limit-for-period: 5
-        limit-refresh-period:
-          seconds: 60
-        timeout-duration:
-          seconds: 0
+        limit-refresh-period: 60s
+        timeout-duration: 0s
 
       login-by-ip:
         limit-for-period: 20
-        limit-refresh-period:
-          seconds: 60
-        timeout-duration:
-          seconds: 0
+        limit-refresh-period: 60s
+        timeout-duration: 0s
 
       register-by-email:
         limit-for-period: 5
-        limit-refresh-period:
-          seconds: 60
-        timeout-duration:
-          seconds: 0
+        limit-refresh-period: 60s
+        timeout-duration: 0s
 
       register-by-ip:
         limit-for-period: 20
-        limit-refresh-period:
-          seconds: 60
-        timeout-duration:
-          seconds: 0
+        limit-refresh-period: 60s
+        timeout-duration: 0s
 
 app:
   jwt:
@@ -95,3 +91,6 @@ app:
   oauth:
     success-redirect-uri: http://localhost:5173/dashboard
     failure-redirect-uri: http://localhost:5173/login
+
+  async:
+    enabled: true

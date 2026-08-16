@@ -22,7 +22,7 @@ import static com.sentio.user_service.organization.OrganizationConstants.*;
 @SequenceSize(size = 50)
 public class Organization extends TimestampedEntity {
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, length = NAME_LENGTH)
     private String name;
 
     @Column(name = "slug", unique = true, nullable = false, length = SLUG_LENGTH)

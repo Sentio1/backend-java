@@ -27,7 +27,7 @@ Claims поза цим списком (крім `id`, який лишаєтьс�
 
 ### JWKS-ендпоінт
 
-```
+```text
 GET /api/v1/.well-known/jwks.json
 ```
 

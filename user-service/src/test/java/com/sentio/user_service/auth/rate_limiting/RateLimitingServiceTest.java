@@ -1,5 +1,8 @@
 package com.sentio.user_service.auth.rate_limiting;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
@@ -36,7 +39,9 @@ class RateLimitingServiceTest {
                 .addRateLimiterConfig("register-by-ip", onePerMinute)
                 .build();
 
-        rateLimitingService = new RateLimitingService(registry);
+        Cache<String, RateLimiter> limitersCache = Caffeine.newBuilder().build();
+
+        rateLimitingService = new RateLimitingService(limitersCache, registry);
     }
 
     @Test

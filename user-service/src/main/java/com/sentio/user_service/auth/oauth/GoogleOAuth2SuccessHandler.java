@@ -20,6 +20,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
+import static com.sentio.user_service.auth.oauth.GoogleOAuth2Constants.ERROR_OAUTH_FAILED;
+
 @Component
 @Slf4j
 @RequiredArgsConstructor
@@ -40,7 +42,12 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             @NonNull HttpServletResponse response,
             @NonNull Authentication authentication
     ) throws IOException, ServletException {
-        OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+        if (!(authentication.getPrincipal() instanceof OAuth2User oAuth2User)) {
+            log.warn("Google OAuth2 principal is not an OAuth2User");
+            invalidateSession(request);
+            response.sendRedirect(failureRedirectUri + ERROR_OAUTH_FAILED);
+            return;
+        }
 
         String googleSub = oAuth2User.getAttribute("sub");
         String email = oAuth2User.getAttribute("email");
@@ -49,9 +56,10 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         Boolean emailVerified = oAuth2User.getAttribute("email_verified");
 
         if (googleSub == null || email == null) {
-            log.warn("Google OAuth2 principal missing required attributes: sub={}, email={}", googleSub, email);
+            log.warn("Google OAuth2 principal missing required attributes: subPresent={}, emailPresent={}",
+                    googleSub != null, email != null);
             invalidateSession(request);
-            response.sendRedirect(failureRedirectUri + "?error=oauth_failed");
+            response.sendRedirect(failureRedirectUri + ERROR_OAUTH_FAILED);
             return;
         }
 
@@ -70,7 +78,7 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         } catch (Exception e) {
             log.warn("Google OAuth2 login failed after provider authentication", e);
             invalidateSession(request);
-            response.sendRedirect(failureRedirectUri + "?error=oauth_failed");
+            response.sendRedirect(failureRedirectUri + ERROR_OAUTH_FAILED);
         }
     }
 

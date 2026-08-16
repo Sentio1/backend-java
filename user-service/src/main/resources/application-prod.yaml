@@ -18,6 +18,22 @@ spring:
     enabled: true
     baseline-on-migrate: true
 
+server:
+  # Only correct because prod is assumed to sit behind a trusted reverse proxy /
+  # ingress / load balancer that sets X-Forwarded-* itself and strips any client-
+  # supplied value before it reaches us. Do not enable this in dev/test, where no
+  # such proxy exists - HttpRequestUtils.getClientIP() relies on it being disabled
+  # there so getRemoteAddr() stays the real peer address.
+  forward-headers-strategy: framework
+
+app:
+  # No defaults on purpose: application.yaml's localhost:5173 fallback is a dev
+  # convenience, not something that should ever silently apply in prod. Missing
+  # either of these must fail startup, not redirect real users to localhost.
+  oauth:
+    success-redirect-uri: ${OAUTH_SUCCESS_REDIRECT_URI}
+    failure-redirect-uri: ${OAUTH_FAILURE_REDIRECT_URI}
+
 
 logging:
   level:

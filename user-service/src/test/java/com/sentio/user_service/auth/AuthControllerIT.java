@@ -5,6 +5,7 @@ import com.lisovskyi.web.error.autoconfigure.ErrorResponse;
 import com.sentio.user_service.TestcontainersConfiguration;
 import com.sentio.user_service.auth.dto.LoginRequest;
 import com.sentio.user_service.auth.dto.RegistrationRequest;
+import com.sentio.user_service.auth.rate_limiting.RateLimitingService;
 import com.sentio.user_service.organization.enums.OrgRole;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +44,15 @@ class AuthControllerIT {
     private MockMvc mockMvc;
     @Autowired
     private ObjectMapper objectMapper;
+
+    // MockMvc reports the same remote address for every request in this class, and the
+    // RateLimiterRegistry lives in the (context-cached) Spring context, not per test -
+    // so without this, every /auth/register and /auth/login call here would draw from
+    // the same register-by-ip / login-by-ip limiter as every other IT class in the same
+    // test run, making pass/fail depend on execution order. This class isn't testing
+    // rate limiting (RateLimitingServiceTest does), so it shouldn't be subject to it.
+    @MockitoBean
+    private RateLimitingService rateLimitingService;
 
     private static RegistrationRequest ownerRequest(String email, String orgName) {
         return new RegistrationRequest(

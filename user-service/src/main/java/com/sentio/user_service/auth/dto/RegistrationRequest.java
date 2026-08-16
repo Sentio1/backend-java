@@ -7,8 +7,10 @@ import com.sentio.user_service.organization.enums.PlanTier;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import static com.sentio.user_service.auth.AuthConstants.*;
+import static com.sentio.user_service.organization.OrganizationConstants.NAME_LENGTH;
 
 @PasswordsMatch(
         originalPassword = "password",
@@ -35,6 +37,7 @@ public record RegistrationRequest(
         String middleName,
 
         // Дані організації
+        @Size(max = NAME_LENGTH)
         String name,
         String edrpou,
 

@@ -1,7 +1,7 @@
 plugins {
 	java
-	id("org.springframework.boot") version "4.1.0"
-	id("io.spring.dependency-management") version "1.1.7"
+	alias(libs.plugins.spring.boot)
+	alias(libs.plugins.spring.dependency.management)
 }
 
 description = "user-service"
@@ -12,44 +12,40 @@ dependencies {
 	implementation(libs.lisovskyi.jpa)
 	implementation(libs.lisovskyi.web.error)
 
-	implementation("org.springframework.boot:spring-boot-starter-actuator")
-	implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
-	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-	implementation("org.springframework.boot:spring-boot-starter-flyway")
-	implementation("org.springframework.boot:spring-boot-starter-jdbc")
-	implementation("org.springframework.boot:spring-boot-starter-validation")
-	implementation("org.springframework.boot:spring-boot-starter-webmvc")
-	implementation("org.flywaydb:flyway-database-postgresql")
+	implementation(libs.spring.actuator)
+	implementation(libs.spring.data.jdbc)
+	implementation(libs.spring.data.jpa)
+	implementation(libs.spring.flyway)
+	implementation(libs.spring.jdbc)
+	implementation(libs.spring.validation)
+	implementation(libs.spring.webmvc)
+	implementation(libs.flyway.postgresql)
 	implementation(libs.mapstruct.core)
 	implementation(libs.resilience4j.spring.boot)
 	implementation(libs.spring.oauth2.client)
 
-	compileOnly("org.projectlombok:lombok")
+	compileOnly(libs.lombok)
 
-	developmentOnly("org.springframework.boot:spring-boot-devtools")
+	developmentOnly(libs.spring.devtools)
 
-	runtimeOnly("org.postgresql:postgresql")
+	runtimeOnly(libs.postgresql)
 
 	annotationProcessor(libs.mapstruct.processor)
-	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
-	annotationProcessor("org.projectlombok:lombok")
-	// Without this, MapStruct's processor can't see Lombok-generated getters/setters
-	// in the same compilation round (processor ordering isn't guaranteed) - it silently
-	// maps only inherited/pre-compiled properties and leaves the rest null instead of
-	// failing loudly. This makes the two run in the correct order regardless.
-	annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
+	annotationProcessor(libs.spring.configuration.processor)
+	annotationProcessor(libs.lombok)
+	annotationProcessor(libs.lombok.mapstruct.binding)
 
-	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-data-jdbc-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-flyway-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-jdbc-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-	testImplementation("org.springframework.boot:spring-boot-testcontainers")
-	testImplementation("org.testcontainers:testcontainers-junit-jupiter")
-	testImplementation("org.testcontainers:testcontainers-postgresql")
-	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+	testImplementation(libs.spring.actuator.test)
+	testImplementation(libs.spring.data.jdbc.test)
+	testImplementation(libs.spring.data.jpa.test)
+	testImplementation(libs.spring.flyway.test)
+	testImplementation(libs.spring.jdbc.test)
+	testImplementation(libs.spring.validation.test)
+	testImplementation(libs.spring.webmvc.test)
+	testImplementation(libs.spring.boot.testcontainers)
+	testImplementation(libs.testcontainers.junit)
+	testImplementation(libs.testcontainers.postgresql)
+	testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 tasks.register<Exec>("dopplerRun") {

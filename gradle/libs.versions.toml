@@ -18,6 +18,7 @@ lisovskyi-jpa = "0.2.0"
 lisovskyi-web-error = "0.1.4"
 
 mapstruct = "1.6.3"
+lombok-mapstruct-binding = "0.2.0"
 
 [libraries]
 
@@ -35,6 +36,7 @@ mapstruct-core = { group = "org.mapstruct", name = "mapstruct", version.ref = "m
 mapstruct-processor = { group = "org.mapstruct", name = "mapstruct-processor", version.ref = "mapstruct" }
 
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+spring-webmvc = { module = "org.springframework.boot:spring-boot-starter-webmvc" }
 
 spring-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
 spring-data-jdbc = { module = "org.springframework.boot:spring-boot-starter-data-jdbc" }
@@ -64,14 +66,31 @@ spring-devtools = { module = "org.springframework.boot:spring-boot-devtools" }
 
 spring-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor" }
 
+# Test-scoped starters (Spring Boot 4 splits these out from the main starter)
+spring-actuator-test = { module = "org.springframework.boot:spring-boot-starter-actuator-test" }
+spring-data-jdbc-test = { module = "org.springframework.boot:spring-boot-starter-data-jdbc-test" }
+spring-data-jpa-test = { module = "org.springframework.boot:spring-boot-starter-data-jpa-test" }
+spring-flyway-test = { module = "org.springframework.boot:spring-boot-starter-flyway-test" }
+spring-jdbc-test = { module = "org.springframework.boot:spring-boot-starter-jdbc-test" }
+spring-validation-test = { module = "org.springframework.boot:spring-boot-starter-validation-test" }
+spring-webmvc-test = { module = "org.springframework.boot:spring-boot-starter-webmvc-test" }
+
+spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
+
 
 # =========================
 # Database / Migration
 # =========================
 
+spring-flyway = { module = "org.springframework.boot:spring-boot-starter-flyway" }
+
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 
-flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
+# Version intentionally left to the Spring Boot BOM (4.1.0 manages 12.4.0) - flyway-core
+# and flyway-database-postgresql must stay on matching major versions, and the BOM already
+# keeps them in sync. Pinning this independently (the old "flyway" version ref is 13.2.0)
+# would desync it from flyway-core and break at runtime.
+flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
 
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 
@@ -136,6 +155,11 @@ spring-ai-google-genai = { module = "org.springframework.ai:spring-ai-starter-mo
 
 lombok = { module = "org.projectlombok:lombok" }
 
+# Ensures the MapStruct annotation processor runs after Lombok's in the same compilation
+# round - without it, Lombok-generated getters/setters aren't visible yet and MapStruct
+# silently leaves unmapped fields null instead of failing loudly.
+lombok-mapstruct-binding = { module = "org.projectlombok:lombok-mapstruct-binding", version.ref = "lombok-mapstruct-binding" }
+
 
 # =========================
 # Testing
@@ -143,11 +167,16 @@ lombok = { module = "org.projectlombok:lombok" }
 
 spring-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+
 testcontainers = { module = "org.testcontainers:testcontainers" }
 
-testcontainers-junit = { module = "org.testcontainers:junit-jupiter" }
+# NOTE: fixed from "org.testcontainers:junit-jupiter" / "org.testcontainers:postgresql" -
+# those coordinates don't resolve against testcontainers 2.x, which renamed these modules
+# with a "testcontainers-" prefix.
+testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter" }
 
-testcontainers-postgresql = { module = "org.testcontainers:postgresql" }
+testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
 
 testcontainers-mongodb = { module = "org.testcontainers:mongodb" }
 

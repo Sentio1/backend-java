@@ -1,10 +1,37 @@
+# Build artifacts
 target/
+build/
+**/build/
 *.jar
 *.class
+.gradle/
+
+# IDE
 .idea/
 *.iml
 .vscode/
 *.DS_Store
-.gradle/
-build/
-**/build/
+
+# Graphify — генеровані артефакти графа, не потрібні в git-історії
+graphify-out/
+.graphify_version
+.graphify_root
+.graphify_python
+
+# Секрети / ключі — ніколи не комітити
+*.pem
+*.der
+*.key
+private.*
+.env
+.env.local
+
+# Логи
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker data
+redis_data/

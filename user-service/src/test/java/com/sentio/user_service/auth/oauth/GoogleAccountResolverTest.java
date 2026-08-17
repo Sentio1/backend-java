@@ -1,21 +1,5 @@
 package com.sentio.user_service.auth.oauth;
 
-import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
-import com.sentio.user_service.auth.oauth.dto.GoogleIdentity;
-import com.sentio.user_service.user.entity.User;
-import com.sentio.user_service.user.entity.UserIdentity;
-import com.sentio.user_service.user.enums.AuthProvider;
-import com.sentio.user_service.user.repository.UserIdentityRepository;
-import com.sentio.user_service.user.repository.UserRepository;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,13 +7,34 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
+import com.sentio.user_service.auth.AuthGuards;
+import com.sentio.user_service.auth.oauth.dto.GoogleIdentity;
+import com.sentio.user_service.user.entity.User;
+import com.sentio.user_service.user.entity.UserIdentity;
+import com.sentio.user_service.user.enums.AuthProvider;
+import com.sentio.user_service.user.repository.UserIdentityRepository;
+import com.sentio.user_service.user.repository.UserRepository;
+import java.util.Optional;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 @ExtendWith(MockitoExtension.class)
+/** GoogleAccountResolverTest class. */
 class GoogleAccountResolverTest {
 
     @Mock
     private UserRepository userRepository;
+
     @Mock
     private UserIdentityRepository userIdentityRepository;
+
+    @Mock
+    private AuthGuards authGuards;
 
     @InjectMocks
     private GoogleAccountResolver googleAccountResolver;
@@ -42,7 +47,11 @@ class GoogleAccountResolverTest {
     void knownGoogleIdentity_returnsItsUserWithoutTouchingUserRepository() {
         User user = User.builder().email("user@sentio.dev").build();
         user.setId(1L);
-        UserIdentity existing = UserIdentity.builder().user(user).provider(AuthProvider.GOOGLE).providerUserId("google-sub-1").build();
+        UserIdentity existing = UserIdentity.builder()
+                .user(user)
+                .provider(AuthProvider.GOOGLE)
+                .providerUserId("google-sub-1")
+                .build();
         when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
                 .thenReturn(Optional.of(existing));
 
@@ -55,7 +64,8 @@ class GoogleAccountResolverTest {
 
     @Test
     void verifiedEmailMatchingLocalAccount_linksGoogleIdentityToIt() {
-        User existingLocalUser = User.builder().email("user@sentio.dev").password("bcrypt-hash").build();
+        User existingLocalUser =
+                User.builder().email("user@sentio.dev").password("bcrypt-hash").build();
         existingLocalUser.setId(1L);
         when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
                 .thenReturn(Optional.empty());

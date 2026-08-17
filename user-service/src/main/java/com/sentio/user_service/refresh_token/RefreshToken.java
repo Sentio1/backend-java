@@ -1,26 +1,28 @@
 package com.sentio.user_service.refresh_token;
 
+import static com.sentio.user_service.refresh_token.RefreshTokenConstants.*;
+
 import com.lisovskyi.jpa.autoconfigure.entity.CreationTimestampedEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import com.sentio.user_service.user.entity.User;
 import jakarta.persistence.*;
+import java.net.InetAddress;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
-import java.net.InetAddress;
-import java.time.Instant;
-
-import static com.sentio.user_service.refresh_token.RefreshTokenConstants.*;
-
 @Entity
 @Table(name = "refresh_tokens")
-@Getter @Setter
-@AllArgsConstructor @NoArgsConstructor
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @SuperBuilder
 @SequenceSize(size = 50)
+/** RefreshToken class. */
 public class RefreshToken extends CreationTimestampedEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)

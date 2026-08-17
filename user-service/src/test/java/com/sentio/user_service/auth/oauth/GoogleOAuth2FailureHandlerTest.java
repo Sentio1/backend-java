@@ -1,5 +1,11 @@
 package com.sentio.user_service.auth.oauth;
 
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -12,19 +18,15 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
+/** GoogleOAuth2FailureHandlerTest class. */
 class GoogleOAuth2FailureHandlerTest {
 
     private static final String FAILURE_URI = "http://localhost:5173/login";
 
     @Mock
     private HttpServletRequest request;
+
     @Mock
     private HttpServletResponse response;
 
@@ -39,8 +41,8 @@ class GoogleOAuth2FailureHandlerTest {
     @Test
     void anyAuthenticationException_redirectsToGenericFailureUri() throws Exception {
         when(request.getSession(false)).thenReturn(null);
-        OAuth2AuthenticationException exception =
-                new OAuth2AuthenticationException(new OAuth2Error("access_denied"), "user denied consent on Google's screen");
+        OAuth2AuthenticationException exception = new OAuth2AuthenticationException(
+                new OAuth2Error("access_denied"), "user denied consent on Google's screen");
 
         handler.onAuthenticationFailure(request, response, exception);
 
@@ -54,8 +56,8 @@ class GoogleOAuth2FailureHandlerTest {
         HttpSession session = mock(HttpSession.class);
         when(request.getSession(false)).thenReturn(session);
 
-        handler.onAuthenticationFailure(request, response,
-                new OAuth2AuthenticationException(new OAuth2Error("server_error")));
+        handler.onAuthenticationFailure(
+                request, response, new OAuth2AuthenticationException(new OAuth2Error("server_error")));
 
         verify(session).invalidate();
     }
@@ -64,8 +66,8 @@ class GoogleOAuth2FailureHandlerTest {
     void noSession_doesNotThrow() throws Exception {
         when(request.getSession(false)).thenReturn(null);
 
-        handler.onAuthenticationFailure(request, response,
-                new OAuth2AuthenticationException(new OAuth2Error("server_error")));
+        handler.onAuthenticationFailure(
+                request, response, new OAuth2AuthenticationException(new OAuth2Error("server_error")));
 
         verify(response).sendRedirect(FAILURE_URI + "?error=oauth_failed");
     }

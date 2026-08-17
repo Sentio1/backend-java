@@ -5,19 +5,21 @@ import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import com.sentio.user_service.organization.enums.OrgRole;
 import com.sentio.user_service.user.entity.User;
 import jakarta.persistence.*;
+import java.time.Instant;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.Instant;
-
 @Entity
 @Table(name = "organization_members")
-@Getter @Setter
-@AllArgsConstructor @NoArgsConstructor
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @SuperBuilder
 @SequenceSize(size = 50)
+/** OrganizationMember class. */
 public class OrganizationMember extends CreationTimestampedEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)

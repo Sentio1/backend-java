@@ -1,6 +1,13 @@
 package com.sentio.user_service.auth;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.sentio.user_service.TestcontainersConfiguration;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -8,14 +15,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * The JWKS endpoint (com.lisovskyi.security.autoconfigure.security.jwt.JwksController, from the
@@ -29,6 +28,7 @@ class JwksControllerIT {
 
     @Autowired
     private MockMvc mockMvc;
+
     @Autowired
     private tools.jackson.databind.ObjectMapper objectMapper;
 
@@ -56,8 +56,7 @@ class JwksControllerIT {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        Map<String, Object> body = objectMapper.readValue(
-                result.getResponse().getContentAsString(), Map.class);
+        Map<String, Object> body = objectMapper.readValue(result.getResponse().getContentAsString(), Map.class);
         List<Map<String, Object>> keys = (List<Map<String, Object>>) body.get("keys");
 
         assertThat(keys).hasSize(2);

@@ -1,24 +1,23 @@
 package com.sentio.user_service.auth.rate_limiting;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
-
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 /**
- * Real RateLimiterRegistry with tiny, test-only limits (no mocking of
- * Resilience4j internals) - exercises the actual permission-acquisition logic
- * instead of just verifying that some method got called. Named configs mirror
- * application.yaml's resilience4j.ratelimiter.configs.{login,register}-by-{email,ip}.
+ * Real RateLimiterRegistry with tiny, test-only limits (no mocking of Resilience4j internals) -
+ * exercises the actual permission-acquisition logic instead of just verifying that some method got
+ * called. Named configs mirror application.yaml's
+ * resilience4j.ratelimiter.configs.{login,register}-by-{email,ip}.
  */
 class RateLimitingServiceTest {
 

@@ -2,14 +2,16 @@ package com.sentio.user_service.security;
 
 import com.lisovskyi.security.autoconfigure.security.SecurityPrincipal;
 import com.sentio.user_service.user.entity.User;
+import java.util.Collection;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 
-import java.util.Collection;
-
+@Getter
 @RequiredArgsConstructor
+/** SecurityUser class. */
 public class SecurityUser implements SecurityPrincipal {
     private final transient User user;
 

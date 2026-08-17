@@ -1,5 +1,13 @@
 package com.sentio.user_service.auth.oauth;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
 import com.lisovskyi.security.autoconfigure.cookie.CookieService;
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
 import com.sentio.user_service.auth.AuthService;
@@ -20,19 +28,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-
 /**
- * No Spring context / real Google redirect here - the handler's own logic
- * (attribute extraction, error handling, cookie issuance, redirect targets,
- * session cleanup) is plain Java once Spring Security hands it an
- * authenticated OAuth2User, so it's tested as such.
+ * No Spring context / real Google redirect here - the handler's own logic (attribute extraction,
+ * error handling, cookie issuance, redirect targets, session cleanup) is plain Java once Spring
+ * Security hands it an authenticated OAuth2User, so it's tested as such.
  */
 @ExtendWith(MockitoExtension.class)
 class GoogleOAuth2SuccessHandlerTest {
@@ -42,14 +41,19 @@ class GoogleOAuth2SuccessHandlerTest {
 
     @Mock
     private AuthService authService;
+
     @Mock
     private CookieService cookieService;
+
     @Mock
     private HttpServletRequest request;
+
     @Mock
     private HttpServletResponse response;
+
     @Mock
     private Authentication authentication;
+
     @Mock
     private OAuth2User oAuth2User;
 
@@ -63,7 +67,8 @@ class GoogleOAuth2SuccessHandlerTest {
         when(authentication.getPrincipal()).thenReturn(oAuth2User);
     }
 
-    private void stubGoogleAttributes(String sub, String email, String firstName, String lastName, Boolean emailVerified) {
+    private void stubGoogleAttributes(
+            String sub, String email, String firstName, String lastName, Boolean emailVerified) {
         when(oAuth2User.getAttribute("sub")).thenReturn(sub);
         when(oAuth2User.getAttribute("email")).thenReturn(email);
         when(oAuth2User.getAttribute("given_name")).thenReturn(firstName);
@@ -74,17 +79,18 @@ class GoogleOAuth2SuccessHandlerTest {
     @Test
     void validProfile_issuesCookiesAndRedirectsToSuccessUri() throws Exception {
         stubGoogleAttributes("google-sub-1", "user@sentio.dev", "Jane", "Doe", true);
-        UserContextResponse userContext = UserContextResponse.builder().id(1L).email("user@sentio.dev").build();
-        when(authService.loginOrRegisterWithGoogle(any(GoogleIdentity.class)))
+        UserContextResponse userContext =
+                UserContextResponse.builder().id(1L).email("user@sentio.dev").build();
+        when(authService.loginOrRegisterWithGoogle(any(GoogleIdentity.class), any(), any()))
                 .thenReturn(new AuthResult(new AuthTokens("access-token", "refresh-token"), userContext));
         when(request.getSession(false)).thenReturn(null);
 
         handler.onAuthenticationSuccess(request, response, authentication);
 
         ArgumentCaptor<GoogleIdentity> identityCaptor = ArgumentCaptor.forClass(GoogleIdentity.class);
-        verify(authService).loginOrRegisterWithGoogle(identityCaptor.capture());
-        assertThat(identityCaptor.getValue()).isEqualTo(
-                new GoogleIdentity("google-sub-1", "user@sentio.dev", "Jane", "Doe", true));
+        verify(authService).loginOrRegisterWithGoogle(identityCaptor.capture(), any(), any());
+        assertThat(identityCaptor.getValue())
+                .isEqualTo(new GoogleIdentity("google-sub-1", "user@sentio.dev", "Jane", "Doe", true));
 
         verify(cookieService).setAccessTokenCookie(response, "access-token");
         verify(cookieService).setRefreshTokenCookie(response, "refresh-token");
@@ -94,14 +100,16 @@ class GoogleOAuth2SuccessHandlerTest {
     @Test
     void missingEmailVerifiedAttribute_treatedAsNotVerified() throws Exception {
         stubGoogleAttributes("google-sub-1", "user@sentio.dev", "Jane", "Doe", null);
-        when(authService.loginOrRegisterWithGoogle(any(GoogleIdentity.class)))
-                .thenReturn(new AuthResult(new AuthTokens("at", "rt"), UserContextResponse.builder().build()));
+        when(authService.loginOrRegisterWithGoogle(any(GoogleIdentity.class), any(), any()))
+                .thenReturn(new AuthResult(
+                        new AuthTokens("at", "rt"),
+                        UserContextResponse.builder().build()));
         when(request.getSession(false)).thenReturn(null);
 
         handler.onAuthenticationSuccess(request, response, authentication);
 
         ArgumentCaptor<GoogleIdentity> identityCaptor = ArgumentCaptor.forClass(GoogleIdentity.class);
-        verify(authService).loginOrRegisterWithGoogle(identityCaptor.capture());
+        verify(authService).loginOrRegisterWithGoogle(identityCaptor.capture(), any(), any());
         assertThat(identityCaptor.getValue().emailVerified()).isFalse();
     }
 
@@ -119,7 +127,7 @@ class GoogleOAuth2SuccessHandlerTest {
     @Test
     void authServiceThrows_redirectsToGenericFailureAndNeverLeaksExceptionMessage() throws Exception {
         stubGoogleAttributes("google-sub-1", "user@sentio.dev", "Jane", "Doe", false);
-        when(authService.loginOrRegisterWithGoogle(any(GoogleIdentity.class)))
+        when(authService.loginOrRegisterWithGoogle(any(GoogleIdentity.class), any(), any()))
                 .thenThrow(new UnauthorizedException("Google account email is not verified"));
         when(request.getSession(false)).thenReturn(null);
 
@@ -133,8 +141,10 @@ class GoogleOAuth2SuccessHandlerTest {
     @Test
     void successfulLogin_invalidatesExistingSession() throws Exception {
         stubGoogleAttributes("google-sub-1", "user@sentio.dev", "Jane", "Doe", true);
-        when(authService.loginOrRegisterWithGoogle(any(GoogleIdentity.class)))
-                .thenReturn(new AuthResult(new AuthTokens("at", "rt"), UserContextResponse.builder().build()));
+        when(authService.loginOrRegisterWithGoogle(any(GoogleIdentity.class), any(), any()))
+                .thenReturn(new AuthResult(
+                        new AuthTokens("at", "rt"),
+                        UserContextResponse.builder().build()));
         HttpSession session = org.mockito.Mockito.mock(HttpSession.class);
         when(request.getSession(false)).thenReturn(session);
 
@@ -146,8 +156,10 @@ class GoogleOAuth2SuccessHandlerTest {
     @Test
     void noExistingSession_doesNotThrowWhenTryingToInvalidate() throws Exception {
         stubGoogleAttributes("google-sub-1", "user@sentio.dev", "Jane", "Doe", true);
-        when(authService.loginOrRegisterWithGoogle(any(GoogleIdentity.class)))
-                .thenReturn(new AuthResult(new AuthTokens("at", "rt"), UserContextResponse.builder().build()));
+        when(authService.loginOrRegisterWithGoogle(any(GoogleIdentity.class), any(), any()))
+                .thenReturn(new AuthResult(
+                        new AuthTokens("at", "rt"),
+                        UserContextResponse.builder().build()));
         when(request.getSession(false)).thenReturn(null);
 
         handler.onAuthenticationSuccess(request, response, authentication);

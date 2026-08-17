@@ -1,15 +1,11 @@
 package com.sentio.user_service.auth;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
 import com.sentio.user_service.TestcontainersConfiguration;
 import com.sentio.user_service.auth.dto.AuthTokens;
 import com.sentio.user_service.auth.dto.RegistrationRequest;
-import com.sentio.user_service.organization.enums.OrgRole;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -18,15 +14,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
 /**
- * Deliberately NOT class-level @Transactional (unlike AuthControllerIT): a shared
- * test transaction would mean both "concurrent" calls actually run on the same
- * connection/session, which can't exercise real row-level locking. Each call to
- * {@link AuthService#refresh(String)} below opens its own transaction on its own
- * thread, same as two real concurrent HTTP requests would.
+ * Deliberately NOT class-level @Transactional (unlike AuthControllerIT): a shared test transaction
+ * would mean both "concurrent" calls actually run on the same connection/session, which can't
+ * exercise real row-level locking. Each call to {@link AuthService#refresh(String)} below opens its
+ * own transaction on its own thread, same as two real concurrent HTTP requests would.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -47,7 +44,7 @@ class RefreshTokenConcurrencyIT {
         Callable<AuthTokens> attempt = () -> {
             bothReady.countDown();
             go.await();
-            return authService.refresh(refreshToken);
+            return authService.refresh(refreshToken, "127.0.0.1", "test-agent");
         };
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
@@ -82,12 +79,11 @@ class RefreshTokenConcurrencyIT {
     }
 
     private String registerAndGetRefreshToken(String email) {
-        RegistrationRequest request = new RegistrationRequest(
-                email, "Password123!", "Password123!", null,
-                "Doe", "John", null,
-                "Acme Legal", null, null, null,
-                OrgRole.OWNER
-        );
-        return authService.register(request).authTokens().refreshToken();
+        RegistrationRequest request =
+                new RegistrationRequest(email, "Password123!", "Password123!", null, "Doe", "John", null);
+        return authService
+                .register(request, "127.0.0.1", "test-agent")
+                .authTokens()
+                .refreshToken();
     }
 }

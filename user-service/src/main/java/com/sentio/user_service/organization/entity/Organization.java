@@ -1,25 +1,29 @@
 package com.sentio.user_service.organization.entity;
 
+import static com.sentio.user_service.organization.OrganizationConstants.*;
+
 import com.lisovskyi.jpa.autoconfigure.entity.TimestampedEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import com.sentio.user_service.organization.enums.PlanTier;
 import com.sentio.user_service.organization.enums.SubscriptionStatus;
 import jakarta.persistence.*;
+import java.time.Instant;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
-
-import java.time.Instant;
-
-import static com.sentio.user_service.organization.OrganizationConstants.*;
 
 @Entity
 @Table(name = "organizations")
-@Getter @Setter
-@AllArgsConstructor @NoArgsConstructor
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @SuperBuilder
 @SequenceSize(size = 50)
+@SQLRestriction("deleted_at IS NULL")
+/** Organization class. */
 public class Organization extends TimestampedEntity {
 
     @Column(name = "name", nullable = false, length = NAME_LENGTH)

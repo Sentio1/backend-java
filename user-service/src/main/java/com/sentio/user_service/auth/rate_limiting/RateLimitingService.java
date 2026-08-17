@@ -5,13 +5,13 @@ import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Locale;
-
 @Service
 @RequiredArgsConstructor
+/** RateLimitingService class. */
 public class RateLimitingService {
 
     private final Cache<String, RateLimiter> limitersCache;
@@ -37,10 +37,8 @@ public class RateLimitingService {
         String emailConfig = action + "-by-email";
         String emailKey = String.format("%s-email:%s", action, email.toLowerCase(Locale.ROOT));
 
-        RateLimiter emailRateLimiter = limitersCache.get(
-                emailKey,
-                key -> RateLimiter.of(key, resolveConfig(emailConfig))
-        );
+        RateLimiter emailRateLimiter =
+                limitersCache.get(emailKey, key -> RateLimiter.of(key, resolveConfig(emailConfig)));
 
         if (!emailRateLimiter.acquirePermission()) {
             throw RequestNotPermitted.createRequestNotPermitted(emailRateLimiter);
@@ -49,10 +47,7 @@ public class RateLimitingService {
         String ipConfig = action + "-by-ip";
         String ipKey = String.format("%s-ip:%s", action, ip);
 
-        RateLimiter ipRateLimiter = limitersCache.get(
-                ipKey,
-                key -> RateLimiter.of(key, resolveConfig(ipConfig))
-        );
+        RateLimiter ipRateLimiter = limitersCache.get(ipKey, key -> RateLimiter.of(key, resolveConfig(ipConfig)));
 
         if (!ipRateLimiter.acquirePermission()) {
             throw RequestNotPermitted.createRequestNotPermitted(ipRateLimiter);
@@ -60,7 +55,8 @@ public class RateLimitingService {
     }
 
     private RateLimiterConfig resolveConfig(String configName) {
-        return rateLimiterRegistry.getConfiguration(configName)
+        return rateLimiterRegistry
+                .getConfiguration(configName)
                 .orElseThrow(() -> new IllegalStateException("No rate limiter config: " + configName));
     }
 }

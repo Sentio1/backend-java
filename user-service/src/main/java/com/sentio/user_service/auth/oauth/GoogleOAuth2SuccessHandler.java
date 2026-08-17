@@ -1,14 +1,18 @@
 package com.sentio.user_service.auth.oauth;
 
+import static com.sentio.user_service.auth.oauth.GoogleOAuth2Constants.ERROR_OAUTH_FAILED;
+
 import com.lisovskyi.security.autoconfigure.cookie.CookieService;
 import com.sentio.user_service.auth.AuthService;
 import com.sentio.user_service.auth.dto.AuthResult;
 import com.sentio.user_service.auth.dto.AuthTokens;
 import com.sentio.user_service.auth.oauth.dto.GoogleIdentity;
+import com.sentio.user_service.util.HttpRequestUtils;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import java.io.IOException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,13 +22,10 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-
-import static com.sentio.user_service.auth.oauth.GoogleOAuth2Constants.ERROR_OAUTH_FAILED;
-
 @Component
 @Slf4j
 @RequiredArgsConstructor
+/** GoogleOAuth2SuccessHandler class. */
 public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     @Value("${app.oauth.success-redirect-uri}")
@@ -40,8 +41,8 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     public void onAuthenticationSuccess(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull Authentication authentication
-    ) throws IOException, ServletException {
+            @NonNull Authentication authentication)
+            throws IOException, ServletException {
         if (!(authentication.getPrincipal() instanceof OAuth2User oAuth2User)) {
             log.warn("Google OAuth2 principal is not an OAuth2User");
             invalidateSession(request);
@@ -56,18 +57,21 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         Boolean emailVerified = oAuth2User.getAttribute("email_verified");
 
         if (googleSub == null || email == null) {
-            log.warn("Google OAuth2 principal missing required attributes: subPresent={}, emailPresent={}",
-                    googleSub != null, email != null);
+            log.warn(
+                    "Google OAuth2 principal missing required attributes: subPresent={}, emailPresent={}",
+                    googleSub != null,
+                    email != null);
             invalidateSession(request);
             response.sendRedirect(failureRedirectUri + ERROR_OAUTH_FAILED);
             return;
         }
 
-        GoogleIdentity identity = new GoogleIdentity(
-                googleSub, email, firstName, lastName, Boolean.TRUE.equals(emailVerified));
+        GoogleIdentity identity =
+                new GoogleIdentity(googleSub, email, firstName, lastName, Boolean.TRUE.equals(emailVerified));
 
         try {
-            AuthResult authResult = authService.loginOrRegisterWithGoogle(identity);
+            AuthResult authResult = authService.loginOrRegisterWithGoogle(
+                    identity, HttpRequestUtils.getClientIP(request), request.getHeader("User-Agent"));
             AuthTokens tokens = authResult.authTokens();
 
             cookieService.setAccessTokenCookie(response, tokens.accessToken());

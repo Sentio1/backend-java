@@ -35,3 +35,6 @@ Thumbs.db
 
 # Docker data
 redis_data/
+
+# claude local data
+.claude

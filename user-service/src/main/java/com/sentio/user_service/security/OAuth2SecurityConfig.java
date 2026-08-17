@@ -10,6 +10,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 
 @Configuration
 @RequiredArgsConstructor
+/** OAuth2SecurityConfig class. */
 public class OAuth2SecurityConfig {
 
     private final GoogleOAuth2SuccessHandler successHandler;
@@ -17,11 +18,8 @@ public class OAuth2SecurityConfig {
 
     @Bean
     public SecurityFilterChainCustomizer securityFilterChainCustomizer() {
-        return http -> http
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-            .oauth2Login(oauth -> oauth
-                    .successHandler(successHandler)
-                    .failureHandler(failureHandler)
-            );
+        return http -> http.sessionManagement(
+                        session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .oauth2Login(oauth -> oauth.successHandler(successHandler).failureHandler(failureHandler));
     }
 }

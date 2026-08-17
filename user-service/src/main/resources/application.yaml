@@ -11,6 +11,10 @@ spring:
     redis:
       password: ${REDIS_PASSWORD:}
 
+    web:
+      pageable:
+        max-page-size: 100
+
   security:
     oauth2:
       client:

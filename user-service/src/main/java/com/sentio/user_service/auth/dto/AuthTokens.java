@@ -1,6 +1,4 @@
 package com.sentio.user_service.auth.dto;
 
-public record AuthTokens(
-        String accessToken,
-        String refreshToken
-) {}
+/** AuthTokens record. */
+public record AuthTokens(String accessToken, String refreshToken) {}

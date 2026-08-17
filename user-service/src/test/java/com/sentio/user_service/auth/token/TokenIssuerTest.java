@@ -1,5 +1,11 @@
 package com.sentio.user_service.auth.token;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.lisovskyi.security.autoconfigure.security.jwt.JwtProperties;
 import com.lisovskyi.security.autoconfigure.security.jwt.JwtService;
 import com.lisovskyi.security.autoconfigure.security.jwt.OpaqueTokenService;
@@ -8,9 +14,15 @@ import com.sentio.user_service.organization.entity.Organization;
 import com.sentio.user_service.organization.entity.OrganizationMember;
 import com.sentio.user_service.organization.enums.OrgRole;
 import com.sentio.user_service.refresh_token.RefreshToken;
+import com.sentio.user_service.refresh_token.RefreshTokenConstants;
 import com.sentio.user_service.refresh_token.RefreshTokenRepository;
 import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.enums.PlatformRole;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,17 +30,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.Base64;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-
 /**
- * jwtService/opaqueTokenService are real (pure logic, no I/O) so the token
- * round-trip and claim shaping are actually exercised, not just mocked away.
- * Only the refresh token persistence goes through a mock repository.
+ * jwtService/opaqueTokenService are real (pure logic, no I/O) so the token round-trip and claim
+ * shaping are actually exercised, not just mocked away. Only the refresh token persistence goes
+ * through a mock repository.
  */
 @ExtendWith(MockitoExtension.class)
 class TokenIssuerTest {
@@ -52,7 +57,7 @@ class TokenIssuerTest {
         jwtProperties.setRefreshTokenExpiration(604_800_000L);
         jwtService = new JwtService(jwtProperties);
 
-        tokenIssuer = new TokenIssuer(jwtService, new OpaqueTokenService(), jwtProperties, refreshTokenRepository);
+        tokenIssuer = new TokenIssuer(jwtProperties, jwtService, new OpaqueTokenService(), refreshTokenRepository);
     }
 
     // JwtService doesn't expose a generic claims getter, and neither jjwt nor
@@ -67,7 +72,8 @@ class TokenIssuerTest {
     }
 
     private OrganizationMember membershipFor(User user, OrgRole role) {
-        Organization organization = Organization.builder().name("Acme Legal").slug("acme").build();
+        Organization organization =
+                Organization.builder().name("Acme Legal").slug("acme").build();
         organization.setId(42L);
         return OrganizationMember.builder()
                 .user(user)
@@ -83,7 +89,7 @@ class TokenIssuerTest {
         user.setId(1L);
         OrganizationMember membership = membershipFor(user, OrgRole.LAWYER);
 
-        AuthTokens tokens = tokenIssuer.issue(user, membership);
+        AuthTokens tokens = tokenIssuer.issue(user, membership, "203.0.113.5", "JUnit-Agent/1.0");
 
         assertThat(tokens.accessToken()).isNotBlank();
         assertThat(tokens.refreshToken()).isNotBlank();
@@ -96,11 +102,14 @@ class TokenIssuerTest {
 
     @Test
     void issue_addsAdminRoleForPlatformAdmins() {
-        User user = User.builder().email("admin@sentio.dev").platformRole(PlatformRole.ADMIN).build();
+        User user = User.builder()
+                .email("admin@sentio.dev")
+                .platformRole(PlatformRole.ADMIN)
+                .build();
         user.setId(1L);
         OrganizationMember membership = membershipFor(user, OrgRole.OWNER);
 
-        AuthTokens tokens = tokenIssuer.issue(user, membership);
+        AuthTokens tokens = tokenIssuer.issue(user, membership, "203.0.113.5", "JUnit-Agent/1.0");
 
         // insertion order is deterministic: membership role first, then ADMIN
         assertThat(payloadOf(tokens.accessToken())).contains("\"roles\":[\"OWNER\",\"ADMIN\"]");
@@ -112,7 +121,7 @@ class TokenIssuerTest {
         user.setId(1L);
         OrganizationMember membership = membershipFor(user, OrgRole.LAWYER);
 
-        AuthTokens tokens = tokenIssuer.issue(user, membership);
+        AuthTokens tokens = tokenIssuer.issue(user, membership, "203.0.113.5", "JUnit-Agent/1.0");
 
         ArgumentCaptor<RefreshToken> captor = ArgumentCaptor.forClass(RefreshToken.class);
         verify(refreshTokenRepository).save(captor.capture());
@@ -120,6 +129,65 @@ class TokenIssuerTest {
 
         assertThat(persisted.getTokenHash()).isNotEqualTo(tokens.refreshToken()); // stored hashed, not raw
         assertThat(persisted.getUser()).isEqualTo(user);
-        assertThat(persisted.getExpiresAt()).isAfter(Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration() - 60_000));
+        assertThat(persisted.getExpiresAt())
+                .isAfter(Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration() - 60_000));
+        assertThat(persisted.getIp().getHostAddress()).isEqualTo("203.0.113.5");
+        assertThat(persisted.getUserAgent()).isEqualTo("JUnit-Agent/1.0");
+    }
+
+    @Test
+    void issue_malformedIp_persistsNullIpInsteadOfThrowing() {
+        User user = User.builder().email("user@sentio.dev").build();
+        user.setId(1L);
+        OrganizationMember membership = membershipFor(user, OrgRole.LAWYER);
+
+        tokenIssuer.issue(user, membership, "not-an-ip-address", "JUnit-Agent/1.0");
+
+        ArgumentCaptor<RefreshToken> captor = ArgumentCaptor.forClass(RefreshToken.class);
+        verify(refreshTokenRepository).save(captor.capture());
+        assertThat(captor.getValue().getIp()).isNull();
+    }
+
+    @Test
+    void issue_beyondSessionLimit_revokesOldestActiveSessionsFirst() {
+        User user = User.builder().email("user@sentio.dev").build();
+        user.setId(1L);
+        OrganizationMember membership = membershipFor(user, OrgRole.LAWYER);
+
+        // MAX_ACTIVE_SESSIONS active sessions already exist - one more must push
+        // exactly one (the oldest) into revoked, not delete/keep them all.
+        List<RefreshToken> activeSessions = new ArrayList<>();
+        for (int i = 0; i < RefreshTokenConstants.MAX_ACTIVE_SESSIONS; i++) {
+            activeSessions.add(RefreshToken.builder()
+                    .user(user)
+                    .tokenHash("hash-" + i)
+                    .expiresAt(Instant.now().plusSeconds(3600))
+                    .build());
+        }
+        when(refreshTokenRepository.findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtAsc(1L))
+                .thenReturn(activeSessions);
+
+        tokenIssuer.issue(user, membership, "203.0.113.5", "JUnit-Agent/1.0");
+
+        ArgumentCaptor<List<RefreshToken>> captor = ArgumentCaptor.forClass(List.class);
+        verify(refreshTokenRepository).saveAll(captor.capture());
+        assertThat(captor.getValue()).containsExactly(activeSessions.get(0));
+        assertThat(activeSessions.get(0).getRevokedAt()).isNotNull();
+        activeSessions.subList(1, activeSessions.size()).forEach(session -> assertThat(session.getRevokedAt())
+                .isNull());
+    }
+
+    @Test
+    void issue_underSessionLimit_revokesNothing() {
+        User user = User.builder().email("user@sentio.dev").build();
+        user.setId(1L);
+        OrganizationMember membership = membershipFor(user, OrgRole.LAWYER);
+
+        when(refreshTokenRepository.findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtAsc(1L))
+                .thenReturn(List.of());
+
+        tokenIssuer.issue(user, membership, "203.0.113.5", "JUnit-Agent/1.0");
+
+        verify(refreshTokenRepository, never()).saveAll(any());
     }
 }

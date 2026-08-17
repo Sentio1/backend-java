@@ -1,4 +1,4 @@
-package config;
+package com.sentio.shared.config;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +10,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @Configuration
 @EnableAsync
 @ConditionalOnProperty(value = "app.async.enabled", havingValue = "true")
+/** GlobalAsyncConfig class. */
 public class GlobalAsyncConfig {
 
     @Bean(name = "customExecutor")

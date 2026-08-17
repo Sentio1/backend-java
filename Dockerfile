@@ -10,12 +10,9 @@ ARG MODULE_NAME
 
 COPY . .
 
-ARG GITHUB_ACTOR
-ARG GITHUB_TOKEN
-
 RUN --mount=type=cache,target=/home/gradle/.gradle \
-    --mount=type=secret,id=gradle_properties,target=/home/gradle/.gradle/gradle.properties,required=false \
-    GITHUB_ACTOR=${GITHUB_ACTOR} GITHUB_TOKEN=${GITHUB_TOKEN} gradle :${MODULE_NAME}:bootJar --no-daemon
+    --mount=type=secret,id=gradle_properties,target=/home/gradle/.gradle/gradle.properties,required=true \
+    gradle :${MODULE_NAME}:bootJar --no-daemon
 
 FROM eclipse-temurin:25-jre-alpine
 

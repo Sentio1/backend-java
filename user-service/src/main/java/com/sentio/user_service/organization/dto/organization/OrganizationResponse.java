@@ -1,4 +1,4 @@
-package com.sentio.user_service.organization.dto;
+package com.sentio.user_service.organization.dto.organization;
 
 import com.sentio.user_service.organization.enums.PlanTier;
 import com.sentio.user_service.organization.enums.SubscriptionStatus;

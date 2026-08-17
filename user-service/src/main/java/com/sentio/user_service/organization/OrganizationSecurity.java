@@ -1,6 +1,9 @@
 package com.sentio.user_service.organization;
 
+import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
+import com.sentio.user_service.organization.entity.OrganizationMember;
 import com.sentio.user_service.organization.enums.OrgRole;
+import com.sentio.user_service.organization.repository.OrganizationMemberRepository;
 import com.sentio.user_service.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -20,13 +23,19 @@ public class OrganizationSecurity {
 
     private final OrganizationMemberRepository organizationMemberRepository;
 
-    public boolean canManage(long organizationId, Authentication authentication) {
+    public OrganizationMember requireMembership(long organizationId, Authentication authentication) {
         if (!(authentication.getPrincipal() instanceof SecurityUser securityUser)) {
-            return false;
+            throw new ResourceNotFoundException("Organization", "id", organizationId);
         }
 
         return organizationMemberRepository.findByUserIdAndOrganizationId(securityUser.getId(), organizationId)
-                .map(member -> member.getRole() == OrgRole.OWNER)
-                .orElse(false);
+                .orElseThrow(() -> new ResourceNotFoundException("Organization", "id", organizationId));
+    }
+
+    public void requireOwnership(long organizationId, Authentication authentication) {
+        OrganizationMember member = requireMembership(organizationId, authentication);
+        if (member.getRole() != OrgRole.OWNER) {
+            throw new ResourceNotFoundException("Organization", "id", organizationId);
+        }
     }
 }

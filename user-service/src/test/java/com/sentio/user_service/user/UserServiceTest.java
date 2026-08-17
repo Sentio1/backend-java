@@ -1,7 +1,7 @@
 package com.sentio.user_service.user;
 
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
-import com.sentio.user_service.organization.OrganizationMemberRepository;
+import com.sentio.user_service.organization.repository.OrganizationMemberRepository;
 import com.sentio.user_service.organization.entity.Organization;
 import com.sentio.user_service.organization.entity.OrganizationMember;
 import com.sentio.user_service.organization.enums.OrgRole;
@@ -72,12 +72,20 @@ class UserServiceTest {
     }
 
     @Test
-    void userWithoutDefaultMembership_throwsResourceNotFoundException() {
+    void userWithoutDefaultMembership_returnsContextWithNullOrgFields() {
+        // An org-less user (registered pending invite acceptance - see
+        // AuthService.register's org-less path) is a valid state, not a 404:
+        // findUserById must tolerate a missing default membership.
         User user = user(1L);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(organizationMemberRepository.findByUserIdAndIsDefaultTrue(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> userService.findUserById(1L))
-                .isInstanceOf(ResourceNotFoundException.class);
+        UserContextResponse expected = UserContextResponse.builder()
+                .id(1L).email("user@sentio.dev").orgName(null).orgRole(null).build();
+        when(userMapper.toResponse(user, null)).thenReturn(expected);
+
+        UserContextResponse result = userService.findUserById(1L);
+
+        assertThat(result).isEqualTo(expected);
     }
 }

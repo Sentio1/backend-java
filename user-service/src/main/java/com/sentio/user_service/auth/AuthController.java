@@ -2,6 +2,7 @@ package com.sentio.user_service.auth;
 
 import com.lisovskyi.security.autoconfigure.cookie.CookieService;
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
+import com.sentio.user_service.auth.cookie.AuthCookieService;
 import com.sentio.user_service.auth.dto.*;
 import com.sentio.user_service.auth.rate_limiting.RateLimitingService;
 import com.sentio.user_service.user.dto.UserContextResponse;
@@ -28,6 +29,9 @@ public class AuthController {
     private final CookieService cookieService;
     private final RateLimitingService rateLimitingService;
 
+    // чи створюється на кожен запит новий сервіс?
+    private final AuthCookieService customAuthCookieService;
+
     @PostMapping("/register")
     public ResponseEntity<UserContextResponse> register(
             @RequestBody @Valid RegistrationRequest registrationRequest,
@@ -46,7 +50,7 @@ public class AuthController {
                 .buildAndExpand(userContext.id())
                 .toUri();
 
-        setCookies(response, tokens);
+        customAuthCookieService.setCookies(response, tokens);
 
         return ResponseEntity
                 .created(location)
@@ -65,7 +69,7 @@ public class AuthController {
         AuthTokens tokens = loginResult.authTokens();
         UserContextResponse userContext = loginResult.userContext();
 
-        setCookies(response, tokens);
+        customAuthCookieService.setCookies(response, tokens);
 
         return ResponseEntity
                 .ok()
@@ -81,7 +85,7 @@ public class AuthController {
                 .orElseThrow(() -> new UnauthorizedException("Invalid refresh token"));
 
         AuthTokens tokens = authService.refresh(refreshToken);
-        setCookies(response, tokens);
+        customAuthCookieService.setCookies(response, tokens);
 
         return ResponseEntity
                 .noContent().
@@ -99,21 +103,10 @@ public class AuthController {
                         .orElse(null);
 
         authService.logout(accessToken, refreshToken);
-        clearCookies(response);
+        customAuthCookieService.clearCookies(response);
 
         return ResponseEntity
                 .noContent()
                 .build();
-    }
-
-
-    private void setCookies(HttpServletResponse response, AuthTokens tokens) {
-        cookieService.setAccessTokenCookie(response, tokens.accessToken());
-        cookieService.setRefreshTokenCookie(response, tokens.refreshToken());
-    }
-
-    private void clearCookies(HttpServletResponse response) {
-        cookieService.clearAccessTokenCookie(response);
-        cookieService.clearRefreshTokenCookie(response);
     }
 }

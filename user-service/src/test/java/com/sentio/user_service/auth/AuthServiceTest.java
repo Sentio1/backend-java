@@ -13,8 +13,8 @@ import com.sentio.user_service.auth.dto.RegistrationRequest;
 import com.sentio.user_service.auth.oauth.GoogleAccountResolver;
 import com.sentio.user_service.auth.oauth.dto.GoogleIdentity;
 import com.sentio.user_service.auth.token.TokenIssuer;
-import com.sentio.user_service.organization.OrganizationMemberRepository;
-import com.sentio.user_service.organization.OrganizationProvisioningService;
+import com.sentio.user_service.organization.service.OrganizationProvisioningService;
+import com.sentio.user_service.organization.service.OrganizationService;
 import com.sentio.user_service.organization.entity.Organization;
 import com.sentio.user_service.organization.entity.OrganizationMember;
 import com.sentio.user_service.organization.enums.OrgRole;
@@ -22,6 +22,8 @@ import com.sentio.user_service.refresh_token.RefreshToken;
 import com.sentio.user_service.refresh_token.RefreshTokenRepository;
 import com.sentio.user_service.security.SecurityUser;
 import com.sentio.user_service.user.entity.User;
+import com.sentio.user_service.user.mapper.UserMapper;
+import com.sentio.user_service.user.mapper.UserMapperImpl;
 import com.sentio.user_service.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -43,8 +45,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -70,8 +72,6 @@ class AuthServiceTest {
     @Mock
     private UserRepository userRepository;
     @Mock
-    private OrganizationMemberRepository organizationMemberRepository;
-    @Mock
     private RefreshTokenRepository refreshTokenRepository;
     @Mock
     private JwtBlacklistService jwtBlacklistService;
@@ -81,10 +81,13 @@ class AuthServiceTest {
     @Mock
     private OrganizationProvisioningService organizationProvisioning;
     @Mock
+    private OrganizationService organizationService;
+    @Mock
     private GoogleAccountResolver googleAccountResolver;
 
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final OpaqueTokenService opaqueTokenService = new OpaqueTokenService();
+    private final UserMapper userMapper = new UserMapperImpl();
     private JwtProperties jwtProperties;
     private JwtService jwtService;
     private AuthService authService;
@@ -100,15 +103,16 @@ class AuthServiceTest {
 
         authService = new AuthService(
                 userRepository,
-                organizationMemberRepository,
                 refreshTokenRepository,
-                passwordEncoder,
                 jwtService,
                 opaqueTokenService,
                 jwtBlacklistService,
+                organizationService,
                 tokenIssuer,
+                passwordEncoder,
                 organizationProvisioning,
-                googleAccountResolver
+                googleAccountResolver,
+                userMapper
         );
     }
 
@@ -118,17 +122,7 @@ class AuthServiceTest {
         return new RegistrationRequest(
                 email, "password123", "password123", null,
                 "Doe", "John", null,
-                orgName, null, null, null,
-                OrgRole.OWNER
-        );
-    }
-
-    private RegistrationRequest lawyerRequest(String email, String slug) {
-        return new RegistrationRequest(
-                email, "password123", "password123", null,
-                "Doe", "Jane", null,
-                null, null, slug, null,
-                OrgRole.LAWYER
+                orgName, null, null
         );
     }
 
@@ -189,8 +183,6 @@ class AuthServiceTest {
             assertThat(result.userContext().orgRole()).isEqualTo("OWNER");
             assertThat(result.authTokens().accessToken()).isEqualTo("access-token");
 
-            verify(organizationProvisioning, never()).joinExistingOrganization(any(), any(), any());
-
             ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userCaptor.capture());
             User savedUser = userCaptor.getValue();
@@ -208,32 +200,28 @@ class AuthServiceTest {
             verify(userRepository, never()).save(any());
         }
 
+        // Blank-org-name validation now lives in OrganizationProvisioningService itself
+        // (see OrganizationProvisioningServiceTest) - register() no longer pre-checks it,
+        // it just delegates and lets that validation fire for any caller, not only this one.
+
+        // There's no more "join an existing org by slug" path through registration -
+        // non-OWNER users only ever get a membership through OrganizationInviteService's
+        // accept flow (see OrganizationInviteServiceTest). A registration with no org
+        // name just creates the bare user, with no membership and no org-scoped claims,
+        // and waits for that invite to be accepted later.
         @Test
-        void ownerWithBlankOrgName_throwsIllegalArgumentExceptionWithoutCallingProvisioning() {
-            when(userRepository.existsByEmail("owner@sentio.dev")).thenReturn(false);
-            stubUserSaveAssignsId(1L);
+        void noOrgName_createsUserWithoutMembershipAndOrglessTokens() {
+            when(userRepository.existsByEmail("newcomer@sentio.dev")).thenReturn(false);
+            stubUserSaveAssignsId(3L);
+            when(tokenIssuer.issue(any(User.class), isNull()))
+                    .thenReturn(new AuthTokens("access-token", "refresh-token"));
 
-            assertThatThrownBy(() -> authService.register(ownerRequest("owner@sentio.dev", "  ")))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Organization name is required");
+            AuthResult result = authService.register(ownerRequest("newcomer@sentio.dev", null));
 
+            assertThat(result.userContext().orgName()).isNull();
+            assertThat(result.userContext().orgRole()).isNull();
+            assertThat(result.authTokens().accessToken()).isEqualTo("access-token");
             verifyNoInteractions(organizationProvisioning);
-        }
-
-        @Test
-        void lawyerRegistration_delegatesToJoinExistingOrganization() {
-            when(userRepository.existsByEmail("lawyer@sentio.dev")).thenReturn(false);
-            stubUserSaveAssignsId(2L);
-            stubTokenIssuer();
-
-            when(organizationProvisioning.joinExistingOrganization(any(User.class), eq("acme"), eq(OrgRole.LAWYER)))
-                    .thenAnswer(inv -> membership(inv.getArgument(0), "Acme Legal", OrgRole.LAWYER));
-
-            AuthResult result = authService.register(lawyerRequest("lawyer@sentio.dev", "acme"));
-
-            assertThat(result.userContext().orgName()).isEqualTo("Acme Legal");
-            assertThat(result.userContext().orgRole()).isEqualTo("LAWYER");
-            verify(organizationProvisioning, never()).createOwnerMembership(any(), any(), any(), any());
         }
     }
 
@@ -246,8 +234,8 @@ class AuthServiceTest {
         void validCredentials_returnsAuthResultWithDefaultOrgContext() {
             User user = persistedUser(1L, "user@sentio.dev", "password123");
             when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.of(user));
-            when(organizationMemberRepository.findByUserIdAndIsDefaultTrue(1L))
-                    .thenReturn(Optional.of(membership(user, "Acme Legal", OrgRole.LAWYER)));
+            when(organizationService.getDefaultMembership(1L))
+                    .thenReturn(membership(user, "Acme Legal", OrgRole.LAWYER));
             stubTokenIssuer();
 
             AuthResult result = authService.login(new LoginRequest("user@sentio.dev", "password123"));
@@ -283,7 +271,8 @@ class AuthServiceTest {
         void noDefaultOrganization_throwsResourceNotFoundException() {
             User user = persistedUser(1L, "user@sentio.dev", "password123");
             when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.of(user));
-            when(organizationMemberRepository.findByUserIdAndIsDefaultTrue(1L)).thenReturn(Optional.empty());
+            when(organizationService.getDefaultMembership(1L))
+                    .thenThrow(new ResourceNotFoundException("OrganizationMember", "userId", 1L));
 
             assertThatThrownBy(() -> authService.login(new LoginRequest("user@sentio.dev", "password123")))
                     .isInstanceOf(ResourceNotFoundException.class);
@@ -303,7 +292,7 @@ class AuthServiceTest {
         void existingUser_reusesTheirDefaultMembershipAndDoesNotCreateAnOrganization() {
             User user = persistedUser(1L, "user@sentio.dev", "unused");
             when(googleAccountResolver.resolveOrCreate(identity())).thenReturn(user);
-            when(organizationMemberRepository.findByUserIdAndIsDefaultTrue(1L))
+            when(organizationService.findDefaultMembership(1L))
                     .thenReturn(Optional.of(membership(user, "Acme Legal", OrgRole.OWNER)));
             stubTokenIssuer();
 
@@ -317,7 +306,7 @@ class AuthServiceTest {
         void brandNewUser_createsOwnerMembershipNamedAfterTheGoogleProfile() {
             User user = persistedUser(5L, "user@sentio.dev", "unused");
             when(googleAccountResolver.resolveOrCreate(identity())).thenReturn(user);
-            when(organizationMemberRepository.findByUserIdAndIsDefaultTrue(5L)).thenReturn(Optional.empty());
+            when(organizationService.findDefaultMembership(5L)).thenReturn(Optional.empty());
             when(organizationProvisioning.createOwnerMembership(eq(user), eq("Jane Doe"), eq(null), any()))
                     .thenReturn(membership(user, "Jane Doe", OrgRole.OWNER));
             stubTokenIssuer();
@@ -333,7 +322,7 @@ class AuthServiceTest {
             GoogleIdentity noLastName = new GoogleIdentity("google-sub-2", "user@sentio.dev", "Jane", null, true);
             User user = persistedUser(6L, "user@sentio.dev", "unused");
             when(googleAccountResolver.resolveOrCreate(noLastName)).thenReturn(user);
-            when(organizationMemberRepository.findByUserIdAndIsDefaultTrue(6L)).thenReturn(Optional.empty());
+            when(organizationService.findDefaultMembership(6L)).thenReturn(Optional.empty());
             when(organizationProvisioning.createOwnerMembership(eq(user), eq("Jane"), eq(null), any()))
                     .thenReturn(membership(user, "Jane", OrgRole.OWNER));
             stubTokenIssuer();
@@ -348,7 +337,7 @@ class AuthServiceTest {
             GoogleIdentity noName = new GoogleIdentity("google-sub-3", "nameless@sentio.dev", null, null, true);
             User user = persistedUser(7L, "nameless@sentio.dev", "unused");
             when(googleAccountResolver.resolveOrCreate(noName)).thenReturn(user);
-            when(organizationMemberRepository.findByUserIdAndIsDefaultTrue(7L)).thenReturn(Optional.empty());
+            when(organizationService.findDefaultMembership(7L)).thenReturn(Optional.empty());
             when(organizationProvisioning.createOwnerMembership(eq(user), eq("nameless@sentio.dev"), eq(null), any()))
                     .thenReturn(membership(user, "nameless@sentio.dev", OrgRole.OWNER));
             stubTokenIssuer();
@@ -376,8 +365,8 @@ class AuthServiceTest {
                     .expiresAt(Instant.now().plus(1, ChronoUnit.DAYS))
                     .build();
             when(refreshTokenRepository.findByTokenHash(hashedToken)).thenReturn(Optional.of(existing));
-            when(organizationMemberRepository.findByUserIdAndIsDefaultTrue(1L))
-                    .thenReturn(Optional.of(membership(user, "Acme Legal", OrgRole.LAWYER)));
+            when(organizationService.getDefaultMembership(1L))
+                    .thenReturn(membership(user, "Acme Legal", OrgRole.LAWYER));
             stubTokenIssuer();
 
             AuthTokens tokens = authService.refresh(rawToken);

@@ -4,7 +4,6 @@ import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
 import com.sentio.user_service.TestcontainersConfiguration;
 import com.sentio.user_service.auth.dto.AuthTokens;
 import com.sentio.user_service.auth.dto.RegistrationRequest;
-import com.sentio.user_service.organization.enums.OrgRole;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -85,8 +84,7 @@ class RefreshTokenConcurrencyIT {
         RegistrationRequest request = new RegistrationRequest(
                 email, "Password123!", "Password123!", null,
                 "Doe", "John", null,
-                "Acme Legal", null, null, null,
-                OrgRole.OWNER
+                "Acme Legal", null, null
         );
         return authService.register(request).authTokens().refreshToken();
     }

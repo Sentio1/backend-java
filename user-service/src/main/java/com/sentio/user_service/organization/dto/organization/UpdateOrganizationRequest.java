@@ -1,4 +1,4 @@
-package com.sentio.user_service.organization.dto;
+package com.sentio.user_service.organization.dto.organization;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

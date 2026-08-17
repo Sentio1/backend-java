@@ -12,6 +12,7 @@ import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.enums.PlatformRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import jakarta.annotation.Nullable;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -35,16 +36,22 @@ public class TokenIssuer {
     private final JwtProperties jwtProperties;
     private final RefreshTokenRepository refreshTokenRepository;
 
-    public AuthTokens issue(User user, OrganizationMember membership) {
+    public AuthTokens issue(User user, @Nullable OrganizationMember membership) {
         Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("org_id", membership.getOrganization().getId());
-
         List<String> roles = new ArrayList<>();
-        roles.add(membership.getRole().name());
+
+        if (membership != null) {
+            extraClaims.put("org_id", membership.getOrganization().getId());
+            roles.add(membership.getRole().name());
+        }
+
         if (user.getPlatformRole() == PlatformRole.ADMIN) {
             roles.add("ADMIN");
         }
-        extraClaims.put("roles", roles);
+
+        if (!roles.isEmpty()) {
+            extraClaims.put("roles", roles);
+        }
 
         SecurityUser securityUser = new SecurityUser(user);
         String accessToken = jwtService.generateToken(securityUser, extraClaims);

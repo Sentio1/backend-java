@@ -21,6 +21,7 @@ repositories {
 
 dependencies {
     api(libs.spring.boot.starter.cache)
+    api(libs.spring.data.commons)
     api(libs.caffeine)
 
     testImplementation(platform("org.junit:junit-bom:6.0.0"))

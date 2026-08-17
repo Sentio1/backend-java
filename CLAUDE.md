@@ -25,7 +25,7 @@ Most of the auth/security/JPA machinery is **not in this repo**. It comes from p
 starters under the `com.lisovskyi` group (see `gradle/libs.versions.toml`):
 
 - `lisovskyi-security-starter` — JWT (`JwtService`, RSA key handling, JWKS), `JwtBlacklistService`,
-  `OpaqueTokenService` (refresh-token hashing), `SecurityPrincipal`, `CookieService`, `SecurityFilterChainCustomizer`
+  `OpaqueTokenService` (refresh-token hashing), `SecurityPrincipal`, `AuthCookieService`, `SecurityFilterChainCustomizer`
   (extension point apps use to append to the security filter chain, e.g. `OAuth2SecurityConfig`).
 - `lisovskyi-jpa-starter` — `TimestampedEntity`/`CreationTimestampedEntity` base classes, sequence-based ID
   generation (`SequenceSize`).
@@ -74,7 +74,7 @@ Package root: `com.sentio.user_service`. Organized by feature, not by layer:
   - `oauth/GoogleOAuth2SuccessHandler`/`FailureHandler` — plugged into Spring Security's OAuth2 login flow via
     `security/OAuth2SecurityConfig`, which implements `SecurityFilterChainCustomizer` from the security starter
     rather than defining its own `SecurityFilterChain` from scratch.
-  - Access/refresh tokens are set as cookies (`CookieService` from the security starter), not returned in JSON
+  - Access/refresh tokens are set as cookies (`AuthCookieService` from the security starter), not returned in JSON
     bodies — see `AuthController`.
 - **`organization/`** — `Organization`/`OrganizationMember` entities, `OrganizationService`/`OrganizationSecurity`
   (authorization checks, e.g. `@PreAuthorize`-backed), `OrganizationController` (management API).

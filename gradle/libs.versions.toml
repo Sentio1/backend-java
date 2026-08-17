@@ -13,9 +13,9 @@ grpc-spring = "1.1.0.RELEASE"
 spring-ai = "2.0.0"
 
 # Custom starters
-lisovskyi-security = "0.3.3"
+lisovskyi-security = "0.3.4"
 lisovskyi-jpa = "0.2.0"
-lisovskyi-web-error = "0.1.4"
+lisovskyi-web-error = "0.1.5"
 
 mapstruct = "1.6.3"
 lombok-mapstruct-binding = "0.2.0"
@@ -63,6 +63,8 @@ spring-kafka = { module = "org.springframework.kafka:spring-kafka" }
 spring-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
 
 spring-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+
+spring-data-commons = { module = "org.springframework.data:spring-data-commons" }
 
 spring-devtools = { module = "org.springframework.boot:spring-boot-devtools" }
 

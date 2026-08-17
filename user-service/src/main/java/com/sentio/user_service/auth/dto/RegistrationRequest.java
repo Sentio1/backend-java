@@ -2,11 +2,9 @@ package com.sentio.user_service.auth.dto;
 
 import com.lisovskyi.web.error.autoconfigure.validation.PasswordsMatch;
 import com.lisovskyi.web.error.autoconfigure.validation.ValidPassword;
-import com.sentio.user_service.organization.enums.OrgRole;
 import com.sentio.user_service.organization.enums.PlanTier;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import static com.sentio.user_service.auth.AuthConstants.*;
@@ -41,11 +39,5 @@ public record RegistrationRequest(
         String name,
         String edrpou,
 
-        // для пошуку організації
-        String slug,
-
-        PlanTier plan,
-
-        // Дані члена організації
-        @NotNull OrgRole orgRole
+        PlanTier plan
 ) {}

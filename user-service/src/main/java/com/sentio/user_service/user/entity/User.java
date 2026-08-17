@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
@@ -21,9 +22,10 @@ import static com.sentio.user_service.user.UserConstants.*;
 @AllArgsConstructor @NoArgsConstructor
 @SuperBuilder
 @SequenceSize(size = 50)
+@SQLRestriction("deleted_at IS NULL")
 public class User extends TimestampedEntity {
 
-    @Column(name = "email", columnDefinition = "citext", unique = true, nullable = false)
+    @Column(name = "email", columnDefinition = "citext", nullable = false)
     private String email;
 
     @Column(name = "password_hash", length = PASSWORD_HASH_LENGTH)

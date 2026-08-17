@@ -1,4 +1,4 @@
-package com.sentio.user_service.auth;
+package com.sentio.user_service.auth.rate_limiting;
 
 import com.lisovskyi.web.error.autoconfigure.ErrorResponse;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;

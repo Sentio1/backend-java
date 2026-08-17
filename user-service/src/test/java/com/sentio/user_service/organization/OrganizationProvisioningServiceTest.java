@@ -1,11 +1,13 @@
 package com.sentio.user_service.organization;
 
-import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.user_service.organization.entity.Organization;
 import com.sentio.user_service.organization.entity.OrganizationMember;
 import com.sentio.user_service.organization.enums.OrgRole;
 import com.sentio.user_service.organization.enums.PlanTier;
 import com.sentio.user_service.organization.enums.SubscriptionStatus;
+import com.sentio.user_service.organization.repository.OrganizationMemberRepository;
+import com.sentio.user_service.organization.repository.OrganizationRepository;
+import com.sentio.user_service.organization.service.OrganizationProvisioningService;
 import com.sentio.user_service.user.entity.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,11 +17,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -79,35 +81,16 @@ class OrganizationProvisioningServiceTest {
     }
 
     @Test
-    void joinExistingOrganization_blankSlug_throwsIllegalArgumentException() {
+    void createOwnerMembership_blankOrgName_throwsIllegalArgumentException() {
         user = newUser();
 
-        assertThatThrownBy(() -> organizationProvisioning.joinExistingOrganization(user, " ", OrgRole.LAWYER))
+        assertThatThrownBy(() -> organizationProvisioning.createOwnerMembership(user, "  ", null, null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Organization slug is required");
+                .hasMessageContaining("Organization name is required");
+
+        verify(organizationRepository, never()).save(any());
     }
 
-    @Test
-    void joinExistingOrganization_unknownSlug_throwsResourceNotFoundException() {
-        user = newUser();
-        when(organizationRepository.findBySlug("unknown")).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> organizationProvisioning.joinExistingOrganization(user, "unknown", OrgRole.LAWYER))
-                .isInstanceOf(ResourceNotFoundException.class);
-    }
-
-    @Test
-    void joinExistingOrganization_knownSlug_createsMembershipWithRequestedRole() {
-        user = newUser();
-        Organization existing = Organization.builder().name("Acme Legal").slug("acme").build();
-        existing.setId(10L);
-        when(organizationRepository.findBySlug("acme")).thenReturn(Optional.of(existing));
-        when(organizationMemberRepository.save(any(OrganizationMember.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        OrganizationMember membership = organizationProvisioning.joinExistingOrganization(user, "acme", OrgRole.ASSISTANT);
-
-        assertThat(membership.getOrganization()).isEqualTo(existing);
-        assertThat(membership.getRole()).isEqualTo(OrgRole.ASSISTANT);
-        assertThat(membership.isDefault()).isTrue();
-    }
+    // joinExistingOrganization is gone - non-OWNER membership only ever comes through
+    // OrganizationInviteService's accept flow now (see OrganizationInviteServiceTest).
 }

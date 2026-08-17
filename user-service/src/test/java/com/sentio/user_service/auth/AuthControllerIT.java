@@ -6,7 +6,6 @@ import com.sentio.user_service.TestcontainersConfiguration;
 import com.sentio.user_service.auth.dto.LoginRequest;
 import com.sentio.user_service.auth.dto.RegistrationRequest;
 import com.sentio.user_service.auth.rate_limiting.RateLimitingService;
-import com.sentio.user_service.organization.enums.OrgRole;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,8 +57,7 @@ class AuthControllerIT {
         return new RegistrationRequest(
                 email, "Password123!", "Password123!", null,
                 "Doe", "John", null,
-                orgName, null, null, null,
-                OrgRole.OWNER
+                orgName, null, null
         );
     }
 
@@ -104,8 +102,7 @@ class AuthControllerIT {
         RegistrationRequest invalid = new RegistrationRequest(
                 "owner3@sentio.dev", "short", "short", null,
                 "Doe", "John", null,
-                "Acme Legal", null, null, null,
-                OrgRole.OWNER
+                "Acme Legal", null, null
         );
 
         mockMvc.perform(post("/auth/register")

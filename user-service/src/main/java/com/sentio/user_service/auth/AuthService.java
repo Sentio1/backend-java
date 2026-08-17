@@ -4,24 +4,21 @@ import com.lisovskyi.security.autoconfigure.security.jwt.JwtBlacklistService;
 import com.lisovskyi.security.autoconfigure.security.jwt.JwtService;
 import com.lisovskyi.security.autoconfigure.security.jwt.OpaqueTokenService;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsException;
-import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
 import com.sentio.user_service.auth.dto.*;
 import com.sentio.user_service.auth.oauth.GoogleAccountResolver;
 import com.sentio.user_service.auth.oauth.dto.GoogleIdentity;
 import com.sentio.user_service.auth.token.TokenIssuer;
 import com.sentio.user_service.organization.OrganizationConstants;
-import com.sentio.user_service.organization.OrganizationMemberRepository;
-import com.sentio.user_service.organization.OrganizationProvisioningService;
+import com.sentio.user_service.organization.service.OrganizationProvisioningService;
+import com.sentio.user_service.organization.service.OrganizationService;
 import com.sentio.user_service.organization.entity.OrganizationMember;
 import com.sentio.user_service.organization.enums.OrgRole;
 import com.sentio.user_service.organization.enums.PlanTier;
 import com.sentio.user_service.refresh_token.RefreshToken;
 import com.sentio.user_service.refresh_token.RefreshTokenRepository;
-import com.sentio.user_service.user.dto.UserContextResponse;
 import com.sentio.user_service.user.entity.User;
-import com.sentio.user_service.user.entity.UserIdentity;
-import com.sentio.user_service.user.enums.AuthProvider;
+import com.sentio.user_service.user.mapper.UserMapper;
 import com.sentio.user_service.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +32,8 @@ import java.time.Instant;
  * Orchestrates the auth use cases (local register/login, Google sign-in,
  * refresh, logout). Delegates the actual mechanics to focused collaborators:
  * {@link OrganizationProvisioningService} (creating/joining an organization),
+ * {@link OrganizationService} (looking up an existing membership - it owns
+ * organization/membership state, this class never touches it directly),
  * {@link GoogleAccountResolver} (who is this Google user) and {@link
  * TokenIssuer} (JWT + refresh token issuance) - this class only wires them
  * together and decides which one to call.
@@ -44,18 +43,23 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private static final String INVALID_VALUE_MSG = "Invalid email or password";
+
     private final UserRepository userRepository;
-    private final OrganizationMemberRepository organizationMemberRepository;
     private final RefreshTokenRepository refreshTokenRepository;
 
-    private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final OpaqueTokenService opaqueTokenService;
     private final JwtBlacklistService jwtBlacklistService;
+    private final OrganizationService organizationService;
 
     private final TokenIssuer tokenIssuer;
+    private final PasswordEncoder passwordEncoder;
     private final OrganizationProvisioningService organizationProvisioning;
     private final GoogleAccountResolver googleAccountResolver;
+
+    private final UserMapper userMapper;
+
 
     @Transactional
     public AuthResult register(RegistrationRequest request) {
@@ -65,26 +69,31 @@ public class AuthService {
 
         User user = buildLocalUser(request);
         userRepository.save(user);
-        user.getIdentities().add(localIdentity(user));
+        user.getIdentities().add(userMapper.toLocalIdentity(user));
 
-        OrganizationMember membership = request.orgRole() == OrgRole.OWNER
-                ? createOwnedOrganization(user, request)
-                : organizationProvisioning.joinExistingOrganization(user, request.slug(), request.orgRole());
+        OrganizationMember membership = null;
+        if (request.name() != null && !request.name().isBlank()) {
+            membership = organizationProvisioning.createOwnerMembership(user, request.name(), request.edrpou(), request.plan());
+        }
 
-        return new AuthResult(tokenIssuer.issue(user, membership), toUserContext(user, membership));
+        return new AuthResult(tokenIssuer.issue(user, membership), userMapper.toResponse(user, membership));
     }
 
     @Transactional
     public AuthResult login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
+                .orElseThrow(() -> new UnauthorizedException(INVALID_VALUE_MSG));
 
-        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            throw new UnauthorizedException("Invalid email or password");
+        if (user.getDeletedAt() != null) {
+            throw new UnauthorizedException(INVALID_VALUE_MSG);
         }
 
-        OrganizationMember membership = defaultMembership(user);
-        return new AuthResult(tokenIssuer.issue(user, membership), toUserContext(user, membership));
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new UnauthorizedException(INVALID_VALUE_MSG);
+        }
+
+        OrganizationMember membership = organizationService.getDefaultMembership(user.getId());
+        return new AuthResult(tokenIssuer.issue(user, membership), userMapper.toResponse(user, membership));
     }
 
     @Transactional
@@ -94,11 +103,11 @@ public class AuthService {
         // A user that already had a default membership (existing identity, or an
         // account we just linked) keeps it. A brand new user has none yet - give
         // them ownership of a brand new org, same as local OWNER registration.
-        OrganizationMember membership = organizationMemberRepository.findByUserIdAndIsDefaultTrue(user.getId())
+        OrganizationMember membership = organizationService.findDefaultMembership(user.getId())
                 .orElseGet(() -> organizationProvisioning.createOwnerMembership(
                         user, defaultOrgName(identity), null, PlanTier.SOLO));
 
-        return new AuthResult(tokenIssuer.issue(user, membership), toUserContext(user, membership));
+        return new AuthResult(tokenIssuer.issue(user, membership), userMapper.toResponse(user, membership));
     }
 
     // Google doesn't always return family_name (and in principle could omit given_name
@@ -130,7 +139,7 @@ public class AuthService {
         }
 
         User user = refreshToken.getUser();
-        OrganizationMember membership = defaultMembership(user);
+        OrganizationMember membership = organizationService.getDefaultMembership(user.getId());
 
         AuthTokens authTokens = tokenIssuer.issue(user, membership);
         refreshToken.setRevokedAt(Instant.now());
@@ -160,18 +169,6 @@ public class AuthService {
         }
     }
 
-    private OrganizationMember createOwnedOrganization(User user, RegistrationRequest request) {
-        if (request.name() == null || request.name().isBlank()) {
-            throw new IllegalArgumentException("Organization name is required to create a new organization");
-        }
-        return organizationProvisioning.createOwnerMembership(user, request.name(), request.edrpou(), request.plan());
-    }
-
-    private OrganizationMember defaultMembership(User user) {
-        return organizationMemberRepository.findByUserIdAndIsDefaultTrue(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("OrganizationMember", "userId", user.getId()));
-    }
-
     private User buildLocalUser(RegistrationRequest request) {
         User user = User.builder()
                 .email(request.email())
@@ -188,24 +185,5 @@ public class AuthService {
         }
 
         return user;
-    }
-
-    private UserIdentity localIdentity(User user) {
-        return UserIdentity.builder()
-                .user(user)
-                .provider(AuthProvider.LOCAL)
-                .providerUserId(user.getId().toString())
-                .build();
-    }
-
-    private UserContextResponse toUserContext(User user, OrganizationMember membership) {
-        return UserContextResponse.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .lastName(user.getLastName())
-                .firstName(user.getFirstName())
-                .orgRole(membership.getRole().name())
-                .orgName(membership.getOrganization().getName())
-                .build();
     }
 }

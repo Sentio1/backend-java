@@ -1,4 +1,14 @@
 spring:
+  autoconfigure:
+    exclude:
+      # No Redis Testcontainer/instance available for this test suite, and none
+      # of these tests care about the blacklist's storage backend. Without this,
+      # lisovskyi-security-starter 0.3.4+ correctly picks DataRedisAutoConfiguration's
+      # StringRedisTemplate over InMemoryJwtBlacklistService (see SecurityAutoConfiguration's
+      # @AutoConfigureAfter fix) and every request touching JwtAuthFilter fails with
+      # RedisConnectionFailureException trying to reach a Redis that isn't there.
+      - org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
+
   flyway:
     enabled: true
 

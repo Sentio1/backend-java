@@ -7,6 +7,94 @@ spring:
   datasource:
     driver-class-name: org.postgresql.Driver
 
+  data:
+    redis:
+      password: ${REDIS_PASSWORD:}
+
+    web:
+      pageable:
+        max-page-size: 100
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+              - openid
+
 server:
   servlet:
     context-path: /api/v1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+
+resilience4j:
+  ratelimiter:
+    configs:
+      login-by-email:
+        limit-for-period: 5
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
+      login-by-ip:
+        limit-for-period: 20
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
+      register-by-email:
+        limit-for-period: 5
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
+      register-by-ip:
+        limit-for-period: 20
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
+app:
+  jwt:
+    private-key: ${JWT_PRIVATE_KEY}
+    previous-private-key: ${JWT_PREVIOUS_PRIVATE_KEY}
+    issuer: sentio-startup
+    refresh-token-expiration: 2592000000
+
+  security:
+    allow-credentials: true
+    allowed-origins:
+      - http://localhost:5173
+      - http://localhost:3000
+    bcrypt-strength: 12
+    public-paths:
+      - /oauth2/**
+      - /login/oauth2/**
+      - /actuator/health/**
+
+  cookie:
+    # в prod поміняти на true
+    secure: false
+
+  oauth:
+    success-redirect-uri: http://localhost:5173/dashboard
+    failure-redirect-uri: http://localhost:5173/login
+
+  async:
+    enabled: true

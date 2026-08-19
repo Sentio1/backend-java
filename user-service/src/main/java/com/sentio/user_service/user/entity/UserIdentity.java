@@ -11,10 +11,13 @@ import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "user_identities")
-@Getter @Setter
-@AllArgsConstructor @NoArgsConstructor
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @SuperBuilder
 @SequenceSize(size = 50)
+/** UserIdentity class. */
 public class UserIdentity extends CreationTimestampedEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -1,49 +1,54 @@
 plugins {
 	java
-	id("org.springframework.boot") version "4.1.0"
-	id("io.spring.dependency-management") version "1.1.7"
+	alias(libs.plugins.spring.boot)
+	alias(libs.plugins.spring.dependency.management)
 }
 
 description = "user-service"
 
-
 dependencies {
+	implementation(project(":shared-core"))
+
 	// custom starters
-	implementation("com.lisovskyi:lisovskyi-security-starter:0.2.0")
-	implementation("com.lisovskyi:lisovskyi-jpa-starter:0.2.0")
-	implementation("com.lisovskyi:lisovskyi-web-error-starter:0.1.1")
+	implementation(libs.lisovskyi.security)
+	implementation(libs.lisovskyi.jpa)
+	implementation(libs.lisovskyi.web.error)
 
-	implementation("org.springframework.boot:spring-boot-starter-actuator")
-	implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
-	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-	implementation("org.springframework.boot:spring-boot-starter-flyway")
-	implementation("org.springframework.boot:spring-boot-starter-jdbc")
-	implementation("org.springframework.boot:spring-boot-starter-validation")
-	implementation("org.springframework.boot:spring-boot-starter-webmvc")
-	implementation("org.flywaydb:flyway-database-postgresql")
-	implementation("org.mapstruct:mapstruct:1.6.3")
+	implementation(libs.spring.actuator)
+	implementation(libs.spring.data.jdbc)
+	implementation(libs.spring.data.jpa)
+	implementation(libs.spring.flyway)
+	implementation(libs.spring.jdbc)
+	implementation(libs.spring.validation)
+	implementation(libs.spring.webmvc)
+	implementation(libs.flyway.postgresql)
+	implementation(libs.mapstruct.core)
+	implementation(libs.resilience4j.spring.boot)
+	implementation(libs.spring.oauth2.client)
+	implementation(libs.caffeine)
 
-	compileOnly("org.projectlombok:lombok")
+	compileOnly(libs.lombok)
 
-	developmentOnly("org.springframework.boot:spring-boot-devtools")
+	developmentOnly(libs.spring.devtools)
 
-	runtimeOnly("org.postgresql:postgresql")
+	runtimeOnly(libs.postgresql)
 
-	annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
-	annotationProcessor("org.projectlombok:lombok")
-	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+	annotationProcessor(libs.mapstruct.processor)
+	annotationProcessor(libs.spring.configuration.processor)
+	annotationProcessor(libs.lombok)
+	annotationProcessor(libs.lombok.mapstruct.binding)
 
-	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-data-jdbc-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-flyway-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-jdbc-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-	testImplementation("org.springframework.boot:spring-boot-testcontainers")
-	testImplementation("org.testcontainers:testcontainers-junit-jupiter")
-	testImplementation("org.testcontainers:testcontainers-postgresql")
-	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+	testImplementation(libs.spring.actuator.test)
+	testImplementation(libs.spring.data.jdbc.test)
+	testImplementation(libs.spring.data.jpa.test)
+	testImplementation(libs.spring.flyway.test)
+	testImplementation(libs.spring.jdbc.test)
+	testImplementation(libs.spring.validation.test)
+	testImplementation(libs.spring.webmvc.test)
+	testImplementation(libs.spring.boot.testcontainers)
+	testImplementation(libs.testcontainers.junit)
+	testImplementation(libs.testcontainers.postgresql)
+	testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 tasks.register<Exec>("dopplerRun") {

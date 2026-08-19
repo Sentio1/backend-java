@@ -11,8 +11,7 @@ ARG MODULE_NAME
 COPY . .
 
 RUN --mount=type=cache,target=/home/gradle/.gradle \
-    --mount=type=secret,id=github_actor,env=GITHUB_ACTOR \
-    --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
+    --mount=type=secret,id=gradle_properties,target=/home/gradle/.gradle/gradle.properties,required=true \
     gradle :${MODULE_NAME}:bootJar --no-daemon
 
 FROM eclipse-temurin:25-jre-alpine

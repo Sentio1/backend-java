@@ -1,7 +1,65 @@
 spring:
+  autoconfigure:
+    exclude:
+      # No Redis Testcontainer/instance available for this test suite, and none
+      # of these tests care about the blacklist's storage backend. Without this,
+      # lisovskyi-security-starter 0.3.4+ correctly picks DataRedisAutoConfiguration's
+      # StringRedisTemplate over InMemoryJwtBlacklistService (see SecurityAutoConfiguration's
+      # @AutoConfigureAfter fix) and every request touching JwtAuthFilter fails with
+      # RedisConnectionFailureException trying to reach a Redis that isn't there.
+      - org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
+
   flyway:
     enabled: true
 
   jpa:
     hibernate:
       ddl-auto: validate
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-google-client-id
+            client-secret: test-google-client-secret
+
+resilience4j:
+  ratelimiter:
+    configs:
+      login-by-email:
+        limit-for-period: 5
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
+      login-by-ip:
+        limit-for-period: 20
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
+      register-by-email:
+        limit-for-period: 5
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
+      register-by-ip:
+        limit-for-period: 20
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
+app:
+  jwt:
+    # Test-only RSA private key (PKCS8 DER, base64) - never the real Doppler key.
+    private-key: MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDZrWu2iGsRL6OUKzPyqj/TMbtEEIEHrrJgEOsYqNawp/1UctJ1jtvkJ6oK5lOAMpIPNPc9p87XrwNUng/adBH1eG1RFR/FK0vgCgETxY9TFFGuaMR4qZhOxVHWfFvqrREuZc0/Pen0LJZak6usJyc3SAyrxij6IOsiNEDxvQwVSadcp36L5FUJ93RpepTJl1c4ktFmlhU8wouM6vgflHHRVUe9OySmL8ODw1iJcnPydZ1ewq4iutlBRp7puH3Isb7vW8kVu3qOW7H1n/XKLkMuKjENaSwBIz3+eCMtBIa9xaCW6DEVEURhtulAxuGUOrlEUaPAJVitEM/cgFxh6DXhAgMBAAECggEAEMz6CI1YaCvrXfMEsCjUQsZum/cDInbpFRGRN6bGZT2eB5/SHxku3xnxnaQ/0x/0FoDhyUwzooGDSgtmEVgOj8ni9BRjjpoEIe9bvG0t3f1uPX4gFekPFJtVsO6JwJ/peNGKKSSr8zjixOxrXl7qP7HLqpFhlcanJ01tqsrKzTSs6cOxmpJuqF0KxJgTOY+uVhiULWxu0f8c9jHPFrRQ8OgnXrX++vSAfv9keEL7gbIKxfKunGUen3nXHi3FMJ5I82e9TSjAYDohbcZOZYSVEGrk4FXlC8j6XohR/4outKdKmAfbEQvDPZ2oT8T56d/T2/mznS4eBqq1+g7XAMKfzQKBgQDs9vN7O+vJb59c7pnWxOEVXgrpBn9KOXuPkKwzDVvGMTKTyeyAe8S5QyY8AFGsS30Z2MW4IRYxjgTwxjpGRVkLUiKxvl/qXUUoNYbBFf4WKLfsRQ1AK3DIdzzw2alHkcdWQ/YDlW8UDBHs6YdkDoUwbf/SX9R/r/+Vwht2Ty3yJQKBgQDrKdacn4QURiGG7gmBZJXfLLa72cntxecknCKQw8E4+BQ236ocIKA76fL2A2r2DY44i2sZTaK7ITjeiKs6kWeg0L9WYbExuoHwJxQmGVjGHiI548nxCdzP6vmHLlakNg1ikA+DoTjhH27phHdrDpxU1ROZvHC4wroRkC+6u6IiDQKBgC6xktTrv9CXsD1tvt61OO0u9NNqNlb38MMfbO86aKUrOJ4qofHHccJX2wbjwTREQ8h+EKfxzR/CrnKLfRwvuhYi/zcrHldePaxor78IiGLxbxydlrjYVocKB/YlzdeOgEsdZTLblWHL5xRaCBXNTq12X3yi6YqnsaNe9m5ft9wJAoGBAKr+oyUEAKBVVm+sipDhuPCsrLrvZBtW+fnu5ltpXAi2qswz2pfVSW4HcTldxtrfhHitN9UQVLHJOHbn3coajMWsxFRleNj2CyG66LXDXH/CzZRWhDKWv08YRxT6ptmEzDrNEdre0mMv3hBC2CqqVxaAUV5KXZSbU30N4QbhBMXJAoGAUKVTdahVmA2+qSPd7fh6eqMk2iTUCjNoeVWUQPnDhDpmiPr5tIRrFGCewRFWgkj96s1gthxGz8Hmmu+RzCYpaCHQkZCZgt34Wgf7AdWAzUCskjTADqb3FzrAWQjWGfsy6VBaADNJcsyiEhonseO27M7hPLj85vMtfTE+cdJBaEA=
+    # Second test-only RSA private key, distinct from the one above - lets
+    # JwksControllerIT actually exercise the documented two-key rotation response
+    # (both keys' public halves must show up in JWKS at once) instead of leaving
+    # this config permanently unverified. Also never the real Doppler key.
+    previous-private-key: MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC1LC3hyRqLwXp8EDBAxS3u96Sq/pwhWGsHt646ZOolMNrnOkSPK2/xQymvqOdzlg16FUf0cX15C0vc0voNPknnqaOCZPKXNGKGbFB6gNBVbvPMBPjAFYTdUVXxXxeAKUg04PSubqDrwom7F83p4Heeh8/tpIKl2ypiNjj4nnH4UlAxKIRObDisdRRJcxXkIZ94B0eNGyIHE/O9lDGlPN8hbiE+jEOj7T8lpMyckVQm6vInSSX0VNzfkrkL4QQDxGItK153wkEd5D1c1I3zr0hyfrye8Y/+IV9OxaWyb25gZwb0lxO+szFMa185cpESOWw1qrplB/Y8J6OhoD2NWpElAgMBAAECggEADZ2JjTBZ25FP+foVeXVxsEXRwDzTBJNQ59f4zGnZ4686Pd2PjXR/b/g5YWDy+lxkHH3aiUpS9A444BpfsS/llsPIhmIjwROuW9lqauptvbeEgIHXJK7GH2o5AgmNcJPc2blJaidL1kWQDqY8hiXYyrcvyMI8qoFzO/irODP5u+ZpXnpug4sxbXWWxvBoz12MdYp49sarCIykShRECZiaL+l0GjzQdq0xvYzE0ri3LuKtlLh/I5kUjOyQjlSSnFKUTUGvyGCMrWI8kgxeGlSjbfe9iCCC/6dS5y7olGsmbA7alYy/CxMy+X+oOQqauFK4OGcNpXxWSUOnqS1ZwpGZOQKBgQD7h2ZD5Mwccl4FWL57GgEV+fqLNI0yLttS5IT59isyTCAR6v6ezY8D9ZNLMWOfEef69S4a2zYyZh0TnVXfaQFtmKSnea69DDuRmOesszzK+AdZdtJFavu79v5NAlbjOeVdLE21vHgSxYDd4+9zN5Q7hSLtNHps68I8nLRf80fElwKBgQC4ZJ5Amdrl/aOn5KsNxpLwP1ZPS18Kz0bzibZ5rolsBYm6uRHhSFdugMCxM8C5x+JR+tbLLntIQeO4XhSrGMbKQhcjP4JW9LY6pbVxcV8gGFrjVyDlZaO07TFfSvYnL8vP7wjHvYupQAcA3xsXNxHbg0O6qFoHLtJXR1vG0a5jowKBgBztQGyUdoja+kchIp7jqbZOTmsN+yMHUn/g+g4JKoSZTqLg5LF8sHLjHjJqlqtnksdAxTGffkcjiTqFQKf12o0xHdaI3vis3HjtHc+1uUsaZTX7vUjweczvJeXTXAy7zs39V16MMz7tadma6iHVBX4m3JJtE5tNLcRsvS2/u8Q3AoGBALSEFIVL2ge0gqYX7/nBgBJg/z8Lm5T6jQxYsmJ3oyM0XLyG9+EjsCyHMZ2I+9EkxQTa27L340s+7g+NUxCZZeuWPg6M2y4Dze6mUXYotia2kSvlHVhWY6j5WI9g1JBSc2YyLddVUce03eZVhLD6ganz3Ld8nv5PMS6utkNy/RWfAoGATpM/1DS7k6kvKlw5/y1QBfHrbBVYY2TebaimCfCKgi6C8EDLoPQxG0l1RjUvwJGamG3K1sKTPo79OjBP2jWFKPquP+QK3nMEcTJrktyrR427mdgS949P0Vnk8OBgtTYqZy6jnPxxNylgElPMloU/Mxoy4qG8YZFKBjWty+kF/tk=
+    issuer: sentio-startup-test
+
+  oauth:
+    success-redirect-uri: http://localhost:5173/dashboard
+    failure-redirect-uri: http://localhost:5173/login
+
+

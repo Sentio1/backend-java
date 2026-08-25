@@ -3,6 +3,7 @@ target/
 build/
 **/build/
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 *.class
 .gradle/
 

@@ -15,6 +15,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: auth
 
   security:
     oauth2:

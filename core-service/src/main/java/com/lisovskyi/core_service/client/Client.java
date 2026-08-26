@@ -1,16 +1,5 @@
 package com.lisovskyi.core_service.client;
 
-import com.lisovskyi.jpa.autoconfigure.entity.TimestampedEntity;
-import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
-import jakarta.persistence.*;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.SQLRestriction;import org.hibernate.type.SqlTypes;
-
-import java.time.Instant;
-import java.time.LocalDate;
-
 import static com.lisovskyi.core_service.client.ClientConstants.COMPANY_NAME_LENGTH;
 import static com.lisovskyi.core_service.client.ClientConstants.DELETE_REASON_LENGTH;
 import static com.lisovskyi.core_service.client.ClientConstants.DIRECTOR_NAME_LENGTH;
@@ -20,10 +9,23 @@ import static com.lisovskyi.core_service.client.ClientConstants.PASSPORT_LENGTH;
 import static com.lisovskyi.core_service.client.ClientConstants.PHONE_NUMBER_LENGTH;
 import static com.lisovskyi.core_service.client.ClientConstants.RNOKPP_LENGTH;
 
+import com.lisovskyi.jpa.autoconfigure.entity.TimestampedEntity;
+import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
+import jakarta.persistence.*;
+import java.time.Instant;
+import java.time.LocalDate;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.type.SqlTypes;
+
 @Entity
 @Table(name = "clients")
-@Getter @Setter
-@AllArgsConstructor @NoArgsConstructor
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @SuperBuilder
 @SequenceSize(size = 50)
 @SQLRestriction("deleted_at IS NULL")

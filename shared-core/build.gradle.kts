@@ -24,7 +24,13 @@ dependencies {
     api(libs.spring.data.commons)
     api(libs.spring.data.jpa)
     api(libs.lisovskyi.web.error)
+    api(libs.lisovskyi.security)
     api(libs.caffeine)
+
+    // Лише типи для компіляції (MVC-контракти) - самі MVC-біни піднімає consumer-сервіс,
+    // тут просто пишемо проти інтерфейсів; @ConditionalOnClass не дасть автоконфігу
+    // спрацювати там, де spring-webmvc взагалі немає.
+    compileOnly(libs.spring.webmvc)
 
     testImplementation(platform("org.junit:junit-bom:6.0.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")

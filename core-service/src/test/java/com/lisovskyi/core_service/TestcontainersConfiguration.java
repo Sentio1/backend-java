@@ -3,7 +3,9 @@ package com.lisovskyi.core_service;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
+import org.springframework.test.context.DynamicPropertyRegistrar;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -23,9 +25,17 @@ class TestcontainersConfiguration {
     }
 
     @Bean
-    @ServiceConnection(name = "openzipkin/zipkin")
-    GenericContainer<?> zipkinContainer() {
-        return new GenericContainer<>(DockerImageName.parse("openzipkin/zipkin:latest")).withExposedPorts(9411);
+    public GenericContainer<?> zipkinContainer() {
+        return new GenericContainer<>(DockerImageName.parse("openzipkin/zipkin:latest"))
+                .withExposedPorts(9411)
+                .waitingFor(Wait.forHttp("/health").forStatusCode(200));
     }
 
+    @Bean
+    public DynamicPropertyRegistrar zipkinProperties(GenericContainer<?> zipkinContainer) {
+        return registry -> registry.add(
+                "management.zipkin.tracing.endpoint",
+                () -> "http://" + zipkinContainer.getHost() + ":" + zipkinContainer.getMappedPort(9411)
+                        + "/api/v2/spans");
+    }
 }

@@ -10,6 +10,7 @@ extra["springCloudVersion"] = "2025.1.3"
 
 dependencies {
 	implementation(project(":shared-core"))
+	implementation(project(":user-service"))
 
 	// custom starters
 	implementation(libs.lisovskyi.security)
@@ -23,10 +24,8 @@ dependencies {
 	implementation(libs.spring.validation)
 	implementation(libs.spring.webmvc)
 	implementation(libs.flyway.postgresql)
-	implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j")
-	implementation(project(":user-service"))
+//	implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j")
 	implementation(libs.mapstruct.core)
-	implementation(project(":shared-core"))
 
 	compileOnly(libs.lombok)
 
@@ -56,8 +55,25 @@ dependencyManagement {
 	}
 }
 
+// Ahead-of-time processing for tests tries to generate AOT artifacts for
+// TestcontainersConfiguration and fails resolving connection details for
+// zipkinContainer (a plain GenericContainer, not a @ServiceConnection - wired
+// manually via DynamicPropertyRegistrar instead). Same failure mode shared-core
+// already hit and disabled AOT for; scoped to tests only here so a real
+// native-image build of the app itself (ProcessAot) is untouched.
+tasks.withType<org.springframework.boot.gradle.tasks.aot.ProcessTestAot> {
+	enabled = false
+}
+
 tasks.register<Exec>("dopplerRun") {
 	group = "application"
 	description = "Run application with Doppler"
-	commandLine("doppler", "run", "--", "./gradlew", "bootRun")
+
+	val gradlewCmd = if (System.getProperty("os.name").lowercase().contains("windows")) {
+		"gradlew.bat"
+	} else {
+		"./gradlew"
+	}
+
+	commandLine("doppler", "run", "--", gradlewCmd, "bootRun")
 }

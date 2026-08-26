@@ -1,0 +1,49 @@
+services:
+  # Service keys, not just container_name, must differ from user-service/docker-compose.yaml's -
+  # when both files are composed together (multiple -f flags, or infra/docker-compose.yaml's
+  # include:), Compose merges services that share a key into one instead of running two
+  # containers, and whichever file "wins" the merge silently swallows the other's config
+  # (port, container_name, env). Distinct keys/names/ports here so both stacks can run side by
+  # side locally - separate DB per service now, on purpose.
+  core-postgres:
+    image: postgres:17-alpine
+    container_name: postgres_core_service_container
+
+    ports:
+      - "5433:5432"
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_CORE_SERVICE_DB}
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_CORE_SERVICE_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    volumes:
+      - core_postgres_data:/var/lib/postgresql/data/
+
+  core-redis:
+    image: redis:8-alpine
+    container_name: redis_core_service_container
+    ports:
+      # Loopback-only: only this host's own processes (the app run via bootRun)
+      # need to reach it - nothing outside the host should be able to. Distinct
+      # host port from user-service's redis (6379) - see the note on service keys above.
+      - "127.0.0.1:6380:6379"
+    # No fallback default - an unset REDIS_PASSWORD must fail `docker compose up`
+    # loudly instead of quietly starting Redis with a well-known password.
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+    restart: unless-stopped
+    volumes:
+      - core_redis_data:/data
+
+volumes:
+  core_postgres_data:
+  core_redis_data:

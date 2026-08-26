@@ -5,7 +5,7 @@ spring:
       - optional:file:user-service/.env[.properties]
 
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:5432/${POSTGRES_DB}
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:5432/${POSTGRES_USER_SERVICE_DB}
     username: postgres
     password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver

@@ -54,5 +54,12 @@ dependencies {
 tasks.register<Exec>("dopplerRun") {
 	group = "application"
 	description = "Run application with Doppler"
-	commandLine("doppler", "run", "--", "./gradlew", "bootRun")
+
+	val gradlewCmd = if (System.getProperty("os.name").lowercase().contains("windows")) {
+		"gradlew.bat"
+	} else {
+		"./gradlew"
+	}
+
+	commandLine("doppler", "run", "--", gradlewCmd, "bootRun")
 }

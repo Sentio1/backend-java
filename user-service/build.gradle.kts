@@ -26,6 +26,7 @@ dependencies {
 	implementation(libs.resilience4j.spring.boot)
 	implementation(libs.spring.oauth2.client)
 	implementation(libs.caffeine)
+	implementation(libs.springdoc)
 
 	compileOnly(libs.lombok)
 

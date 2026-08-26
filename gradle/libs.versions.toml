@@ -21,6 +21,8 @@ mapstruct = "1.6.3"
 lombok-mapstruct-binding = "0.2.0"
 caffeine = "3.2.4"
 
+springdoc = "2.8.6"
+
 [libraries]
 
 # =========================
@@ -39,6 +41,8 @@ mapstruct-processor = { group = "org.mapstruct", name = "mapstruct-processor", v
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
 spring-boot-starter-cache = { module = "org.springframework.boot:spring-boot-starter-cache" }
 spring-webmvc = { module = "org.springframework.boot:spring-boot-starter-webmvc" }
+
+springdoc = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 
 spring-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
 spring-data-jdbc = { module = "org.springframework.boot:spring-boot-starter-data-jdbc" }

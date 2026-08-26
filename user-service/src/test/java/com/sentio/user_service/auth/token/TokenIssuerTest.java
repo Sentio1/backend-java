@@ -57,7 +57,12 @@ class TokenIssuerTest {
         jwtProperties.setRefreshTokenExpiration(604_800_000L);
         jwtService = new JwtService(jwtProperties);
 
-        tokenIssuer = new TokenIssuer(jwtProperties, jwtService, new OpaqueTokenService(), refreshTokenRepository);
+        tokenIssuer = new TokenIssuer(
+                jwtProperties,
+                jwtService,
+                new OpaqueTokenService(),
+                refreshTokenRepository,
+                new ActiveSessionLimiter(refreshTokenRepository));
     }
 
     // JwtService doesn't expose a generic claims getter, and neither jjwt nor

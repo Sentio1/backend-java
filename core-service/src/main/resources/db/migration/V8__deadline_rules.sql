@@ -5,7 +5,7 @@
 -- і старі справи не мають "переїжджати" на нові строки.
 -- БЕЗ organization_id: правила спільні для всіх орендарів.
 
-CREATE SEQUENCE IF NOT EXISTS core.deadline_rules_seq_gen START WITH 1 INCREMENT BY 50;
+CREATE SEQUENCE IF NOT EXISTS core.deadline_rule_seq_gen START WITH 1 INCREMENT BY 50;
 
 CREATE TABLE core.deadline_rules (
     id                  BIGINT PRIMARY KEY,

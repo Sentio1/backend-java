@@ -96,4 +96,11 @@ public class Client extends TimestampedEntity {
 
     @Column(name = "delete_reason", length = DELETE_REASON_LENGTH)
     private String deleteReason;
+
+    @Column(name = "restored_at")
+    private Instant restoredAt;
+
+    // soft-ref auth.users.id
+    @Column(name = "restored_by")
+    private Long restoredBy;
 }

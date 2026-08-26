@@ -10,6 +10,7 @@ import com.sentio.user_service.user.repository.UserIdentityRepository;
 import com.sentio.user_service.user.repository.UserRepository;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
 /**
@@ -26,6 +27,7 @@ public class GoogleAccountResolver {
 
     private final UserRepository userRepository;
     private final UserIdentityRepository userIdentityRepository;
+    private final GoogleNewUserCreator newUserCreator;
 
     public User resolveOrCreate(GoogleIdentity identity) {
         Optional<UserIdentity> existingIdentity =
@@ -52,15 +54,23 @@ public class GoogleAccountResolver {
             return user;
         }
 
-        User user = User.builder()
-                .email(identity.email())
-                .firstName(identity.firstName())
-                .lastName(identity.lastName())
-                .build();
-        userRepository.save(user);
+        try {
+            return newUserCreator.createAndLink(identity);
+        } catch (DataIntegrityViolationException _) {
+            return resolveExistingAfterConflict(identity);
+        }
+    }
 
-        linkGoogleIdentity(user, identity.sub());
-        return user;
+    private User resolveExistingAfterConflict(GoogleIdentity identity) {
+        return userIdentityRepository
+                .findByProviderAndProviderUserId(AuthProvider.GOOGLE, identity.sub())
+                .map(UserIdentity::getUser)
+                .or(() -> userRepository.findByEmail(identity.email()))
+                .map(user -> {
+                    authGuards.assertNotDeleted(user);
+                    return user;
+                })
+                .orElseThrow(() -> new UnauthorizedException("Unable to resolve account after conflict"));
     }
 
     private void linkGoogleIdentity(User user, String googleSub) {

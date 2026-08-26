@@ -79,7 +79,7 @@ class OrganizationServiceTest {
         Organization organization =
                 Organization.builder().name("Old Name").slug("acme").build();
         organization.setId(10L);
-        when(organizationRepository.findById(10L)).thenReturn(Optional.of(organization));
+        when(organizationRepository.findByIdLocked(10L)).thenReturn(Optional.of(organization));
         when(organizationRepository.save(any(Organization.class))).thenAnswer(inv -> inv.getArgument(0));
 
         OrganizationResponse expected = new OrganizationResponse(10L, "New Name", "acme", null, null, null);
@@ -97,7 +97,7 @@ class OrganizationServiceTest {
 
     @Test
     void unknownId_throwsResourceNotFoundExceptionAndNeverSaves() {
-        when(organizationRepository.findById(999L)).thenReturn(Optional.empty());
+        when(organizationRepository.findByIdLocked(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(
                         () -> organizationService.updateOrganization(999L, new UpdateOrganizationRequest("New Name")))

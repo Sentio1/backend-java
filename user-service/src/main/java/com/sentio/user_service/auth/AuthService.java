@@ -1,5 +1,7 @@
 package com.sentio.user_service.auth;
 
+import static com.sentio.shared.persistence.ConstraintViolations.isUniqueConstraintViolation;
+
 import com.lisovskyi.security.autoconfigure.security.jwt.JwtBlacklistService;
 import com.lisovskyi.security.autoconfigure.security.jwt.JwtService;
 import com.lisovskyi.security.autoconfigure.security.jwt.OpaqueTokenService;
@@ -22,6 +24,7 @@ import com.sentio.user_service.user.repository.UserRepository;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,13 +67,21 @@ public class AuthService {
         }
 
         User user = buildLocalUser(request);
-        userRepository.save(user);
         user.getIdentities().add(userMapper.toLocalIdentity(user));
 
-        // Always org-less - the user creates or joins an organization as a separate
-        // onboarding step (POST /organizations, or accepting an invite), not here.
-        return new AuthResult(
-                tokenIssuer.issue(user, null, ip, userAgent), userMapper.toUserContextResponse(user, null));
+        try {
+            User savedUser = userRepository.saveAndFlush(user);
+            return new AuthResult(
+                    tokenIssuer.issue(user, null, ip, userAgent), userMapper.toUserContextResponse(savedUser, null));
+        } catch (DataIntegrityViolationException e) {
+            // Real index name from V6__make_users_email_unique.sql - a plain
+            // "uq_users_email" here would never match, so this catch would always
+            // fall through to `throw e` and leak the raw 500 this was meant to avoid.
+            if (isUniqueConstraintViolation(e, "users_email_active_idx")) {
+                throw new ResourceAlreadyExistsException("User with email: " + request.email() + " already exists");
+            }
+            throw e;
+        }
     }
 
     @Transactional
@@ -81,7 +92,7 @@ public class AuthService {
 
         authGuards.assertNotDeleted(user, INVALID_ERROR_MSG);
 
-        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+        if (user.getPassword() != null && !passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new UnauthorizedException(INVALID_ERROR_MSG);
         }
 

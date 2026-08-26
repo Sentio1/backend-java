@@ -5,15 +5,16 @@ import static com.lisovskyi.core_service.client.ClientConstants.*;
 import com.lisovskyi.core_service.client.ClientType;
 import com.lisovskyi.core_service.client.validation.Edrpou;
 import com.lisovskyi.core_service.client.validation.Rnokpp;
+import com.sentio.shared.util.StringNormalization;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
-import lombok.NonNull;
 import org.springframework.util.StringUtils;
 
 public record ClientCreateRequest(
-        @NonNull ClientType type,
+        @NotNull ClientType type,
 
         @Size(max = NAME_LENGTH) String lastName,
         @Size(max = NAME_LENGTH) String firstName,
@@ -41,5 +42,10 @@ public record ClientCreateRequest(
         } else {
             return StringUtils.hasText(lastName) && StringUtils.hasText(firstName);
         }
+    }
+
+    public ClientCreateRequest {
+        rnokpp = StringNormalization.blankToNull(rnokpp);
+        edrpou = StringNormalization.blankToNull(edrpou);
     }
 }

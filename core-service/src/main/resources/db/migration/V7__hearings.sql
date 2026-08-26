@@ -2,7 +2,7 @@
 -- Міграція: core.hearings (SEN-17)
 -- ═══════════════════════════════════════════════════════════
 
-CREATE SEQUENCE IF NOT EXISTS core.hearings_seq_gen START WITH 1 INCREMENT BY 50;
+CREATE SEQUENCE IF NOT EXISTS core.hearing_seq_gen START WITH 1 INCREMENT BY 50;
 
 CREATE TABLE core.hearings (
     id                     BIGINT PRIMARY KEY,

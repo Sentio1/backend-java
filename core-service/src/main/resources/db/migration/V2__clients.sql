@@ -2,7 +2,7 @@
 -- Міграція: core.clients (SEN-17)
 -- ═══════════════════════════════════════════════════════════
 
-CREATE SEQUENCE IF NOT EXISTS core.clients_seq_gen START WITH 1 INCREMENT BY 50;
+CREATE SEQUENCE IF NOT EXISTS core.client_seq_gen START WITH 1 INCREMENT BY 50;
 
 CREATE TABLE core.clients (
     id              BIGINT PRIMARY KEY,
@@ -33,6 +33,8 @@ CREATE TABLE core.clients (
     deleted_at      TIMESTAMPTZ,
     deleted_by      BIGINT,               -- soft-ref auth.users.id
     delete_reason   VARCHAR(255),
+    restored_at     TIMESTAMPTZ,
+    restored_by     BIGINT,               -- soft-ref auth.users.id
 
     CONSTRAINT clients_type_name_check CHECK (
         (type = 'COMPANY' AND company_name IS NOT NULL)

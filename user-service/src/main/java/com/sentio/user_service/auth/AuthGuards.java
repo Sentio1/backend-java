@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AuthGuards {
+
     public void assertNotDeleted(User user, String errorMessage) {
         if (user.isDeleted()) {
             throw new UnauthorizedException(errorMessage);

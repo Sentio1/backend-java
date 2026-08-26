@@ -13,6 +13,12 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
 
     Page<Client> findAllByOrganizationId(Long organizationId, Pageable pageable);
 
+    @Query(
+            value =
+                    "SELECT * FROM core.clients c WHERE c.deleted_at IS NOT NULL AND c.organization_id = :organizationId",
+            nativeQuery = true)
+    Page<Client> findAllDeletedByOrganizationId(Long organizationId, Pageable pageable);
+
     @Query(value = """
     SELECT * FROM core.clients c
     WHERE c.organization_id = :organizationId
@@ -25,7 +31,13 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
 
     Optional<Client> findByIdAndOrganizationId(Long id, Long organizationId);
 
-    boolean existsByOrganizationIdAndRnokpp(Long organizationId, String rnokpp);
+    @Query(
+            value =
+                    "SELECT * FROM core.clients c WHERE c.id = :id AND c.organization_id = :organizationId AND c.deleted_at IS NOT NULL",
+            nativeQuery = true)
+    Optional<Client> findDeletedByIdAndOrganizationId(Long id, Long organizationId);
 
-    boolean existsByOrganizationIdAndEdrpou(Long organizationId, String edrpou);
+    boolean existsByOrganizationIdAndRnokppAndIdNot(Long organizationId, String rnokpp, Long id);
+
+    boolean existsByOrganizationIdAndEdrpouAndIdNot(Long organizationId, String edrpou, Long id);
 }

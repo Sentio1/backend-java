@@ -128,7 +128,10 @@ class AuthServiceTest {
     }
 
     private void stubUserSaveAssignsId(long id) {
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+        // register() calls saveAndFlush (not save) so the unique-email constraint
+        // violation surfaces inside its try block instead of at commit time - see
+        // the ResourceAlreadyExistsException translation below.
+        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(inv -> {
             User u = inv.getArgument(0);
             u.setId(id);
             return u;
@@ -190,7 +193,7 @@ class AuthServiceTest {
             verifyNoInteractions(organizationProvisioning);
 
             ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-            verify(userRepository).save(userCaptor.capture());
+            verify(userRepository).saveAndFlush(userCaptor.capture());
             User savedUser = userCaptor.getValue();
             assertThat(savedUser.getIdentities()).hasSize(1);
             assertThat(savedUser.getIdentities().get(0).getProviderUserId()).isEqualTo("3");

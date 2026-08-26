@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-/** RateLimitingService class. */
 public class RateLimitingService {
 
     private final Cache<String, RateLimiter> limitersCache;
@@ -26,31 +25,27 @@ public class RateLimitingService {
     }
 
     private void checkLimits(String action, String email, String ip) {
-        if (email == null || email.isBlank()) {
-            return;
+        if (email != null && !email.isBlank()) {
+            String emailConfig = action + "-by-email";
+            String emailKey = String.format("%s-email:%s", action, email.toLowerCase(Locale.ROOT));
+
+            RateLimiter emailRateLimiter =
+                    limitersCache.get(emailKey, key -> RateLimiter.of(key, resolveConfig(emailConfig)));
+
+            if (!emailRateLimiter.acquirePermission()) {
+                throw RequestNotPermitted.createRequestNotPermitted(emailRateLimiter);
+            }
         }
 
-        if (ip == null || ip.isBlank()) {
-            return;
-        }
+        if (ip != null && !ip.isBlank()) {
+            String ipConfig = action + "-by-ip";
+            String ipKey = String.format("%s-ip:%s", action, ip);
 
-        String emailConfig = action + "-by-email";
-        String emailKey = String.format("%s-email:%s", action, email.toLowerCase(Locale.ROOT));
+            RateLimiter ipRateLimiter = limitersCache.get(ipKey, key -> RateLimiter.of(key, resolveConfig(ipConfig)));
 
-        RateLimiter emailRateLimiter =
-                limitersCache.get(emailKey, key -> RateLimiter.of(key, resolveConfig(emailConfig)));
-
-        if (!emailRateLimiter.acquirePermission()) {
-            throw RequestNotPermitted.createRequestNotPermitted(emailRateLimiter);
-        }
-
-        String ipConfig = action + "-by-ip";
-        String ipKey = String.format("%s-ip:%s", action, ip);
-
-        RateLimiter ipRateLimiter = limitersCache.get(ipKey, key -> RateLimiter.of(key, resolveConfig(ipConfig)));
-
-        if (!ipRateLimiter.acquirePermission()) {
-            throw RequestNotPermitted.createRequestNotPermitted(ipRateLimiter);
+            if (!ipRateLimiter.acquirePermission()) {
+                throw RequestNotPermitted.createRequestNotPermitted(ipRateLimiter);
+            }
         }
     }
 

@@ -2,7 +2,7 @@
 -- Міграція: core.cases (SEN-17)
 -- ═══════════════════════════════════════════════════════════
 
-CREATE SEQUENCE IF NOT EXISTS core.cases_seq_gen START WITH 1 INCREMENT BY 50;
+CREATE SEQUENCE IF NOT EXISTS core.case_seq_gen START WITH 1 INCREMENT BY 50;
 
 CREATE TABLE core.cases (
     id                        BIGINT PRIMARY KEY,

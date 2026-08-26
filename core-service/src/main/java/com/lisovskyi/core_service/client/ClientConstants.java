@@ -1,6 +1,7 @@
 package com.lisovskyi.core_service.client;
 
 public final class ClientConstants {
+
     private ClientConstants() {
         throw new UnsupportedOperationException();
     }

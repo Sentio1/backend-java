@@ -27,12 +27,15 @@ subprojects {
     pluginManager.apply("java")
     pluginManager.apply("checkstyle")
     pluginManager.apply("com.diffplug.spotless")
-    pluginManager.apply("org.graalvm.buildtools.native")
 
     extensions.configure<CheckstyleExtension> {
         toolVersion = "10.17.0"
         configFile = rootProject.file("config/checkstyle/checkstyle.xml")
         isIgnoreFailures = true
+    }
+
+    tasks.withType<Checkstyle>().configureEach {
+        exclude("**/generated/**")
     }
 
     java {
@@ -43,8 +46,8 @@ subprojects {
 
     spotless {
         java {
+            target("src/main/java/**/*.java", "src/test/java/**/*.java")
             palantirJavaFormat()
-
             removeUnusedImports()
             trimTrailingWhitespace()
             endWithNewline()
@@ -55,15 +58,19 @@ subprojects {
         useJUnitPlatform()
     }
 
-    extensions.configure<org.graalvm.buildtools.gradle.dsl.GraalVMExtension> {
-        binaries {
-            named("main") {
-                // Обмежую пам'ять до 12 ГБ
-                buildArgs.add("-J-Xmx12G")
+    plugins.withId("org.springframework.boot") {
+        pluginManager.apply("org.graalvm.buildtools.native")
+        extensions.configure<org.graalvm.buildtools.gradle.dsl.GraalVMExtension> {
+            binaries {
+                named("main") {
+                    // Обмежую пам'ять до половини оперативної пам'яті (50%)
+                    buildArgs.add("-J-XX:MaxRAMPercentage=50.0")
 
-                // Обмежую кількість ядер процесора
-                val numberOfProcessors = Runtime.getRuntime().availableProcessors() / 2
-                buildArgs.add("-J-XX:ActiveProcessorCount=$numberOfProcessors")
+                    // Обмежую кількість ядер процесора
+                    val numberOfProcessors = Runtime.getRuntime().availableProcessors() / 2
+                    val activeProcessors = if (numberOfProcessors > 0) numberOfProcessors else 1
+                    buildArgs.add("-J-XX:ActiveProcessorCount=$activeProcessors")
+                }
             }
         }
     }

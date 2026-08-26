@@ -3,7 +3,7 @@
 -- ═══════════════════════════════════════════════════════════
 -- Хронологія справи — фіксує події, що запускають відлік строків.
 
-CREATE SEQUENCE IF NOT EXISTS core.case_events_seq_gen START WITH 1 INCREMENT BY 50;
+CREATE SEQUENCE IF NOT EXISTS core.case_event_seq_gen START WITH 1 INCREMENT BY 50;
 
 CREATE TABLE core.case_events (
     id                    BIGINT PRIMARY KEY,

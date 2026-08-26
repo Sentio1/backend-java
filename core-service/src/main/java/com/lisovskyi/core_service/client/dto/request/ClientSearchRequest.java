@@ -11,5 +11,4 @@ import jakarta.validation.constraints.Size;
  * needs class-level {@code @Validated} and throws {@code ConstraintViolationException} instead).
  */
 public record ClientSearchRequest(
-        @NotBlank @Size(min = 2, max = 100) String query
-) {}
+        @NotBlank @Size(min = 2, max = 100) String query) {}

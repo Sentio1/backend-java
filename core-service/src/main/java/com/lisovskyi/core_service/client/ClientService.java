@@ -3,12 +3,15 @@ package com.lisovskyi.core_service.client;
 import static com.sentio.shared.persistence.ConstraintViolations.isUniqueConstraintViolation;
 
 import com.lisovskyi.core_service.client.dto.request.ClientCreateRequest;
+import com.lisovskyi.core_service.client.dto.request.ClientUpdateRequest;
 import com.lisovskyi.core_service.client.dto.response.ClientResponse;
 import com.lisovskyi.core_service.client.mapper.ClientMapper;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsException;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.shared.dto.PageResponse;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -33,6 +36,13 @@ public class ClientService {
     }
 
     @Transactional(readOnly = true)
+    public PageResponse<ClientResponse> getAllDeletedClients(Long organizationId, Pageable pageable) {
+        return PageResponse.of(clientRepository
+                .findAllDeletedByOrganizationId(organizationId, pageable)
+                .map(clientMapper::toResponse));
+    }
+
+    @Transactional(readOnly = true)
     public ClientResponse getClientById(Long id, Long organizationId) {
         return clientRepository
                 .findByIdAndOrganizationId(id, organizationId)
@@ -47,8 +57,71 @@ public class ClientService {
     }
 
     @Transactional
+    public List<ClientResponse> createManyClients(
+            Long organizationId, Long createdById, List<ClientCreateRequest> requests) {
+        List<ClientResponse> result = new ArrayList<>();
+        requests.forEach(request -> result.add(createClientNotTransactional(organizationId, createdById, request)));
+
+        return result;
+    }
+
+    @Transactional
     public ClientResponse createClient(Long organizationId, Long createdById, ClientCreateRequest request) {
-        assertUniqueTaxIds(organizationId, request.rnokpp(), request.edrpou());
+        return createClientNotTransactional(organizationId, createdById, request);
+    }
+
+    @Transactional
+    public ClientResponse updateClient(Long id, Long organizationId, ClientUpdateRequest request) {
+        Client client = clientRepository
+                .findByIdAndOrganizationId(id, organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client", "id", id));
+
+        String rnokpp = request.rnokpp().orElse(null);
+        String edrpou = request.edrpou().orElse(null);
+
+        if (request.rnokpp().isPresent() || request.edrpou().isPresent()) {
+            assertUniqueTaxIds(organizationId, rnokpp, edrpou, id);
+        }
+
+        clientMapper.updateEntityFromRequest(request, client);
+        return clientMapper.toResponse(clientRepository.save(client));
+    }
+
+    @Transactional
+    public void deleteClient(Long id, Long organizationId, Long deletedById, String deleteReason) {
+        Client client = clientRepository
+                .findByIdAndOrganizationId(id, organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client", "id", id));
+
+        client.setRestoredAt(null);
+        client.setRestoredBy(null);
+
+        client.setDeletedAt(Instant.now());
+        client.setDeletedBy(deletedById);
+        client.setDeleteReason(deleteReason);
+
+        clientRepository.save(client);
+    }
+
+    @Transactional
+    public void restoreClient(Long id, Long organizationId, Long restoredById) {
+        Client client = clientRepository
+                .findDeletedByIdAndOrganizationId(id, organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client", "id", id));
+
+        client.setDeletedAt(null);
+        client.setDeletedBy(null);
+        client.setDeleteReason(null);
+
+        client.setRestoredAt(Instant.now());
+        client.setRestoredBy(restoredById);
+
+        clientRepository.save(client);
+    }
+
+    private ClientResponse createClientNotTransactional(
+            Long organizationId, Long createdById, ClientCreateRequest request) {
+        assertUniqueTaxIds(organizationId, request.rnokpp(), request.edrpou(), null);
 
         Client client = clientMapper.toEntity(request);
 
@@ -56,7 +129,8 @@ public class ClientService {
         client.setCreatedBy(createdById);
 
         try {
-            return clientMapper.toResponse(clientRepository.save(client));
+            Client savedClient = clientRepository.saveAndFlush(client);
+            return clientMapper.toResponse(savedClient);
         } catch (DataIntegrityViolationException e) {
             if (isUniqueConstraintViolation(e, "uq_clients_org_rnokpp", "uq_clients_org_edrpou")) {
                 throw new ResourceAlreadyExistsException(
@@ -66,26 +140,15 @@ public class ClientService {
         }
     }
 
-    @Transactional
-    public void deleteClient(Long id, Long organizationId, Long deletedById, String deleteReason) {
-        Client client = clientRepository
-                .findByIdAndOrganizationId(id, organizationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Client", "id", id));
-
-        client.setDeletedAt(Instant.now());
-        client.setDeletedBy(deletedById);
-        client.setDeleteReason(deleteReason);
-
-        clientRepository.save(client);
-    }
-
     // rnokpp/edrpou унікальні в межах організації лише серед активних (не видалених) клієнтів -
     // узгоджено з частковими unique-індексами в V11__clients_unique_tax_ids.sql.
-    private void assertUniqueTaxIds(Long organizationId, String rnokpp, String edrpou) {
-        if (StringUtils.hasText(rnokpp) && clientRepository.existsByOrganizationIdAndRnokpp(organizationId, rnokpp)) {
+    private void assertUniqueTaxIds(Long organizationId, String rnokpp, String edrpou, Long excludeId) {
+        if (StringUtils.hasText(rnokpp)
+                && clientRepository.existsByOrganizationIdAndRnokppAndIdNot(organizationId, rnokpp, excludeId)) {
             throw new ResourceAlreadyExistsException("Client", "rnokpp", rnokpp);
         }
-        if (StringUtils.hasText(edrpou) && clientRepository.existsByOrganizationIdAndEdrpou(organizationId, edrpou)) {
+        if (StringUtils.hasText(edrpou)
+                && clientRepository.existsByOrganizationIdAndEdrpouAndIdNot(organizationId, edrpou, excludeId)) {
             throw new ResourceAlreadyExistsException("Client", "edrpou", edrpou);
         }
     }

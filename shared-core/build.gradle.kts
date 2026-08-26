@@ -4,14 +4,6 @@ plugins {
     alias(libs.plugins.spring.dependency.management)
 }
 
-tasks.bootJar {
-    enabled = false
-}
-
-tasks.jar {
-    enabled = true
-}
-
 group = "com.sentio"
 version = "1.0-SNAPSHOT"
 
@@ -26,6 +18,7 @@ dependencies {
     api(libs.lisovskyi.web.error)
     api(libs.lisovskyi.security)
     api(libs.caffeine)
+    api(libs.jackson.databind.nullable)
 
     // Лише типи для компіляції (MVC-контракти) - самі MVC-біни піднімає consumer-сервіс,
     // тут просто пишемо проти інтерфейсів; @ConditionalOnClass не дасть автоконфігу
@@ -37,12 +30,10 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-// Вимикаємо створення виконуваного Spring Boot архіву
 tasks.bootJar {
     enabled = false
 }
 
-// Вмикаємо створення звичайного JAR для імпорту в інші модулі
 tasks.jar {
     enabled = true
 }

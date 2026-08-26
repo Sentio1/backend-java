@@ -22,6 +22,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @ExtendWith(MockitoExtension.class)
 /** GoogleAccountResolverTest class. */
@@ -35,6 +36,12 @@ class GoogleAccountResolverTest {
 
     @Mock
     private AuthGuards authGuards;
+
+    // The actual insert + flush now lives in GoogleNewUserCreator's own
+    // REQUIRES_NEW transaction (see its javadoc) - this test only needs to verify
+    // GoogleAccountResolver delegates to it and handles the two outcomes.
+    @Mock
+    private GoogleNewUserCreator newUserCreator;
 
     @InjectMocks
     private GoogleAccountResolver googleAccountResolver;
@@ -103,27 +110,60 @@ class GoogleAccountResolverTest {
     }
 
     @Test
-    void noMatchAtAll_createsNewUserAndLinksIdentity() {
+    void noMatchAtAll_delegatesToNewUserCreator() {
+        User created = User.builder()
+                .email("user@sentio.dev")
+                .firstName("Jane")
+                .lastName("Doe")
+                .build();
+        created.setId(5L);
+
         when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
                 .thenReturn(Optional.empty());
         when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.empty());
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> {
-            User u = inv.getArgument(0);
-            u.setId(5L);
-            return u;
-        });
+        when(newUserCreator.createAndLink(identity(true))).thenReturn(created);
 
         User resolved = googleAccountResolver.resolveOrCreate(identity(true));
 
-        assertThat(resolved.getId()).isEqualTo(5L);
-        assertThat(resolved.getEmail()).isEqualTo("user@sentio.dev");
-        assertThat(resolved.getFirstName()).isEqualTo("Jane");
-        assertThat(resolved.getLastName()).isEqualTo("Doe");
-        assertThat(resolved.getPassword()).isNull();
+        assertThat(resolved).isEqualTo(created);
+    }
 
-        ArgumentCaptor<UserIdentity> captor = ArgumentCaptor.forClass(UserIdentity.class);
-        verify(userIdentityRepository).save(captor.capture());
-        assertThat(captor.getValue().getUser()).isEqualTo(resolved);
-        assertThat(captor.getValue().getProviderUserId()).isEqualTo("google-sub-1");
+    // GoogleNewUserCreator runs the insert in its own REQUIRES_NEW transaction
+    // specifically so this fallback is reachable at all - see its javadoc for why a
+    // plain try/catch around a save() in the caller's own transaction wouldn't work
+    // on Postgres (the whole transaction aborts, poisoning the lookup below too).
+    @Test
+    void conflictOnCreate_fallsBackToTheWinnerResolvedByGoogleIdentity() {
+        User winner = User.builder().email("user@sentio.dev").build();
+        winner.setId(7L);
+        UserIdentity winnerIdentity = UserIdentity.builder()
+                .user(winner)
+                .provider(AuthProvider.GOOGLE)
+                .providerUserId("google-sub-1")
+                .build();
+
+        when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
+                .thenReturn(Optional.empty(), Optional.of(winnerIdentity));
+        when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.empty());
+        when(newUserCreator.createAndLink(identity(true))).thenThrow(new DataIntegrityViolationException("conflict"));
+
+        User resolved = googleAccountResolver.resolveOrCreate(identity(true));
+
+        assertThat(resolved).isEqualTo(winner);
+    }
+
+    @Test
+    void conflictOnCreate_fallsBackToTheWinnerResolvedByEmail_whenIdentityLinkAlsoLostTheRace() {
+        User winner = User.builder().email("user@sentio.dev").build();
+        winner.setId(7L);
+
+        when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
+                .thenReturn(Optional.empty());
+        when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.empty(), Optional.of(winner));
+        when(newUserCreator.createAndLink(identity(true))).thenThrow(new DataIntegrityViolationException("conflict"));
+
+        User resolved = googleAccountResolver.resolveOrCreate(identity(true));
+
+        assertThat(resolved).isEqualTo(winner);
     }
 }

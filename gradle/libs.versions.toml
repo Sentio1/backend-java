@@ -21,6 +21,8 @@ mapstruct = "1.6.3"
 lombok-mapstruct-binding = "0.2.0"
 caffeine = "3.2.4"
 
+jackson-databind-nullable = "0.2.11"
+
 [libraries]
 
 # =========================
@@ -35,6 +37,9 @@ lisovskyi-web-error = { group = "com.lisovskyi", name = "lisovskyi-web-error-sta
 # Mapstruct
 mapstruct-core = { group = "org.mapstruct", name = "mapstruct", version.ref = "mapstruct" }
 mapstruct-processor = { group = "org.mapstruct", name = "mapstruct-processor", version.ref = "mapstruct" }
+
+# Jackson
+jackson-databind-nullable = { module = "org.openapitools:jackson-databind-nullable", version.ref = "jackson-databind-nullable" }
 
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
 spring-boot-starter-cache = { module = "org.springframework.boot:spring-boot-starter-cache" }

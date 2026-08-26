@@ -6,7 +6,6 @@ import com.lisovskyi.security.autoconfigure.security.jwt.OpaqueTokenService;
 import com.sentio.user_service.auth.dto.AuthTokens;
 import com.sentio.user_service.organization.entity.OrganizationMember;
 import com.sentio.user_service.refresh_token.RefreshToken;
-import com.sentio.user_service.refresh_token.RefreshTokenConstants;
 import com.sentio.user_service.refresh_token.RefreshTokenRepository;
 import com.sentio.user_service.security.SecurityUser;
 import com.sentio.user_service.user.entity.User;
@@ -39,6 +38,7 @@ public class TokenIssuer {
     private final JwtService jwtService;
     private final OpaqueTokenService opaqueTokenService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final ActiveSessionLimiter activeSessionLimiter;
 
     public AuthTokens issue(User user, @Nullable OrganizationMember membership, String ip, String userAgent) {
         Map<String, Object> extraClaims = new HashMap<>();
@@ -62,7 +62,7 @@ public class TokenIssuer {
         String refreshToken = opaqueTokenService.generate();
         String hashedRefreshToken = opaqueTokenService.hash(refreshToken);
 
-        enforceActiveSessionLimit(user.getId());
+        activeSessionLimiter.enforceActiveSessionLimit(user.getId());
 
         RefreshToken refreshTokenInstance = RefreshToken.builder()
                 .tokenHash(hashedRefreshToken)
@@ -75,25 +75,6 @@ public class TokenIssuer {
         refreshTokenRepository.save(refreshTokenInstance);
 
         return new AuthTokens(accessToken, refreshToken);
-    }
-
-    // Caps unbounded growth of refresh_tokens per user: revoking (not deleting) the
-    // oldest active sessions once the new one would push the count past the limit -
-    // same "Active sessions" concept as Telegram/Google's "log out other devices",
-    // just applied eagerly instead of waiting for the user to do it themselves.
-    private void enforceActiveSessionLimit(long userId) {
-        List<RefreshToken> activeSessions =
-                refreshTokenRepository.findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtAsc(userId);
-
-        int overLimitBy = activeSessions.size() - RefreshTokenConstants.MAX_ACTIVE_SESSIONS + 1;
-        if (overLimitBy <= 0) {
-            return;
-        }
-
-        Instant now = Instant.now();
-        List<RefreshToken> oldest = activeSessions.subList(0, overLimitBy);
-        oldest.forEach(session -> session.setRevokedAt(now));
-        refreshTokenRepository.saveAll(oldest);
     }
 
     // ip is attacker/network-controlled input (see HttpRequestUtils.getClientIP) -

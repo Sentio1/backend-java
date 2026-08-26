@@ -50,7 +50,7 @@ public class OrganizationService {
     @Transactional
     public OrganizationResponse updateOrganization(long id, UpdateOrganizationRequest updateRequest) {
         Organization organization = organizationRepository
-                .findById(id)
+                .findByIdLocked(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization", "id", id));
 
         organization.setName(updateRequest.name());

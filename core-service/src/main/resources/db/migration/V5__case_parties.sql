@@ -4,7 +4,7 @@
 -- Сторони справи — заміна колишнього cases.client_id/client_role
 -- на множинні сторони з роллю (позивач/відповідач/третя особа/...).
 
-CREATE SEQUENCE IF NOT EXISTS core.case_parties_seq_gen START WITH 1 INCREMENT BY 50;
+CREATE SEQUENCE IF NOT EXISTS core.case_party_seq_gen START WITH 1 INCREMENT BY 50;
 
 CREATE TABLE core.case_parties (
     id               BIGINT PRIMARY KEY,
@@ -24,4 +24,13 @@ CREATE TABLE core.case_parties (
 CREATE INDEX case_parties_organization_id_case_id_idx   ON core.case_parties (organization_id, case_id);
 CREATE INDEX case_parties_organization_id_client_id_idx ON core.case_parties (organization_id, client_id);
 
-CREATE UNIQUE INDEX case_parties_case_id_client_id_role_idx ON core.case_parties (case_id, client_id, role);
+-- Виключає soft-deleted рядки: інакше повторне додавання того самого клієнта з
+-- тією ж роллю після видалення сторони впирається в стару видалену стрічку.
+CREATE UNIQUE INDEX case_parties_case_id_client_id_role_idx
+    ON core.case_parties (case_id, client_id, role)
+    WHERE deleted_at IS NULL;
+
+-- Не більше одного активного "головного" клієнта (білінг/головний контакт) на справу.
+CREATE UNIQUE INDEX case_parties_case_id_primary_idx
+    ON core.case_parties (case_id)
+    WHERE is_primary AND deleted_at IS NULL;

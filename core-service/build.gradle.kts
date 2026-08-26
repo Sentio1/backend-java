@@ -10,7 +10,6 @@ extra["springCloudVersion"] = "2025.1.3"
 
 dependencies {
 	implementation(project(":shared-core"))
-	implementation(project(":user-service"))
 
 	// custom starters
 	implementation(libs.lisovskyi.security)

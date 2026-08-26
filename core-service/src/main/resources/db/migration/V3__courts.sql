@@ -4,7 +4,7 @@
 -- Глобальний довідник судів — БЕЗ organization_id, суди спільні
 -- для всіх орендарів, це не дані організації.
 
-CREATE SEQUENCE IF NOT EXISTS core.courts_seq_gen START WITH 1 INCREMENT BY 50;
+CREATE SEQUENCE IF NOT EXISTS core.court_seq_gen START WITH 1 INCREMENT BY 50;
 
 CREATE TABLE core.courts (
     id        BIGINT PRIMARY KEY,

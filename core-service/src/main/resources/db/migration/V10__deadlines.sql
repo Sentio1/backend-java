@@ -3,7 +3,7 @@
 -- ═══════════════════════════════════════════════════════════
 -- Ядро продукту.
 
-CREATE SEQUENCE IF NOT EXISTS core.deadlines_seq_gen START WITH 1 INCREMENT BY 50;
+CREATE SEQUENCE IF NOT EXISTS core.deadline_seq_gen START WITH 1 INCREMENT BY 50;
 
 CREATE TABLE core.deadlines (
     id                   BIGINT PRIMARY KEY,

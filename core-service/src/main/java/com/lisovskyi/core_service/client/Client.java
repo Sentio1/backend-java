@@ -1,18 +1,10 @@
 package com.lisovskyi.core_service.client;
 
-import static com.lisovskyi.core_service.client.ClientConstants.COMPANY_NAME_LENGTH;
-import static com.lisovskyi.core_service.client.ClientConstants.DELETE_REASON_LENGTH;
-import static com.lisovskyi.core_service.client.ClientConstants.DIRECTOR_NAME_LENGTH;
-import static com.lisovskyi.core_service.client.ClientConstants.EDRPOU_LENGTH;
-import static com.lisovskyi.core_service.client.ClientConstants.NAME_LENGTH;
-import static com.lisovskyi.core_service.client.ClientConstants.PASSPORT_LENGTH;
-import static com.lisovskyi.core_service.client.ClientConstants.PHONE_NUMBER_LENGTH;
-import static com.lisovskyi.core_service.client.ClientConstants.RNOKPP_LENGTH;
+import static com.lisovskyi.core_service.client.ClientConstants.*;
 
-import com.lisovskyi.jpa.autoconfigure.entity.TimestampedEntity;
+import com.lisovskyi.core_service.entity.CoreEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import jakarta.persistence.*;
-import java.time.Instant;
 import java.time.LocalDate;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -29,10 +21,9 @@ import org.hibernate.type.SqlTypes;
 @SuperBuilder
 @SequenceSize(size = 50)
 @SQLRestriction("deleted_at IS NULL")
-public class Client extends TimestampedEntity {
+public class Client extends CoreEntity {
 
-    // soft-ref auth.organizations.id — user-service й core-service мають
-    // окремі БД, тому це plain bigint, не @ManyToOne на чужий entity.
+    // soft-ref auth.organizations.id
     @Column(name = "organization_id", nullable = false)
     private Long organizationId;
 
@@ -83,24 +74,7 @@ public class Client extends TimestampedEntity {
     @Column(name = "notes", columnDefinition = "text")
     private String notes;
 
-    // soft-ref auth.users.id — так само, без @ManyToOne
+    // soft-ref auth.users.id
     @Column(name = "created_by", nullable = false)
     private Long createdBy;
-
-    @Column(name = "deleted_at")
-    private Instant deletedAt;
-
-    // soft-ref auth.users.id
-    @Column(name = "deleted_by")
-    private Long deletedBy;
-
-    @Column(name = "delete_reason", length = DELETE_REASON_LENGTH)
-    private String deleteReason;
-
-    @Column(name = "restored_at")
-    private Instant restoredAt;
-
-    // soft-ref auth.users.id
-    @Column(name = "restored_by")
-    private Long restoredBy;
 }

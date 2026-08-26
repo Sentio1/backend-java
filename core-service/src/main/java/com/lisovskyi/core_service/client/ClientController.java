@@ -1,6 +1,6 @@
 package com.lisovskyi.core_service.client;
 
-import static com.lisovskyi.core_service.client.ClientConstants.DELETE_REASON_LENGTH;
+import static com.lisovskyi.core_service.entity.CoreEntityConstants.DELETE_REASON_LENGTH;
 
 import com.lisovskyi.core_service.client.dto.request.ClientCreateRequest;
 import com.lisovskyi.core_service.client.dto.request.ClientUpdateRequest;

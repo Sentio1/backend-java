@@ -2,7 +2,10 @@
 -- Міграція: core.cases (SEN-17)
 -- ═══════════════════════════════════════════════════════════
 
-CREATE SEQUENCE IF NOT EXISTS core.case_seq_gen START WITH 1 INCREMENT BY 50;
+-- Послідовність названа case_entity_seq_gen (не case_seq_gen): "case" — зарезервоване
+-- слово Java, тому сутність названа CaseEntity, а lisovskyi-jpa-starter виводить назву
+-- послідовності з простого імені класу (CamelCase -> snake_case + "_seq_gen").
+CREATE SEQUENCE IF NOT EXISTS core.case_entity_seq_gen START WITH 1 INCREMENT BY 50;
 
 CREATE TABLE core.cases (
     id                        BIGINT PRIMARY KEY,

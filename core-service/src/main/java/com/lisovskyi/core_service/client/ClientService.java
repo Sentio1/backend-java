@@ -121,12 +121,9 @@ public class ClientService {
 
     private ClientResponse createClientNotTransactional(
             Long organizationId, Long createdById, ClientCreateRequest request) {
-        assertUniqueTaxIds(organizationId, request.rnokpp(), request.edrpou(), null);
+        assertUniqueTaxIds(organizationId, request.rnokpp().orElse(null), request.edrpou().orElse(null), null);
 
-        Client client = clientMapper.toEntity(request);
-
-        client.setOrganizationId(organizationId);
-        client.setCreatedBy(createdById);
+        Client client = clientMapper.toEntity(request, organizationId, createdById);
 
         try {
             Client savedClient = clientRepository.saveAndFlush(client);

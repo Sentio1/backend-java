@@ -13,17 +13,20 @@ import org.openapitools.jackson.nullable.JsonNullable;
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface ClientMapper {
 
+    // organizationId/createdById надходять не з тіла запиту (JWT/шлях), а не з ClientCreateRequest,
+    // тому мапляться як окремі параметри - щоб ClientService не виставляв їх вручну сеттерами
+    // після toEntity(request).
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "organizationId", ignore = true)
-    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "organizationId", source = "organizationId")
+    @Mapping(target = "createdBy", source = "createdById")
     @Mapping(target = "deletedAt", ignore = true)
     @Mapping(target = "deletedBy", ignore = true)
     @Mapping(target = "deleteReason", ignore = true)
     @Mapping(target = "restoredAt", ignore = true)
     @Mapping(target = "restoredBy", ignore = true)
-    Client toEntity(ClientCreateRequest request);
+    Client toEntity(ClientCreateRequest request, Long organizationId, Long createdById);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)

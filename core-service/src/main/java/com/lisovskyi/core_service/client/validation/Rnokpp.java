@@ -16,7 +16,7 @@ import java.lang.annotation.Target;
  * <p>{@code null}/blank pass - this only judges shape, not whether the field is required for a
  * given {@code ClientType} (that's {@code ClientCreateRequest.isValidNaming()}'s job).
  */
-@Target({ElementType.FIELD, ElementType.PARAMETER})
+@Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.TYPE_USE})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = RnokppValidator.class)
 public @interface Rnokpp {

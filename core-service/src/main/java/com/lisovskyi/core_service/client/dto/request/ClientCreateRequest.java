@@ -11,36 +11,40 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.util.StringUtils;
 
+// Усі опційні поля - JsonNullable, як у ClientUpdateRequest: уніфікований DTO-стиль
+// create/update, а не голі nullable-типи лише для створення. type лишається plain -
+// він завжди обов'язковий, "відсутнє значення" тут не має сенсу.
 public record ClientCreateRequest(
         @NotNull ClientType type,
 
-        @Size(max = NAME_LENGTH) String lastName,
-        @Size(max = NAME_LENGTH) String firstName,
-        @Size(max = NAME_LENGTH) String middleName,
+        JsonNullable<@Size(max = NAME_LENGTH) String> lastName,
+        JsonNullable<@Size(max = NAME_LENGTH) String> firstName,
+        JsonNullable<@Size(max = NAME_LENGTH) String> middleName,
 
-        LocalDate birthDate,
+        JsonNullable<LocalDate> birthDate,
 
-        @Rnokpp String rnokpp,
-        @Size(max = PASSPORT_LENGTH) String passport,
-        @Size(max = COMPANY_NAME_LENGTH) String companyName,
-        @Edrpou String edrpou,
-        @Size(max = DIRECTOR_NAME_LENGTH) String directorName,
+        JsonNullable<@Rnokpp String> rnokpp,
+        JsonNullable<@Size(max = PASSPORT_LENGTH) String> passport,
+        JsonNullable<@Size(max = COMPANY_NAME_LENGTH) String> companyName,
+        JsonNullable<@Edrpou String> edrpou,
+        JsonNullable<@Size(max = DIRECTOR_NAME_LENGTH) String> directorName,
 
-        @Email String email,
-        @Size(max = PHONE_NUMBER_LENGTH) String phoneNumber,
+        JsonNullable<@Email String> email,
+        JsonNullable<@Size(max = PHONE_NUMBER_LENGTH) String> phoneNumber,
 
-        String address,
-        String notes) {
+        JsonNullable<String> address,
+        JsonNullable<String> notes) {
     @AssertTrue(
             message =
                     "For COMPANY, 'companyName' is required. For individuals, 'lastName' and 'firstName' are required.")
     public boolean isValidNaming() {
         if (type == ClientType.COMPANY) {
-            return StringUtils.hasText(companyName);
+            return StringUtils.hasText(companyName.orElse(null));
         } else {
-            return StringUtils.hasText(lastName) && StringUtils.hasText(firstName);
+            return StringUtils.hasText(lastName.orElse(null)) && StringUtils.hasText(firstName.orElse(null));
         }
     }
 

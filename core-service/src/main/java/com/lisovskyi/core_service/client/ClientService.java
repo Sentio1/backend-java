@@ -121,7 +121,8 @@ public class ClientService {
 
     private ClientResponse createClientNotTransactional(
             Long organizationId, Long createdById, ClientCreateRequest request) {
-        assertUniqueTaxIds(organizationId, request.rnokpp().orElse(null), request.edrpou().orElse(null), null);
+        assertUniqueTaxIds(
+                organizationId, request.rnokpp().orElse(null), request.edrpou().orElse(null), null);
 
         Client client = clientMapper.toEntity(request, organizationId, createdById);
 

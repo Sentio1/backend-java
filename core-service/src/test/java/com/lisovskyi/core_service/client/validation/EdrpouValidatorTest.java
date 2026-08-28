@@ -1,9 +1,9 @@
 package com.lisovskyi.core_service.client.validation;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * SEN-17 review fix: the weight set must be picked from the code's own range (below/at-or-above

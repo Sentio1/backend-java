@@ -22,7 +22,6 @@ import org.hibernate.type.SqlTypes;
 @NoArgsConstructor
 @SuperBuilder
 @SequenceSize(size = 50)
-/** OrganizationInvite class. */
 public class OrganizationInvite extends CreationTimestampedEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)

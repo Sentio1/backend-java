@@ -2,8 +2,8 @@ package com.sentio.user_service.organization.controller;
 
 import com.lisovskyi.security.autoconfigure.security.annotation.CurrentUser;
 import com.sentio.user_service.auth.cookie.AuthCookieService;
-import com.sentio.user_service.auth.dto.AuthResult;
-import com.sentio.user_service.auth.dto.AuthTokens;
+import com.sentio.user_service.auth.dto.response.AuthResult;
+import com.sentio.user_service.auth.dto.response.AuthTokens;
 import com.sentio.user_service.organization.OrganizationSecurity;
 import com.sentio.user_service.organization.dto.CreateOrganizationRequest;
 import com.sentio.user_service.organization.dto.organization.OrganizationResponse;

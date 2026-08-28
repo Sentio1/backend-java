@@ -24,6 +24,10 @@ public class RateLimitingService {
         checkLimits("register", email, ip);
     }
 
+    public void checkServiceTokenLimits(String email, String ip) {
+        checkLimits("service-token", email, ip);
+    }
+
     private void checkLimits(String action, String email, String ip) {
         if (email != null && !email.isBlank()) {
             String emailConfig = action + "-by-email";

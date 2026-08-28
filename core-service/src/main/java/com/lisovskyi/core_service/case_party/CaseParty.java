@@ -1,20 +1,13 @@
 package com.lisovskyi.core_service.case_party;
 
+import com.lisovskyi.core_service.case_.Case;
+import com.lisovskyi.core_service.client.Client;
 import com.lisovskyi.core_service.entity.CoreEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
 // Сторони справи — заміна колишнього cases.client_id/client_role на множинні сторони
@@ -27,19 +20,20 @@ import org.hibernate.type.SqlTypes;
 @NoArgsConstructor
 @SuperBuilder
 @SequenceSize(size = 50)
-@SQLRestriction("deleted_at IS NULL")
 public class CaseParty extends CoreEntity {
 
     @Column(name = "organization_id", nullable = false)
-    private Long organizationId;
+    private long organizationId;
 
     // фізичний FK у межах core-service: core.cases(id)
-    @Column(name = "case_id", nullable = false)
-    private Long caseId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "case_id", nullable = false, referencedColumnName = "id")
+    private Case case_;
 
     // фізичний FK у межах core-service: core.clients(id)
-    @Column(name = "client_id", nullable = false)
-    private Long clientId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id", nullable = false, referencedColumnName = "id")
+    private Client client;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
@@ -48,5 +42,5 @@ public class CaseParty extends CoreEntity {
 
     @Column(name = "is_primary", nullable = false)
     @Builder.Default
-    private Boolean isPrimary = false;
+    private boolean isPrimary = false;
 }

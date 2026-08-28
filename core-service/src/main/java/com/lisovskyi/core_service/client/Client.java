@@ -1,16 +1,16 @@
 package com.lisovskyi.core_service.client;
 
-import static com.lisovskyi.core_service.client.ClientConstants.*;
-
 import com.lisovskyi.core_service.entity.CoreEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import jakarta.persistence.*;
-import java.time.LocalDate;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
+
+import java.time.LocalDate;
+
+import static com.lisovskyi.core_service.client.ClientConstants.*;
 
 @Entity
 @Table(name = "clients")
@@ -20,12 +20,11 @@ import org.hibernate.type.SqlTypes;
 @NoArgsConstructor
 @SuperBuilder
 @SequenceSize(size = 50)
-@SQLRestriction("deleted_at IS NULL")
 public class Client extends CoreEntity {
 
     // soft-ref auth.organizations.id
     @Column(name = "organization_id", nullable = false)
-    private Long organizationId;
+    private long organizationId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
@@ -76,5 +75,5 @@ public class Client extends CoreEntity {
 
     // soft-ref auth.users.id
     @Column(name = "created_by", nullable = false)
-    private Long createdBy;
+    private long createdBy;
 }

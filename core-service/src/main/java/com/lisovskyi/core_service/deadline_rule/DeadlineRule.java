@@ -1,29 +1,18 @@
 package com.lisovskyi.core_service.deadline_rule;
 
-import static com.lisovskyi.core_service.deadline_rule.DeadlineRuleConstants.CODE_LENGTH;
-import static com.lisovskyi.core_service.deadline_rule.DeadlineRuleConstants.COUNT_FROM_LENGTH;
-import static com.lisovskyi.core_service.deadline_rule.DeadlineRuleConstants.DURATION_UNIT_LENGTH;
-import static com.lisovskyi.core_service.deadline_rule.DeadlineRuleConstants.LEGAL_BASIS_LENGTH;
-import static com.lisovskyi.core_service.deadline_rule.DeadlineRuleConstants.TITLE_LENGTH;
-import static com.lisovskyi.core_service.deadline_rule.DeadlineRuleConstants.TRIGGER_EVENT_CODE_LENGTH;
-
-import com.lisovskyi.core_service.case_.ProcedureType;
+import com.lisovskyi.core_service.case_.enums.ProcedureType;
+import com.lisovskyi.core_service.case_event.enums.EventCode;
 import com.lisovskyi.jpa.autoconfigure.entity.BaseEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
-import java.time.LocalDate;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+
+import java.time.LocalDate;
+
+import static com.lisovskyi.core_service.deadline_rule.DeadlineRuleConstants.*;
 
 // Довідник правил, версіонований — редакції кодексів змінюються, і старі справи не
 // мають "переїжджати" на нові строки. БЕЗ organization_id: правила спільні для всіх
@@ -48,8 +37,10 @@ public class DeadlineRule extends BaseEntity {
     private ProcedureType procedure;
 
     // яка подія запускає відлік
+    @Enumerated(EnumType.STRING)
     @Column(name = "trigger_event_code", nullable = false, length = TRIGGER_EVENT_CODE_LENGTH)
-    private String triggerEventCode;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private EventCode triggerEventCode;
 
     @Column(name = "title", nullable = false, length = TITLE_LENGTH)
     private String title;
@@ -59,7 +50,7 @@ public class DeadlineRule extends BaseEntity {
     private String legalBasis;
 
     @Column(name = "duration_value", nullable = false)
-    private Short durationValue;
+    private short durationValue;
 
     // DAY | MONTH
     @Column(name = "duration_unit", nullable = false, length = DURATION_UNIT_LENGTH)
@@ -79,7 +70,7 @@ public class DeadlineRule extends BaseEntity {
 
     @Column(name = "is_extendable", nullable = false)
     @Builder.Default
-    private Boolean isExtendable = false;
+    private boolean isExtendable = false;
 
     @Column(name = "valid_from", nullable = false)
     private LocalDate validFrom;

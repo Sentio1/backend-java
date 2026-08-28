@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 import com.lisovskyi.security.autoconfigure.security.jwt.JwtProperties;
 import com.lisovskyi.security.autoconfigure.security.jwt.JwtService;
 import com.lisovskyi.security.autoconfigure.security.jwt.OpaqueTokenService;
-import com.sentio.user_service.auth.dto.AuthTokens;
+import com.sentio.user_service.auth.dto.response.AuthTokens;
 import com.sentio.user_service.organization.entity.Organization;
 import com.sentio.user_service.organization.entity.OrganizationMember;
 import com.sentio.user_service.organization.enums.OrgRole;

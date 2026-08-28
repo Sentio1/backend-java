@@ -1,7 +1,8 @@
-package com.sentio.shared.entity;
+package com.sentio.shared.entity.finder;
 
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.jspecify.annotations.NonNull;
 import org.springframework.data.domain.Page;
@@ -51,5 +52,14 @@ public abstract class AbstractEntityFinder<Entity, ID> implements EntityFinder<E
         }
 
         return finder.apply(value).orElseThrow(() -> new ResourceNotFoundException(getEntityName(), fieldName, value));
+    }
+
+    protected <Value, Value2> @NonNull Entity findBy(Value value, Value2 value2, BiFunction<Value, Value2, Optional<Entity>> finder)
+        throws ResourceNotFoundException {
+        if (value == null || value2 == null) {
+            throw new IllegalArgumentException("Parameter for " + getEntityName() + "Finder cannot be null");
+        }
+
+        return finder.apply(value, value2).orElseThrow(() -> new ResourceNotFoundException(getEntityName() + " instance not found: " + value + ", " + value2));
     }
 }

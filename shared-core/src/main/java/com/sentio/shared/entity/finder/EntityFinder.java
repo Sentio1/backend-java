@@ -1,4 +1,4 @@
-package com.sentio.shared.entity;
+package com.sentio.shared.entity.finder;
 
 import java.util.Optional;
 import org.springframework.data.domain.Page;

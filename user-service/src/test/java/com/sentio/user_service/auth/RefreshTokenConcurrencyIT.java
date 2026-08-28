@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
 import com.sentio.user_service.TestcontainersConfiguration;
-import com.sentio.user_service.auth.dto.AuthTokens;
-import com.sentio.user_service.auth.dto.RegistrationRequest;
+import com.sentio.user_service.auth.dto.response.AuthTokens;
+import com.sentio.user_service.auth.dto.request.RegistrationRequest;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -19,12 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
-/**
- * Deliberately NOT class-level @Transactional (unlike AuthControllerIT): a shared test transaction
- * would mean both "concurrent" calls actually run on the same connection/session, which can't
- * exercise real row-level locking. Each call to {@link AuthService#refresh(String)} below opens its
- * own transaction on its own thread, same as two real concurrent HTTP requests would.
- */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 class RefreshTokenConcurrencyIT {
@@ -47,8 +41,7 @@ class RefreshTokenConcurrencyIT {
             return authService.refresh(refreshToken, "127.0.0.1", "test-agent");
         };
 
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-        try {
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
             Future<AuthTokens> first = executor.submit(attempt);
             Future<AuthTokens> second = executor.submit(attempt);
 
@@ -73,8 +66,6 @@ class RefreshTokenConcurrencyIT {
             // of also rotating it - a real single-use guarantee, not just "usually".
             assertThat(succeeded).isEqualTo(1);
             assertThat(revoked).isEqualTo(1);
-        } finally {
-            executor.shutdownNow();
         }
     }
 

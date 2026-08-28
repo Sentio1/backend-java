@@ -1,7 +1,7 @@
 package com.sentio.user_service.user.service.finder;
 
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
-import com.sentio.shared.entity.AbstractEntityFinder;
+import com.sentio.shared.entity.finder.AbstractEntityFinder;
 import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.repository.UserRepository;
 import lombok.NonNull;
@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-/** UserFinderImpl class. */
 public class UserFinderImpl extends AbstractEntityFinder<User, Long> implements UserFinder {
 
     private final UserRepository userRepository;

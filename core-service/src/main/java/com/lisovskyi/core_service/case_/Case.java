@@ -1,28 +1,20 @@
 package com.lisovskyi.core_service.case_;
 
-import static com.lisovskyi.core_service.case_.CaseConstants.CASE_NUMBER_LENGTH;
-import static com.lisovskyi.core_service.case_.CaseConstants.INTERNAL_NUMBER_LENGTH;
-import static com.lisovskyi.core_service.case_.CaseConstants.JUDGE_NAME_LENGTH;
-import static com.lisovskyi.core_service.case_.CaseConstants.TITLE_LENGTH;
-
+import com.lisovskyi.core_service.case_.enums.CaseStatus;
+import com.lisovskyi.core_service.case_.enums.ProcedureType;
+import com.lisovskyi.core_service.court.Court;
 import com.lisovskyi.core_service.entity.CoreEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
-import java.time.Instant;
-import java.time.LocalDate;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
+
+import java.time.Instant;
+import java.time.LocalDate;
+
+import static com.lisovskyi.core_service.case_.CaseConstants.*;
 
 // Таблиця core.cases. Клас названо CaseEntity, а не Case — "case" зарезервоване слово
 // Java і не може бути ідентифікатором; послідовність відповідно перейменована на
@@ -35,16 +27,15 @@ import org.hibernate.type.SqlTypes;
 @NoArgsConstructor
 @SuperBuilder
 @SequenceSize(size = 50)
-@SQLRestriction("deleted_at IS NULL")
-public class CaseEntity extends CoreEntity {
+public class Case extends CoreEntity {
 
     // soft-ref auth.organizations.id — окрема БД, тому plain bigint, не @ManyToOne
     @Column(name = "organization_id", nullable = false)
-    private Long organizationId;
+    private long organizationId;
 
     // soft-ref auth.users.id
     @Column(name = "responsible_user_id", nullable = false)
-    private Long responsibleUserId;
+    private long responsibleUserId;
 
     // 761/4823/25 — null поки не відкрито провадження
     @Column(name = "case_number", length = CASE_NUMBER_LENGTH)
@@ -69,8 +60,9 @@ public class CaseEntity extends CoreEntity {
     private CaseStatus status = CaseStatus.DRAFT;
 
     // фізичний FK у межах core-service: core.courts(id)
-    @Column(name = "court_id")
-    private Long courtId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "court_id", referencedColumnName = "id")
+    private Court court;
 
     @Column(name = "judge_name", length = JUDGE_NAME_LENGTH)
     private String judgeName;
@@ -83,7 +75,7 @@ public class CaseEntity extends CoreEntity {
 
     @Column(name = "registry_watch_enabled", nullable = false)
     @Builder.Default
-    private Boolean registryWatchEnabled = false;
+    private boolean registryWatchEnabled = false;
 
     @Column(name = "registry_last_checked_at")
     private Instant registryLastCheckedAt;

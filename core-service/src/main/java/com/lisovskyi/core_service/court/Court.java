@@ -1,20 +1,14 @@
 package com.lisovskyi.core_service.court;
 
-import static com.lisovskyi.core_service.court.CourtConstants.CODE_LENGTH;
-import static com.lisovskyi.core_service.court.CourtConstants.NAME_LENGTH;
-import static com.lisovskyi.core_service.court.CourtConstants.REGION_LENGTH;
-
 import com.lisovskyi.jpa.autoconfigure.entity.BaseEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
+
+import static com.lisovskyi.core_service.court.CourtConstants.*;
 
 // Глобальний довідник судів — БЕЗ organization_id: суди спільні для всіх орендарів,
 // це не дані організації, тому без TimestampedEntity/софт-делету.
@@ -37,7 +31,7 @@ public class Court extends BaseEntity {
 
     // 1 / 2 / 3
     @Column(name = "instance", nullable = false)
-    private Short instance;
+    private short instance;
 
     @Column(name = "region", length = REGION_LENGTH)
     private String region;
@@ -47,5 +41,5 @@ public class Court extends BaseEntity {
 
     @Column(name = "is_active", nullable = false)
     @Builder.Default
-    private Boolean isActive = true;
+    private boolean isActive = true;
 }

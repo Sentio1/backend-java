@@ -1,0 +1,26 @@
+package com.lisovskyi.core_service.case_event.dto.request;
+
+import com.lisovskyi.core_service.case_event.enums.EventCode;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.Builder;
+
+import java.time.Instant;
+
+import static com.lisovskyi.core_service.case_.CaseConstants.TITLE_LENGTH;
+
+@Builder
+public record CaseEventAutoRegisterRequest(
+        @NotNull EventCode eventCode,
+
+        @NotBlank @Size(max = TITLE_LENGTH) String title,
+
+        String description,
+
+        @NotNull Instant occurredAt,
+
+        @NotNull Instant registeredAt,
+
+        @NotNull Long registryDocumentId
+) {}

@@ -1,20 +1,21 @@
 package com.lisovskyi.core_service.hearing;
 
-import static com.lisovskyi.core_service.hearing.HearingConstants.COURTROOM_LENGTH;
-import static com.lisovskyi.core_service.hearing.HearingConstants.KIND_LENGTH;
-
+import com.lisovskyi.core_service.case_.Case;
 import com.lisovskyi.core_service.entity.CoreEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import java.time.Instant;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
-import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.time.Instant;
+
+import static com.lisovskyi.core_service.hearing.HearingConstants.COURTROOM_LENGTH;
+import static com.lisovskyi.core_service.hearing.HearingConstants.KIND_LENGTH;
 
 @Entity
 @Table(name = "hearings")
@@ -24,22 +25,24 @@ import org.hibernate.annotations.SQLRestriction;
 @NoArgsConstructor
 @SuperBuilder
 @SequenceSize(size = 50)
-@SQLRestriction("deleted_at IS NULL")
 public class Hearing extends CoreEntity {
 
     @Column(name = "organization_id", nullable = false)
-    private Long organizationId;
+    private long organizationId;
 
     // фізичний FK у межах core-service: core.cases(id)
-    @Column(name = "case_id", nullable = false)
-    private Long caseId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "case_id", nullable = false, referencedColumnName = "id")
+    private Case case_;
 
     @Column(name = "scheduled_at", nullable = false)
     private Instant scheduledAt;
 
     // підготовче / по суті / апеляційне
+    @Enumerated(EnumType.STRING)
     @Column(name = "kind", length = KIND_LENGTH)
-    private String kind;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private HearingKind kind;
 
     @Column(name = "courtroom", length = COURTROOM_LENGTH)
     private String courtroom;

@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.sentio.user_service.TestcontainersConfiguration;
-import com.sentio.user_service.auth.dto.RegistrationRequest;
+import com.sentio.user_service.auth.dto.request.RegistrationRequest;
 import com.sentio.user_service.auth.rate_limiting.RateLimitingService;
 import com.sentio.user_service.organization.dto.CreateOrganizationRequest;
 import com.sentio.user_service.organization.dto.organization.UpdateOrganizationRequest;

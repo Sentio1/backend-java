@@ -1,26 +1,20 @@
 package com.lisovskyi.core_service.case_event;
 
-import static com.lisovskyi.core_service.case_event.CaseEventConstants.EVENT_CODE_LENGTH;
-import static com.lisovskyi.core_service.case_event.CaseEventConstants.SOURCE_LENGTH;
-import static com.lisovskyi.core_service.case_event.CaseEventConstants.TITLE_LENGTH;
-
+import com.lisovskyi.core_service.case_.Case;
+import com.lisovskyi.core_service.case_event.enums.EventCode;
+import com.lisovskyi.core_service.case_event.enums.Source;
 import com.lisovskyi.core_service.entity.CoreEntityCreatedOnly;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import java.time.Instant;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
-// Хронологія справи — фіксує події, що запускають відлік строків.
-// Таблиця не має updated_at, тому CreationTimestampedEntity (лише createdAt), не
-// TimestampedEntity.
+import java.time.Instant;
+
+import static com.lisovskyi.core_service.case_event.CaseEventConstants.*;
+
 @Entity
 @Table(name = "case_events")
 @Getter
@@ -29,19 +23,21 @@ import org.hibernate.annotations.SQLRestriction;
 @NoArgsConstructor
 @SuperBuilder
 @SequenceSize(size = 50)
-@SQLRestriction("deleted_at IS NULL")
 public class CaseEvent extends CoreEntityCreatedOnly {
 
     @Column(name = "organization_id", nullable = false)
-    private Long organizationId;
+    private long organizationId;
 
     // фізичний FK у межах core-service: core.cases(id)
-    @Column(name = "case_id", nullable = false)
-    private Long caseId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "case_id", nullable = false, referencedColumnName = "id")
+    private Case case_;
 
     // 'CLAIM_FILED', 'RULING_RECEIVED'
+    @Enumerated(EnumType.STRING)
     @Column(name = "event_code", nullable = false, length = EVENT_CODE_LENGTH)
-    private String eventCode;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private EventCode eventCode;
 
     @Column(name = "title", nullable = false, length = TITLE_LENGTH)
     private String title;
@@ -58,9 +54,11 @@ public class CaseEvent extends CoreEntityCreatedOnly {
     private Instant registeredAt;
 
     // MANUAL | REGISTRY
+    @Enumerated(EnumType.STRING)
     @Column(name = "source", nullable = false, length = SOURCE_LENGTH)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Builder.Default
-    private String source = "MANUAL";
+    private Source source = Source.MANUAL;
 
     // soft-ref на документ у Registry Monitor (окремий сервіс, не FK)
     @Column(name = "registry_document_id")

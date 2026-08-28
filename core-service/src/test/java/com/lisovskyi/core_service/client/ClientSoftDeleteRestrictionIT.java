@@ -1,10 +1,7 @@
 package com.lisovskyi.core_service.client;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.lisovskyi.core_service.TestcontainersConfiguration;
 import jakarta.persistence.EntityManager;
-import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,19 +9,10 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * SEN-17 review follow-up: coderabbit flagged {@code findAllByOrganizationId},
- * {@code findByIdAndOrganizationId} and the RNOKPP/EDRPOU {@code existsBy...AndIdNot} checks in
- * {@link ClientRepository} for not filtering {@code deletedAt} themselves. They don't need to -
- * {@link Client} carries {@code @SQLRestriction("deleted_at IS NULL")}, which Hibernate splices
- * into every JPQL/derived-query SELECT it generates for the entity (including plain
- * {@code JpaRepository.findById}), without the repository method spelling it out. These tests
- * exist to prove that implicit filtering actually holds instead of trusting it, and to pin down
- * the one place it deliberately does *not* apply: native {@code @Query(nativeQuery = true)}
- * methods bypass Hibernate's SQL generation entirely, which is why {@code searchClient},
- * {@code findAllDeletedByOrganizationId} and {@code findDeletedByIdAndOrganizationId} spell the
- * {@code deleted_at} filter out by hand.
- */
+import java.time.Instant;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @Transactional

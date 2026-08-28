@@ -3,7 +3,12 @@ package com.sentio.user_service.auth;
 import com.lisovskyi.security.autoconfigure.cookie.CookieService;
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
 import com.sentio.user_service.auth.cookie.AuthCookieService;
-import com.sentio.user_service.auth.dto.*;
+import com.sentio.user_service.auth.dto.request.LoginRequest;
+import com.sentio.user_service.auth.dto.request.RegistrationRequest;
+import com.sentio.user_service.auth.dto.request.ServiceTokenRequest;
+import com.sentio.user_service.auth.dto.response.AuthResult;
+import com.sentio.user_service.auth.dto.response.AuthTokens;
+import com.sentio.user_service.auth.dto.response.ServiceTokenResult;
 import com.sentio.user_service.auth.rate_limiting.RateLimitingService;
 import com.sentio.user_service.user.dto.UserContextResponse;
 import com.sentio.user_service.util.HttpRequestUtils;
@@ -22,12 +27,12 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-/** AuthController class. */
 public class AuthController {
 
     private final AuthService authService;
     private final CookieService cookieService;
     private final RateLimitingService rateLimitingService;
+    private final ServiceToken serviceToken;
 
     private final AuthCookieService customAuthCookieService;
 
@@ -68,6 +73,16 @@ public class AuthController {
         customAuthCookieService.setCookies(response, tokens);
 
         return ResponseEntity.ok().body(userContext);
+    }
+
+    @PostMapping("/service-token")
+    public ResponseEntity<ServiceTokenResult> serviceToken(
+            @RequestBody @Valid ServiceTokenRequest serviceTokenRequest,
+            final HttpServletRequest request) {
+        rateLimitingService.checkServiceTokenLimits(serviceTokenRequest.clientId(), HttpRequestUtils.getClientIP(request));
+
+        ServiceTokenResult accessToken = serviceToken.serviceToken(serviceTokenRequest);
+        return ResponseEntity.ok().body(accessToken);
     }
 
     @PostMapping("/refresh")

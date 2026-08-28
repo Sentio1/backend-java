@@ -1,18 +1,15 @@
 package com.lisovskyi.core_service.client.dto.request;
 
-import static com.lisovskyi.core_service.client.ClientConstants.COMPANY_NAME_LENGTH;
-import static com.lisovskyi.core_service.client.ClientConstants.DIRECTOR_NAME_LENGTH;
-import static com.lisovskyi.core_service.client.ClientConstants.NAME_LENGTH;
-import static com.lisovskyi.core_service.client.ClientConstants.PASSPORT_LENGTH;
-import static com.lisovskyi.core_service.client.ClientConstants.PHONE_NUMBER_LENGTH;
-
 import com.lisovskyi.core_service.client.validation.Edrpou;
 import com.lisovskyi.core_service.client.validation.Rnokpp;
 import com.sentio.shared.util.StringNormalization;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
-import java.time.LocalDate;
 import org.openapitools.jackson.nullable.JsonNullable;
+
+import java.time.LocalDate;
+
+import static com.lisovskyi.core_service.client.ClientConstants.*;
 
 public record ClientUpdateRequest(
 

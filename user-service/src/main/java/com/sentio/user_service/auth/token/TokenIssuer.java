@@ -3,7 +3,7 @@ package com.sentio.user_service.auth.token;
 import com.lisovskyi.security.autoconfigure.security.jwt.JwtProperties;
 import com.lisovskyi.security.autoconfigure.security.jwt.JwtService;
 import com.lisovskyi.security.autoconfigure.security.jwt.OpaqueTokenService;
-import com.sentio.user_service.auth.dto.AuthTokens;
+import com.sentio.user_service.auth.dto.response.AuthTokens;
 import com.sentio.user_service.organization.entity.OrganizationMember;
 import com.sentio.user_service.refresh_token.RefreshToken;
 import com.sentio.user_service.refresh_token.RefreshTokenRepository;
@@ -15,12 +15,11 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -40,22 +39,14 @@ public class TokenIssuer {
     private final RefreshTokenRepository refreshTokenRepository;
     private final ActiveSessionLimiter activeSessionLimiter;
 
+    // Лише access token, без refresh token/сесії.
+    public String issueServiceAccessToken(User user) {
+        SecurityUser securityUser = new SecurityUser(user);
+        return jwtService.generateToken(securityUser, createExtraClaims(user, null));
+    }
+
     public AuthTokens issue(User user, @Nullable OrganizationMember membership, String ip, String userAgent) {
-        Map<String, Object> extraClaims = new HashMap<>();
-        List<String> roles = new ArrayList<>();
-
-        if (membership != null) {
-            extraClaims.put("org_id", membership.getOrganization().getId());
-            roles.add(membership.getRole().name());
-        }
-
-        if (user.getPlatformRole() == PlatformRole.ADMIN) {
-            roles.add("ADMIN");
-        }
-
-        if (!roles.isEmpty()) {
-            extraClaims.put("roles", roles);
-        }
+        Map<String, Object> extraClaims = createExtraClaims(user, membership);
 
         SecurityUser securityUser = new SecurityUser(user);
         String accessToken = jwtService.generateToken(securityUser, extraClaims);
@@ -75,6 +66,25 @@ public class TokenIssuer {
         refreshTokenRepository.save(refreshTokenInstance);
 
         return new AuthTokens(accessToken, refreshToken);
+    }
+
+    private @NonNull Map<String, Object> createExtraClaims(User user, @Nullable OrganizationMember membership) {
+        Map<String, Object> extraClaims = new HashMap<>();
+        List<String> roles = new ArrayList<>();
+
+        if (membership != null) {
+            extraClaims.put("org_id", membership.getOrganization().getId());
+            roles.add(membership.getRole().name());
+        }
+
+        if (user.getPlatformRole() == PlatformRole.ADMIN || user.getPlatformRole() == PlatformRole.SERVICE) {
+            roles.add(user.getPlatformRole().name());
+        }
+
+        if (!roles.isEmpty()) {
+            extraClaims.put("roles", roles);
+        }
+        return extraClaims;
     }
 
     // ip is attacker/network-controlled input (see HttpRequestUtils.getClientIP) -

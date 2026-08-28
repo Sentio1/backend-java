@@ -7,7 +7,10 @@ import com.lisovskyi.security.autoconfigure.security.jwt.JwtService;
 import com.lisovskyi.security.autoconfigure.security.jwt.OpaqueTokenService;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsException;
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
-import com.sentio.user_service.auth.dto.*;
+import com.sentio.user_service.auth.dto.request.LoginRequest;
+import com.sentio.user_service.auth.dto.request.RegistrationRequest;
+import com.sentio.user_service.auth.dto.response.AuthResult;
+import com.sentio.user_service.auth.dto.response.AuthTokens;
 import com.sentio.user_service.auth.oauth.GoogleAccountResolver;
 import com.sentio.user_service.auth.oauth.dto.GoogleIdentity;
 import com.sentio.user_service.auth.token.TokenIssuer;
@@ -42,7 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private static final String INVALID_ERROR_MSG = "Invalid email or password";
+    public static final String INVALID_ERROR_MSG = "Invalid email or password";
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -86,8 +89,7 @@ public class AuthService {
 
     @Transactional
     public AuthResult login(LoginRequest request, String ip, String userAgent) {
-        User user = userRepository
-                .findByEmail(request.email())
+        User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new UnauthorizedException(INVALID_ERROR_MSG));
 
         authGuards.assertNotDeleted(user, INVALID_ERROR_MSG);

@@ -2,7 +2,7 @@ package com.sentio.user_service.organization.service;
 
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.shared.dto.PageResponse;
-import com.sentio.user_service.auth.dto.AuthResult;
+import com.sentio.user_service.auth.dto.response.AuthResult;
 import com.sentio.user_service.auth.token.TokenIssuer;
 import com.sentio.user_service.organization.dto.CreateOrganizationRequest;
 import com.sentio.user_service.organization.dto.organization.OrganizationResponse;

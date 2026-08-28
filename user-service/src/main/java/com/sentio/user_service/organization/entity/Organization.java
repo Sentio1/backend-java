@@ -23,7 +23,6 @@ import org.hibernate.type.SqlTypes;
 @SuperBuilder
 @SequenceSize(size = 50)
 @SQLRestriction("deleted_at IS NULL")
-/** Organization class. */
 public class Organization extends TimestampedEntity {
 
     @Column(name = "name", nullable = false, length = NAME_LENGTH)

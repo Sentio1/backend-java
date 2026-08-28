@@ -54,6 +54,16 @@ resilience4j:
         limit-refresh-period: 60s
         timeout-duration: 0s
 
+      service-token-by-email:
+        limit-for-period: 5
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
+      service-token-by-ip:
+        limit-for-period: 20
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
 app:
   jwt:
     # Test-only RSA private key (PKCS8 DER, base64) - never the real Doppler key.

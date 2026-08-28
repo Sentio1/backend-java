@@ -1,4 +1,4 @@
-package com.sentio.user_service.auth.dto;
+package com.sentio.user_service.auth.dto.response;
 
 import com.sentio.user_service.user.dto.UserContextResponse;
 

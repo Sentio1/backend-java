@@ -1,4 +1,4 @@
-package com.sentio.user_service.auth.dto;
+package com.sentio.user_service.auth.dto.request;
 
 import static com.sentio.user_service.auth.AuthConstants.*;
 

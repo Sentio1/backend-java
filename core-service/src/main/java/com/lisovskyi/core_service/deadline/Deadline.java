@@ -1,26 +1,22 @@
 package com.lisovskyi.core_service.deadline;
 
-import static com.lisovskyi.core_service.deadline.DeadlineConstants.LEGAL_BASIS_LENGTH;
-import static com.lisovskyi.core_service.deadline.DeadlineConstants.TITLE_LENGTH;
-
+import com.lisovskyi.core_service.case_.Case;
+import com.lisovskyi.core_service.case_event.CaseEvent;
+import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
 import com.lisovskyi.core_service.entity.CoreEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
-import java.time.Instant;
-import java.time.LocalDate;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
+
+import java.time.Instant;
+import java.time.LocalDate;
+
+import static com.lisovskyi.core_service.deadline.DeadlineConstants.LEGAL_BASIS_LENGTH;
+import static com.lisovskyi.core_service.deadline.DeadlineConstants.TITLE_LENGTH;
 
 // Ядро продукту — розраховані строки по справі.
 @Entity
@@ -35,19 +31,21 @@ import org.hibernate.type.SqlTypes;
 public class Deadline extends CoreEntity {
 
     @Column(name = "organization_id", nullable = false)
-    private Long organizationId;
+    private long organizationId;
 
-    // фізичний FK у межах core-service: core.cases(id)
-    @Column(name = "case_id", nullable = false)
-    private Long caseId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "case_id", nullable = false, referencedColumnName = "id")
+    private Case case_;
 
     // фізичний FK у межах core-service: core.deadline_rules(id)
-    @Column(name = "rule_id")
-    private Long ruleId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rule_id", referencedColumnName = "id")
+    private DeadlineRule rule;
 
     // фізичний FK у межах core-service: core.case_events(id)
-    @Column(name = "triggering_event_id")
-    private Long triggeringEventId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "triggering_event_id", referencedColumnName = "id")
+    private CaseEvent triggeringEvent;
 
     @Column(name = "title", nullable = false, length = TITLE_LENGTH)
     private String title;

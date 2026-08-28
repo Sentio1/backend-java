@@ -19,7 +19,6 @@ import org.hibernate.type.SqlTypes;
 @NoArgsConstructor
 @SuperBuilder
 @SequenceSize(size = 50)
-/** OrganizationMember class. */
 public class OrganizationMember extends CreationTimestampedEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)

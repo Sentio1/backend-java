@@ -1,6 +1,7 @@
 package com.lisovskyi.core_service.security;
 
 import com.lisovskyi.security.autoconfigure.security.SecurityPrincipal;
+import jakarta.annotation.Nullable;
 
 /**
  * The authenticated caller as seen by core-service. There's no local users table to load a real
@@ -34,7 +35,7 @@ public record ClientPrincipal(Long id) implements SecurityPrincipal {
     // Never checked - core-service never authenticates by password, only by a JWT
     // already verified upstream by JwtAuthFilter.
     @Override
-    public String getPassword() {
+    public @Nullable String getPassword() {
         return null;
     }
 }

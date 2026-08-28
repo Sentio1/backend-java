@@ -1,7 +1,5 @@
 package com.lisovskyi.core_service.client.dto.request;
 
-import static com.lisovskyi.core_service.client.ClientConstants.*;
-
 import com.lisovskyi.core_service.client.ClientType;
 import com.lisovskyi.core_service.client.validation.Edrpou;
 import com.lisovskyi.core_service.client.validation.Rnokpp;
@@ -10,9 +8,12 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.time.LocalDate;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.util.StringUtils;
+
+import java.time.LocalDate;
+
+import static com.lisovskyi.core_service.client.ClientConstants.*;
 
 // Усі опційні поля - JsonNullable, як у ClientUpdateRequest: уніфікований DTO-стиль
 // create/update, а не голі nullable-типи лише для створення. type лишається plain -

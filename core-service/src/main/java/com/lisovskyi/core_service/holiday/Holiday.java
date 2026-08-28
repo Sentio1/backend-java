@@ -1,17 +1,14 @@
 package com.lisovskyi.core_service.holiday;
 
-import static com.lisovskyi.core_service.holiday.HolidayConstants.NAME_LENGTH;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.*;
+
 import java.time.LocalDate;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+
+import static com.lisovskyi.core_service.holiday.HolidayConstants.NAME_LENGTH;
 
 // Спільний виробничий календар для всіх орендарів — БЕЗ organization_id.
 // На відміну від решти сутностей схеми core, первинний ключ тут природний (дата),
@@ -35,5 +32,5 @@ public class Holiday {
     // перенесені робочі суботи
     @Column(name = "is_working", nullable = false)
     @Builder.Default
-    private Boolean isWorking = false;
+    private boolean isWorking = false;
 }

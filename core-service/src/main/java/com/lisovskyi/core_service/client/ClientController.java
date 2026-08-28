@@ -1,7 +1,5 @@
 package com.lisovskyi.core_service.client;
 
-import static com.lisovskyi.core_service.entity.CoreEntityConstants.DELETE_REASON_LENGTH;
-
 import com.lisovskyi.core_service.client.dto.request.ClientCreateRequest;
 import com.lisovskyi.core_service.client.dto.request.ClientUpdateRequest;
 import com.lisovskyi.core_service.client.dto.response.ClientResponse;
@@ -10,8 +8,6 @@ import com.sentio.shared.security.CurrentOrganizationId;
 import com.sentio.shared.security.CurrentUserId;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
-import java.net.URI;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -21,6 +17,11 @@ import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
+import java.util.List;
+
+import static com.lisovskyi.core_service.entity.CoreEntityConstants.DELETE_REASON_LENGTH;
 
 @RestController
 @RequestMapping("/clients")

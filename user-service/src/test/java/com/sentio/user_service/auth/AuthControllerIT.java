@@ -9,8 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.lisovskyi.web.error.autoconfigure.ErrorResponse;
 import com.sentio.user_service.TestcontainersConfiguration;
-import com.sentio.user_service.auth.dto.LoginRequest;
-import com.sentio.user_service.auth.dto.RegistrationRequest;
+import com.sentio.user_service.auth.dto.request.LoginRequest;
+import com.sentio.user_service.auth.dto.request.RegistrationRequest;
 import com.sentio.user_service.auth.rate_limiting.RateLimitingService;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;

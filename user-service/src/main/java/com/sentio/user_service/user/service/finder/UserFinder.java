@@ -1,7 +1,7 @@
 package com.sentio.user_service.user.service.finder;
 
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
-import com.sentio.shared.entity.EntityFinder;
+import com.sentio.shared.entity.finder.EntityFinder;
 import com.sentio.user_service.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

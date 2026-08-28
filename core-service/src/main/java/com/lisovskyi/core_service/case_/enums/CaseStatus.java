@@ -1,4 +1,4 @@
-package com.lisovskyi.core_service.case_;
+package com.lisovskyi.core_service.case_.enums;
 
 public enum CaseStatus {
     DRAFT,

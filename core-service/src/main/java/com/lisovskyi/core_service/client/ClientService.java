@@ -1,7 +1,5 @@
 package com.lisovskyi.core_service.client;
 
-import static com.sentio.shared.persistence.ConstraintViolations.isUniqueConstraintViolation;
-
 import com.lisovskyi.core_service.client.dto.request.ClientCreateRequest;
 import com.lisovskyi.core_service.client.dto.request.ClientUpdateRequest;
 import com.lisovskyi.core_service.client.dto.response.ClientResponse;
@@ -9,9 +7,6 @@ import com.lisovskyi.core_service.client.mapper.ClientMapper;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsException;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.shared.dto.PageResponse;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -19,6 +14,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.sentio.shared.persistence.ConstraintViolations.isUniqueConstraintViolation;
 
 @Service
 @RequiredArgsConstructor

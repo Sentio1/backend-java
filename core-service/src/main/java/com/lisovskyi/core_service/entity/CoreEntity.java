@@ -3,12 +3,14 @@ package com.lisovskyi.core_service.entity;
 import com.lisovskyi.jpa.autoconfigure.entity.TimestampedEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
-import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.SQLRestriction;
+
+import java.time.Instant;
 
 @MappedSuperclass
 @Getter
@@ -16,6 +18,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder
+@SQLRestriction("deleted_at IS NULL")
 public abstract class CoreEntity extends TimestampedEntity {
 
     @Column(name = "deleted_at")

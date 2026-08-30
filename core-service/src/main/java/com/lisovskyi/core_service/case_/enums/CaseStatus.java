@@ -8,5 +8,9 @@ public enum CaseStatus {
     CASSATION,
     ENFORCEMENT,
     CLOSED,
-    ARCHIVED
+    ARCHIVED;
+
+    public boolean isTerminal() {
+        return this == CLOSED || this == ARCHIVED;
+    }
 }

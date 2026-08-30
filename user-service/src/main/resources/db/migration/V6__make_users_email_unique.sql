@@ -1,8 +1,13 @@
--- Build the replacement partial unique index CONCURRENTLY (no blocking of concurrent
--- inserts/updates/deletes on users while it builds - a plain CREATE UNIQUE INDEX takes
--- a lock that would stall auth/profile writes on a populated table) and BEFORE dropping
--- the old constraint, so email uniqueness stays enforced for the whole transition instead
--- of leaving a gap where two concurrent inserts could both get in.
-CREATE UNIQUE INDEX CONCURRENTLY users_email_active_idx ON users(email) WHERE deleted_at IS NULL;
+-- Було CONCURRENTLY, прибрано: у local dev (Hibernate ddl-auto: validate відкриває
+-- власну ad hoc транзакцію на старті - probe-запит лишається idle-in-transaction,
+-- бо ніхто його явно не комітить) CREATE INDEX CONCURRENTLY чекає на завершення
+-- БУДЬ-ЯКОЇ відкритої транзакції в усій базі, не лише в тому самому пулі зʼєднань -
+-- і тому самоблокується назавжди, тримаючи Flyway advisory lock. Окреме
+-- spring.flyway.url не рятує (перевірено) - CONCURRENTLY дивиться на всю БД, а не
+-- на конкретний пул. На поточному етапі (users ще практично порожня) короткий
+-- ексклюзивний лок звичайного CREATE UNIQUE INDEX не має значення - якщо колись
+-- users стане достатньо великою, щоб лок був відчутний, CONCURRENTLY можна
+-- повернути окремою міграцією, коли self-deadlock з Hibernate-пробою буде усунено.
+CREATE UNIQUE INDEX users_email_active_idx ON users(email) WHERE deleted_at IS NULL;
 
 alter table users drop constraint users_email_key;

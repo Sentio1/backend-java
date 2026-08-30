@@ -44,6 +44,7 @@ public class OrganizationInviteService {
 
     @Transactional(readOnly = true)
     public PageResponse<OrganizationInviteResponse> getAllInvites(long orgId, Pageable pageable) {
+        log.debug("Fetching invites for orgId: {}", orgId);
         return PageResponse.of(organizationInviteRepository
                 .findAllByOrganizationId(orgId, pageable)
                 .map(organizationInviteMapper::toResponse));
@@ -52,8 +53,10 @@ public class OrganizationInviteService {
     @Transactional
     public OrganizationInviteCreatedResponse inviteUserToOrganization(
             OrganizationInviteRequest inviteRequest, long orgId, long userId) {
+        log.debug("Attempting to invite user with email: {} to orgId: {} by userId: {}", inviteRequest.email(), orgId, userId);
         if (organizationInviteRepository.existsByOrganizationIdAndEmailAndAcceptedAtIsNullAndRevokedAtIsNull(
                 orgId, inviteRequest.email())) {
+            log.warn("Invite failed: Active invite for {} already exists in orgId: {}", inviteRequest.email(), orgId);
             throw new ResourceAlreadyExistsException("Active invite for " + inviteRequest.email() + " already exists");
         }
 
@@ -64,6 +67,7 @@ public class OrganizationInviteService {
                 .orElseThrow(() -> new ResourceNotFoundException("OrganizationMember", "userId", userId));
 
         if (organizationMember.getRole() != OrgRole.OWNER) {
+            log.warn("Invite failed: userId: {} is not an OWNER in orgId: {}", userId, orgId);
             throw new ForbiddenOperationException("Only owners can invite users to an organization");
         }
 
@@ -83,11 +87,15 @@ public class OrganizationInviteService {
                 .expiresAt(Instant.now().plus(Duration.ofDays(7)))
                 .build();
 
-        return organizationInviteMapper.toCreatedResponse(organizationInviteRepository.save(organizationInvite), token);
+        OrganizationInvite savedInvite = organizationInviteRepository.save(organizationInvite);
+        log.info("Successfully invited email: {} to orgId: {} (inviteId: {})", inviteRequest.email(), orgId, savedInvite.getId());
+
+        return organizationInviteMapper.toCreatedResponse(savedInvite, token);
     }
 
     @Transactional
     public OrganizationInviteAcceptResponse acceptInvite(String token, long userId) {
+        log.debug("Attempting to accept invite for userId: {}", userId);
         String hashedToken = opaqueTokenService.hash(token);
 
         OrganizationInvite organizationInvite = organizationInviteRepository
@@ -95,26 +103,32 @@ public class OrganizationInviteService {
                 .orElseThrow(() -> new ResourceNotFoundException("OrganizationInvite", "tokenHash", hashedToken));
 
         if (organizationInvite.getExpiresAt().isBefore(Instant.now())) {
+            log.warn("Accept invite failed: Invite {} has expired", organizationInvite.getId());
             throw new BadRequestException("Invite has expired");
         }
 
         if (organizationInvite.getAcceptedAt() != null) {
+            log.warn("Accept invite failed: Invite {} already accepted", organizationInvite.getId());
             throw new BadRequestException("Invite has already been accepted");
         }
 
         if (organizationInvite.getRevokedAt() != null) {
+            log.warn("Accept invite failed: Invite {} has been revoked", organizationInvite.getId());
             throw new BadRequestException("Invite has been revoked");
         }
 
         User user = userFinder.findById(userId);
 
         if (!organizationInvite.getEmail().equalsIgnoreCase(user.getEmail())) {
+            log.warn("Accept invite failed: Email mismatch for invite {}. Expected: {}, Actual: {}", 
+                    organizationInvite.getId(), organizationInvite.getEmail(), user.getEmail());
             throw new UnauthorizedException("This invite was issued to a different email address");
         }
 
         Organization organization = organizationInvite.getOrganization();
 
         if (organizationMemberRepository.existsByUserIdAndOrganizationId(userId, organization.getId())) {
+            log.warn("Accept invite failed: User {} is already a member of orgId: {}", userId, organization.getId());
             throw new ResourceAlreadyExistsException("User is already a member of this organization");
         }
 
@@ -132,19 +146,26 @@ public class OrganizationInviteService {
         organizationInviteRepository.save(organizationInvite);
 
         organizationInvite.setAcceptedAt(Instant.now());
+        
+        OrganizationMember savedMember = organizationMemberRepository.save(organizationMember);
+        log.info("Successfully accepted invite {} - userId: {} joined orgId: {} as {}", 
+                organizationInvite.getId(), userId, organization.getId(), savedMember.getRole());
 
-        return organizationInviteMapper.toAcceptResponse(organizationMemberRepository.save(organizationMember));
+        return organizationInviteMapper.toAcceptResponse(savedMember);
     }
 
     @Transactional
     public OrganizationInviteResponse revokeInvite(long orgId, long inviteId) {
+        log.debug("Attempting to revoke inviteId: {} in orgId: {}", inviteId, orgId);
         OrganizationInvite organizationInvite = organizationInviteRepository
                 .findByIdLocked(inviteId)
                 .filter(invite -> invite.getOrganization().getId() == orgId)
                 .orElseThrow(() -> new ResourceNotFoundException("OrganizationInvite", "id", inviteId));
 
         organizationInvite.setRevokedAt(Instant.now());
+        OrganizationInvite savedInvite = organizationInviteRepository.save(organizationInvite);
+        log.info("Successfully revoked inviteId: {} in orgId: {}", inviteId, orgId);
 
-        return organizationInviteMapper.toResponse(organizationInviteRepository.save(organizationInvite));
+        return organizationInviteMapper.toResponse(savedInvite);
     }
 }

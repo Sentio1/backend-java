@@ -11,7 +11,6 @@ import org.springframework.security.core.GrantedAuthority;
 
 @Getter
 @RequiredArgsConstructor
-/** SecurityUser class. */
 public class SecurityUser implements SecurityPrincipal {
     private final transient User user;
 

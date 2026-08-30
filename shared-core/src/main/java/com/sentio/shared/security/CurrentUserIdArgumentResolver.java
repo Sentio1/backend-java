@@ -2,6 +2,7 @@ package com.sentio.shared.security;
 
 import com.lisovskyi.security.autoconfigure.security.SecurityUtils;
 import com.lisovskyi.web.error.autoconfigure.standard.ForbiddenOperationException;
+import com.sentio.shared.entity.id.user.UserId;
 import org.jspecify.annotations.NonNull;
 import org.springframework.core.MethodParameter;
 import org.springframework.web.bind.support.WebDataBinderFactory;
@@ -13,7 +14,10 @@ public class CurrentUserIdArgumentResolver implements HandlerMethodArgumentResol
 
     @Override
     public boolean supportsParameter(@NonNull MethodParameter parameter) {
-        return parameter.hasParameterAnnotation(CurrentUserId.class) && Long.class.equals(parameter.getParameterType());
+        return parameter.hasParameterAnnotation(CurrentUserId.class)
+                && (UserId.class.equals(parameter.getParameterType())
+                || Long.class.equals(parameter.getParameterType())
+                || long.class.equals(parameter.getParameterType()));
     }
 
     @Override
@@ -22,7 +26,13 @@ public class CurrentUserIdArgumentResolver implements HandlerMethodArgumentResol
             ModelAndViewContainer mavContainer,
             @NonNull NativeWebRequest webRequest,
             WebDataBinderFactory binderFactory) {
-        return SecurityUtils.getCurrentUserId()
+        Long rawId = SecurityUtils.getCurrentUserId()
                 .orElseThrow(() -> new ForbiddenOperationException("Request is missing user context"));
+
+        if (UserId.class.equals(parameter.getParameterType())) {
+            return UserId.of(rawId);
+        }
+
+        return rawId;
     }
 }

@@ -32,9 +32,13 @@ spring:
               - profile
               - openid
 
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
 server:
   servlet:
     context-path: /api/v1
+  shutdown: graceful
 
 management:
   endpoints:

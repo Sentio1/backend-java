@@ -51,15 +51,4 @@ dependencies {
 	testRuntimeOnly(libs.junit.platform.launcher)
 }
 
-tasks.register<Exec>("dopplerRun") {
-	group = "application"
-	description = "Run application with Doppler"
 
-	val gradlewCmd = if (System.getProperty("os.name").lowercase().contains("windows")) {
-		"gradlew.bat"
-	} else {
-		"./gradlew"
-	}
-
-	commandLine("doppler", "run", "--", gradlewCmd, "bootRun")
-}

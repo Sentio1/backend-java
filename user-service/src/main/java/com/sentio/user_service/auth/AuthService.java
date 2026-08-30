@@ -65,7 +65,9 @@ public class AuthService {
 
     @Transactional
     public AuthResult register(RegistrationRequest request, String ip, String userAgent) {
+        log.debug("Attempting to register user with email: {}", request.email());
         if (userRepository.existsByEmail(request.email())) {
+            log.warn("Registration failed: user with email {} already exists", request.email());
             throw new ResourceAlreadyExistsException("User with email: " + request.email() + " already exists");
         }
 
@@ -74,6 +76,7 @@ public class AuthService {
 
         try {
             User savedUser = userRepository.saveAndFlush(user);
+            log.info("Successfully registered user with email: {}", request.email());
             return new AuthResult(
                     tokenIssuer.issue(user, null, ip, userAgent), userMapper.toUserContextResponse(savedUser, null));
         } catch (DataIntegrityViolationException e) {
@@ -81,31 +84,40 @@ public class AuthService {
             // "uq_users_email" here would never match, so this catch would always
             // fall through to `throw e` and leak the raw 500 this was meant to avoid.
             if (isUniqueConstraintViolation(e, "users_email_active_idx")) {
+                log.warn("Registration failed (constraint violation): user with email {} already exists", request.email());
                 throw new ResourceAlreadyExistsException("User with email: " + request.email() + " already exists");
             }
+            log.error("DataIntegrityViolationException during registration for email: {}", request.email(), e);
             throw e;
         }
     }
 
     @Transactional
     public AuthResult login(LoginRequest request, String ip, String userAgent) {
+        log.debug("Attempting to login user with email: {}", request.email());
         User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new UnauthorizedException(INVALID_ERROR_MSG));
+                .orElseThrow(() -> {
+                    log.warn("Login failed: user with email {} not found", request.email());
+                    return new UnauthorizedException(INVALID_ERROR_MSG);
+                });
 
         authGuards.assertNotDeleted(user, INVALID_ERROR_MSG);
 
         if (user.getPassword() != null && !passwordEncoder.matches(request.password(), user.getPassword())) {
+            log.warn("Login failed: invalid password for user with email {}", request.email());
             throw new UnauthorizedException(INVALID_ERROR_MSG);
         }
 
         OrganizationMember membership =
                 organizationService.findDefaultMembership(user.getId()).orElse(null);
+        log.info("Successfully logged in user with email: {}", request.email());
         return new AuthResult(
                 tokenIssuer.issue(user, membership, ip, userAgent), userMapper.toUserContextResponse(user, membership));
     }
 
     @Transactional
     public AuthResult loginOrRegisterWithGoogle(GoogleIdentity identity, String ip, String userAgent) {
+        log.debug("Attempting to login/register with Google for email: {}", identity.email());
         User user = googleAccountResolver.resolveOrCreate(identity);
 
         authGuards.assertNotDeleted(user);
@@ -115,9 +127,13 @@ public class AuthService {
         // them ownership of a brand new org, same as local OWNER registration.
         OrganizationMember membership = organizationService
                 .findDefaultMembership(user.getId())
-                .orElseGet(() -> organizationProvisioning.createOwnerMembership(
-                        user, defaultOrgName(identity), null, PlanTier.SOLO));
+                .orElseGet(() -> {
+                    log.info("Creating default organization for new Google user: {}", identity.email());
+                    return organizationProvisioning.createOwnerMembership(
+                            user, defaultOrgName(identity), null, PlanTier.SOLO);
+                });
 
+        log.info("Successfully logged in/registered Google user with email: {}", identity.email());
         return new AuthResult(
                 tokenIssuer.issue(user, membership, ip, userAgent), userMapper.toUserContextResponse(user, membership));
     }
@@ -139,15 +155,21 @@ public class AuthService {
 
     @Transactional
     public AuthTokens refresh(String rawToken, String ip, String userAgent) {
+        log.debug("Attempting to refresh tokens");
         String hashedToken = opaqueTokenService.hash(rawToken);
         RefreshToken refreshToken = refreshTokenRepository
                 .findByTokenHash(hashedToken)
-                .orElseThrow(() -> new UnauthorizedException("Invalid refresh token"));
+                .orElseThrow(() -> {
+                    log.warn("Refresh failed: token not found");
+                    return new UnauthorizedException("Invalid refresh token");
+                });
 
         if (refreshToken.getRevokedAt() != null) {
+            log.warn("Refresh failed: token has been revoked (userId: {})", refreshToken.getUser().getId());
             throw new UnauthorizedException("Refresh token has been revoked");
         }
         if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
+            log.warn("Refresh failed: token has expired (userId: {})", refreshToken.getUser().getId());
             throw new UnauthorizedException("Refresh token has expired");
         }
 
@@ -161,18 +183,21 @@ public class AuthService {
         refreshToken.setRevokedAt(Instant.now());
         refreshTokenRepository.save(refreshToken);
 
+        log.info("Successfully refreshed tokens for userId: {}", user.getId());
         return authTokens;
     }
 
     @Transactional
     public void logout(String accessToken, String refreshToken) {
+        log.debug("Attempting to logout user");
         if (refreshToken != null) {
             String hashedToken = opaqueTokenService.hash(refreshToken);
 
-            refreshTokenRepository.findByTokenHash(hashedToken).ifPresent(rt -> {
+            refreshTokenRepository.findByTokenHash(hashedToken).ifPresentOrElse(rt -> {
                 rt.setRevokedAt(Instant.now());
                 refreshTokenRepository.save(rt);
-            });
+                log.info("Successfully revoked refresh token on logout for userId: {}", rt.getUser().getId());
+            }, () -> log.debug("Refresh token not found during logout"));
         }
 
         if (accessToken != null) {

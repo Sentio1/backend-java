@@ -49,6 +49,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserContextResponse findUserById(long userId) {
+        log.debug("Fetching user context for userId: {}", userId);
         User user = userFinder.findById(userId);
 
         OrganizationMember membership = organizationMemberRepository
@@ -60,7 +61,9 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<OrganizationMemberResponse> getOrganizations(long userId) {
+        log.debug("Fetching organizations for userId: {}", userId);
         if (!userRepository.existsById(userId)) {
+            log.warn("Failed to fetch organizations: userId {} not found", userId);
             throw new ResourceNotFoundException("User", "id", userId);
         }
 
@@ -71,7 +74,9 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<OrganizationInviteResponse> getInvites(String email) {
+        log.debug("Fetching invites for email: {}", email);
         if (!userRepository.existsByEmail(email)) {
+            log.warn("Failed to fetch invites: user with email {} not found", email);
             throw new ResourceNotFoundException("User", "email", email);
         }
 
@@ -82,6 +87,7 @@ public class UserService {
 
     @Transactional
     public UserContextResponse updateUser(UserUpdateRequest request, long userId) {
+        log.debug("Attempting to update profile for userId: {}", userId);
         User user = userFinder.findById(userId);
 
         if (request.phoneNumber() != null) {
@@ -97,7 +103,8 @@ public class UserService {
             user.setMiddleName(request.middleName());
         }
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        log.info("Successfully updated profile for userId: {}", userId);
 
         OrganizationMember member = organizationMemberRepository
                 .findByUserIdAndIsDefaultTrue(userId)
@@ -108,6 +115,7 @@ public class UserService {
 
     @Transactional
     public void deleteUser(long userId, String accessToken) {
+        log.debug("Attempting to delete userId: {}", userId);
         User user = userFinder.findById(userId);
 
         organizationMemberRepository.findAllByUserId(userId).stream()
@@ -118,6 +126,7 @@ public class UserService {
                     organizationRepository.findByIdLocked(orgId);
 
                     if (organizationMemberRepository.countByOrganizationIdAndRole(orgId, OrgRole.OWNER) <= 1) {
+                        log.warn("Cannot delete userId {}: they are the last OWNER of orgId {}", userId, orgId);
                         throw new IllegalArgumentException("Cannot delete account: you are the last owner of \""
                                 + m.getOrganization().getName()
                                 + "\". Promote someone else to OWNER or delete the organization first.");
@@ -139,5 +148,6 @@ public class UserService {
         organizationMemberRepository.deleteAllByUserId(userId);
 
         refreshTokenRepository.findAllByUserIdAndRevokedAtIsNull(userId).forEach(rt -> rt.setRevokedAt(Instant.now()));
+        log.info("Successfully deleted userId: {}", userId);
     }
 }

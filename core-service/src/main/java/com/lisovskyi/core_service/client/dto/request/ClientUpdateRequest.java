@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import org.openapitools.jackson.nullable.JsonNullable;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static com.lisovskyi.core_service.client.ClientConstants.*;
 
@@ -25,12 +26,14 @@ public record ClientUpdateRequest(
         JsonNullable<@Size(max = COMPANY_NAME_LENGTH) String> companyName,
         JsonNullable<@Edrpou String> edrpou,
         JsonNullable<@Size(max = DIRECTOR_NAME_LENGTH) String> directorName,
+        JsonNullable<@Size(max = CONTACT_PERSON_NAME_LENGTH) String> contactPersonName,
 
         // спільні
         JsonNullable<@Email String> email,
         JsonNullable<@Size(max = PHONE_NUMBER_LENGTH) String> phoneNumber,
         JsonNullable<String> address,
-        JsonNullable<String> notes) {
+        JsonNullable<String> notes,
+        JsonNullable<List<@Size(max = ACTIVITY_LENGTH) String>> activities) {
 
     public ClientUpdateRequest {
         rnokpp = StringNormalization.blankToNull(rnokpp);

@@ -12,10 +12,12 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 /** OrganizationCreationService class. */
 public class OrganizationCreationService {
 
@@ -23,7 +25,9 @@ public class OrganizationCreationService {
     private final OrganizationMemberRepository organizationMemberRepository;
 
     public OrganizationMember createOwnerMembership(User user, String orgName, String edrpou, PlanTier plan) {
+        log.debug("Creating owner membership for user: {} with orgName: {}", user.getId(), orgName);
         if (orgName == null || orgName.isBlank()) {
+            log.warn("Failed to create owner membership: missing organization name");
             throw new IllegalArgumentException("Organization name is required to create a new organization");
         }
 
@@ -36,6 +40,7 @@ public class OrganizationCreationService {
                 .trialEndsAt(Instant.now().plus(14, ChronoUnit.DAYS))
                 .build();
         organizationRepository.save(organization);
+        log.info("Created new organization: {} with plan: {}", organization.getId(), organization.getPlan());
 
         OrganizationMember membership = OrganizationMember.builder()
                 .user(user)
@@ -44,6 +49,9 @@ public class OrganizationCreationService {
                 .isDefault(true)
                 .build();
 
-        return organizationMemberRepository.save(membership);
+        OrganizationMember savedMembership = organizationMemberRepository.save(membership);
+        log.info("Successfully added user: {} as OWNER to organization: {}", user.getId(), organization.getId());
+        
+        return savedMembership;
     }
 }

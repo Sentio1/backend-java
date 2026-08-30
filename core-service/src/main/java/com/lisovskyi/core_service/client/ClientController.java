@@ -4,6 +4,9 @@ import com.lisovskyi.core_service.client.dto.request.ClientCreateRequest;
 import com.lisovskyi.core_service.client.dto.request.ClientUpdateRequest;
 import com.lisovskyi.core_service.client.dto.response.ClientResponse;
 import com.sentio.shared.dto.PageResponse;
+import com.sentio.shared.entity.id.client.ClientId;
+import com.sentio.shared.entity.id.organization.OrganizationId;
+import com.sentio.shared.entity.id.user.UserId;
 import com.sentio.shared.security.CurrentOrganizationId;
 import com.sentio.shared.security.CurrentUserId;
 import jakarta.validation.Valid;
@@ -33,7 +36,7 @@ public class ClientController {
 
     @GetMapping
     public ResponseEntity<PageResponse<ClientResponse>> getAllClients(
-            @CurrentOrganizationId Long organizationId,
+            @CurrentOrganizationId OrganizationId organizationId,
             @RequestParam(required = false) String query,
             final Pageable pageable) {
         if (StringUtils.hasText(query)) {
@@ -45,20 +48,20 @@ public class ClientController {
     @GetMapping("/deleted")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PageResponse<ClientResponse>> getAllDeletedClients(
-            @CurrentOrganizationId Long organizationId, final Pageable pageable) {
+            @CurrentOrganizationId OrganizationId organizationId, final Pageable pageable) {
         return ResponseEntity.ok(clientService.getAllDeletedClients(organizationId, pageable));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{clientId}")
     public ResponseEntity<ClientResponse> getClientById(
-            @PathVariable Long id, @CurrentOrganizationId Long organizationId) {
-        return ResponseEntity.ok(clientService.getClientById(id, organizationId));
+            @PathVariable ClientId clientId, @CurrentOrganizationId OrganizationId organizationId) {
+        return ResponseEntity.ok(clientService.getClientById(clientId, organizationId));
     }
 
     @PostMapping
     public ResponseEntity<ClientResponse> createClient(
-            @CurrentOrganizationId Long organizationId,
-            @CurrentUserId Long createdById,
+            @CurrentOrganizationId OrganizationId organizationId,
+            @CurrentUserId UserId createdById,
             @RequestBody @Valid ClientCreateRequest request) {
         ClientResponse response = clientService.createClient(organizationId, createdById, request);
 
@@ -72,36 +75,36 @@ public class ClientController {
 
     @PostMapping("/batch")
     public ResponseEntity<List<ClientResponse>> createManyClients(
-            @CurrentOrganizationId Long organizationId,
-            @CurrentUserId Long createdById,
-            @RequestBody @Valid List<ClientCreateRequest> requests) {
+            @CurrentOrganizationId OrganizationId organizationId,
+            @CurrentUserId UserId createdById,
+            @RequestBody List<@Valid ClientCreateRequest> requests) {
         List<ClientResponse> response = clientService.createManyClients(organizationId, createdById, requests);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PatchMapping("/{id}")
+    @PatchMapping("/{clientId}")
     public ResponseEntity<ClientResponse> updateClient(
-            @PathVariable Long id,
-            @CurrentOrganizationId Long organizationId,
+            @PathVariable ClientId clientId,
+            @CurrentOrganizationId OrganizationId organizationId,
             @RequestBody @Valid ClientUpdateRequest request) {
-        return ResponseEntity.ok(clientService.updateClient(id, organizationId, request));
+        return ResponseEntity.ok(clientService.updateClient(clientId, organizationId, request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{clientId}")
     public ResponseEntity<Void> deleteClient(
-            @PathVariable Long id,
-            @CurrentOrganizationId Long organizationId,
-            @CurrentUserId Long deletedById,
+            @PathVariable ClientId clientId,
+            @CurrentOrganizationId OrganizationId organizationId,
+            @CurrentUserId UserId deletedById,
             @RequestParam(required = false) @Size(max = DELETE_REASON_LENGTH) String deleteReason) {
-        clientService.deleteClient(id, organizationId, deletedById, deleteReason);
+        clientService.deleteClient(clientId, organizationId, deletedById, deleteReason);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{id}/restore")
+    @PatchMapping("/{clientId}/restore")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> restoreClient(
-            @PathVariable Long id, @CurrentOrganizationId Long organizationId, @CurrentUserId Long restoredById) {
-        clientService.restoreClient(id, organizationId, restoredById);
+            @PathVariable ClientId clientId, @CurrentOrganizationId OrganizationId organizationId, @CurrentUserId UserId restoredById) {
+        clientService.restoreClient(clientId, organizationId, restoredById);
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,5 +1,6 @@
 package com.lisovskyi.core_service.client;
 
+import com.lisovskyi.core_service.client_activity.ClientActivity;
 import com.lisovskyi.core_service.entity.CoreEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import jakarta.persistence.*;
@@ -9,6 +10,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.lisovskyi.core_service.client.ClientConstants.*;
 
@@ -61,6 +64,9 @@ public class Client extends CoreEntity {
     @Column(name = "director_name", length = DIRECTOR_NAME_LENGTH)
     private String directorName;
 
+    @Column(name = "contact_person_name", length = CONTACT_PERSON_NAME_LENGTH)
+    private String contactPersonName;
+
     @Column(name = "email", columnDefinition = "citext")
     private String email;
 
@@ -73,7 +79,21 @@ public class Client extends CoreEntity {
     @Column(name = "notes", columnDefinition = "text")
     private String notes;
 
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ClientActivity> activities = new ArrayList<>();
+
     // soft-ref auth.users.id
     @Column(name = "created_by", nullable = false)
     private long createdBy;
+
+    public void addActivity(ClientActivity activity) {
+        activities.add(activity);
+        activity.setClient(this);
+    }
+
+    public void removeActivity(ClientActivity activity) {
+        activities.remove(activity);
+        activity.setClient(null);
+    }
 }

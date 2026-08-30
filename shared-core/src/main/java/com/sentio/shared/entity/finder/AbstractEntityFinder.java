@@ -37,7 +37,7 @@ public abstract class AbstractEntityFinder<Entity, ID> implements EntityFinder<E
     }
 
     protected <Value> @NonNull Entity findBy(Value value, Function<Value, Optional<Entity>> finder, String errorMessage)
-            throws ResourceNotFoundException {
+            throws IllegalArgumentException, ResourceNotFoundException {
         if (value == null) {
             throw new IllegalArgumentException("Parameter for " + getEntityName() + "Finder cannot be null");
         }
@@ -46,7 +46,7 @@ public abstract class AbstractEntityFinder<Entity, ID> implements EntityFinder<E
     }
 
     protected <Value> @NonNull Entity findBy(Value value, String fieldName, Function<Value, Optional<Entity>> finder)
-            throws ResourceNotFoundException {
+            throws IllegalArgumentException, ResourceNotFoundException {
         if (value == null) {
             throw new IllegalArgumentException("Parameter for " + getEntityName() + "Finder cannot be null");
         }
@@ -55,7 +55,7 @@ public abstract class AbstractEntityFinder<Entity, ID> implements EntityFinder<E
     }
 
     protected <Value, Value2> @NonNull Entity findBy(Value value, Value2 value2, BiFunction<Value, Value2, Optional<Entity>> finder)
-        throws ResourceNotFoundException {
+        throws IllegalArgumentException, ResourceNotFoundException {
         if (value == null || value2 == null) {
             throw new IllegalArgumentException("Parameter for " + getEntityName() + "Finder cannot be null");
         }

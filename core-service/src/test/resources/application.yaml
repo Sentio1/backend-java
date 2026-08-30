@@ -2,6 +2,10 @@ spring:
   flyway:
     enabled: true
 
+  kafka:
+    consumer:
+      group-id: core-service-registry-event-test
+
   jpa:
     hibernate:
       ddl-auto: validate

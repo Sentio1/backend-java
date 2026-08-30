@@ -42,6 +42,7 @@ public class OrganizationService {
 
     @Transactional(readOnly = true)
     public PageResponse<OrganizationMemberResponse> getAllOrganizationMembers(long orgId, Pageable pageable) {
+        log.debug("Fetching organization members for orgId: {}", orgId);
         return PageResponse.of(organizationMemberRepository
                 .findAllByOrganizationIdAndUserDeletedAtIsNull(orgId, pageable)
                 .map(organizationMemberMapper::toResponse));
@@ -49,13 +50,16 @@ public class OrganizationService {
 
     @Transactional
     public OrganizationResponse updateOrganization(long id, UpdateOrganizationRequest updateRequest) {
+        log.debug("Attempting to update organization id: {}", id);
         Organization organization = organizationRepository
                 .findByIdLocked(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization", "id", id));
 
         organization.setName(updateRequest.name());
 
-        return organizationMapper.toResponse(organizationRepository.save(organization));
+        Organization updatedOrg = organizationRepository.save(organization);
+        log.info("Successfully updated organization id: {}", id);
+        return organizationMapper.toResponse(updatedOrg);
     }
 
     // For an org-less user this is the second half of "join or create" - the same
@@ -66,20 +70,24 @@ public class OrganizationService {
     // cleared first or the partial unique index on organization_members rejects it.
     @Transactional
     public AuthResult createOrganization(User user, CreateOrganizationRequest request, String ip, String userAgent) {
+        log.debug("Attempting to create organization: {} for user: {}", request.orgName(), user.getId());
         findDefaultMembership(user.getId()).ifPresent(current -> {
             current.setDefault(false);
             organizationMemberRepository.save(current);
+            log.debug("Unset previous default organization for user: {}", user.getId());
         });
 
         OrganizationMember membership = organizationProvisioning.createOwnerMembership(
                 user, request.orgName(), request.edrpou(), request.plan());
 
+        log.info("Successfully created organization and set as default for user: {}", user.getId());
         return new AuthResult(
                 tokenIssuer.issue(user, membership, ip, userAgent), userMapper.toUserContextResponse(user, membership));
     }
 
     @Transactional
     public AuthResult switchDefaultOrganization(long userId, long targetOrgId, String ip, String userAgent) {
+        log.debug("User: {} attempting to switch default organization to targetOrgId: {}", userId, targetOrgId);
         OrganizationMember target = organizationMemberRepository
                 .findByUserIdAndOrganizationId(userId, targetOrgId)
                 .orElseThrow(() -> new ResourceNotFoundException("OrganizationMember", "userId", userId));
@@ -87,18 +95,21 @@ public class OrganizationService {
         findDefaultMembership(userId).ifPresent(current -> {
             current.setDefault(false);
             organizationMemberRepository.save(current);
+            log.debug("Unset previous default organization for user: {}", userId);
         });
 
         target.setDefault(true);
         organizationMemberRepository.save(target);
 
         User user = target.getUser();
+        log.info("User: {} successfully switched default organization to: {}", userId, targetOrgId);
         return new AuthResult(
                 tokenIssuer.issue(user, target, ip, userAgent), userMapper.toUserContextResponse(user, target));
     }
 
     @Transactional
     public OrganizationMemberResponse patchRoleForMember(long orgId, long userId, OrgRole newRole) {
+        log.debug("Attempting to patch role to {} for userId: {} in orgId: {}", newRole, userId, orgId);
         organizationRepository
                 .findByIdLocked(orgId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization", "id", orgId));
@@ -110,17 +121,21 @@ public class OrganizationService {
         if (organizationMember.getRole() == OrgRole.OWNER
                 && newRole != OrgRole.OWNER
                 && organizationMemberRepository.countByOrganizationIdAndRole(orgId, OrgRole.OWNER) <= 1) {
+            log.warn("Cannot change role for userId: {} in orgId: {}: they are the last OWNER", userId, orgId);
             throw new IllegalArgumentException(
                     "Cannot change the last owner's role. Promote someone else to OWNER first.");
         }
 
         organizationMember.setRole(newRole);
+        OrganizationMember savedMember = organizationMemberRepository.save(organizationMember);
+        log.info("Successfully patched role to {} for userId: {} in orgId: {}", newRole, userId, orgId);
 
-        return organizationMemberMapper.toResponse(organizationMemberRepository.save(organizationMember));
+        return organizationMemberMapper.toResponse(savedMember);
     }
 
     @Transactional
     public void deleteOrganizationMember(long orgId, long userId) {
+        log.debug("Attempting to delete userId: {} from orgId: {}", userId, orgId);
         organizationRepository
                 .findByIdLocked(orgId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization", "id", orgId));
@@ -132,12 +147,14 @@ public class OrganizationService {
         if (organizationMember.getRole() == OrgRole.OWNER) {
             long ownerCount = organizationMemberRepository.countByOrganizationIdAndRole(orgId, OrgRole.OWNER);
             if (ownerCount <= 1) {
+                log.warn("Cannot delete userId: {} from orgId: {}: they are the last OWNER", userId, orgId);
                 throw new IllegalArgumentException(
                         "Cannot delete the last owner of the organization. Promote someone else to OWNER first.");
             }
         }
 
         organizationMemberRepository.delete(organizationMember);
+        log.info("Successfully deleted userId: {} from orgId: {}", userId, orgId);
     }
 
     // No default membership is a legitimate state now, not just transiently during

@@ -38,6 +38,7 @@ public class UserAdminService {
     @Transactional(readOnly = true)
     public PageResponse<UserAdminSummaryResponse> getAllUsers(
             String email, Boolean includeDeleted, final Pageable pageable) {
+        log.debug("Admin fetching all users with email: {}, includeDeleted: {}", email, includeDeleted);
         return PageResponse.of(userFinder
                 .search(email, includeDeleted, pageable)
                 .map(user -> userMapper.toUserAdminSummaryResponse(user, getOrganizationCount(user))));
@@ -45,6 +46,7 @@ public class UserAdminService {
 
     @Transactional(readOnly = true)
     public UserAdminDetailResponse getUser(long userId) {
+        log.debug("Admin fetching details for userId: {}", userId);
         User user = userFinder.findByIdIncludingDeleted(userId);
 
         List<OrganizationMemberResponse> organizations = organizationMemberRepository.findAllByUserId(userId).stream()
@@ -56,34 +58,42 @@ public class UserAdminService {
 
     @Transactional
     public void promoteToAdmin(long userId) {
+        log.debug("Attempting to promote userId: {} to ADMIN", userId);
         User user = userFinder.findById(userId);
         user.setPlatformRole(PlatformRole.ADMIN);
         userRepository.save(user);
+        log.info("Successfully promoted userId: {} to ADMIN", userId);
     }
 
     @Transactional
     public void demoteFromAdmin(long userId) {
+        log.debug("Attempting to demote userId: {} from ADMIN", userId);
         User user = userFinder.findById(userId);
 
         if (user.getPlatformRole() == PlatformRole.ADMIN
                 && userRepository.countByPlatformRole(PlatformRole.ADMIN) <= 1) {
+            log.warn("Cannot demote userId {}: they are the last platform admin", userId);
             throw new IllegalStateException("Cannot demote: " + user.getEmail() + " is the last platform admin.");
         }
 
         user.setPlatformRole(PlatformRole.USER);
         userRepository.save(user);
+        log.info("Successfully demoted userId: {} to USER", userId);
     }
 
     @Transactional
     public void restoreUser(long userId) {
+        log.debug("Attempting to restore deleted userId: {}", userId);
         User user = userFinder.findByIdIncludingDeleted(userId);
 
         if (!user.isDeleted()) {
+            log.warn("Restore failed: userId {} is not deleted", userId);
             throw new IllegalArgumentException("User " + userId + " is not deleted");
         }
 
         // цей запит поверне лише true, якщо в користувача буде активна пошта
         if (userRepository.existsByEmail(user.getEmail())) {
+            log.warn("Restore failed: active user with email {} already exists", user.getEmail());
             throw new ResourceAlreadyExistsException("User with email " + user.getEmail() + " is already existed");
         }
 

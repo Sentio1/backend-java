@@ -9,6 +9,7 @@ import lombok.Builder;
 import java.time.Instant;
 
 import static com.lisovskyi.core_service.case_.CaseConstants.TITLE_LENGTH;
+import static com.lisovskyi.core_service.case_event.CaseEventConstants.REGISTRY_DOCUMENT_TEXT_REF_LENGTH;
 
 @Builder
 public record CaseEventAutoRegisterRequest(
@@ -20,7 +21,7 @@ public record CaseEventAutoRegisterRequest(
 
         @NotNull Instant occurredAt,
 
-        @NotNull Instant registeredAt,
+        @NotNull Long registryDocumentId,
 
-        @NotNull Long registryDocumentId
+        @Size(max = REGISTRY_DOCUMENT_TEXT_REF_LENGTH) String registryDocumentTextRef
 ) {}

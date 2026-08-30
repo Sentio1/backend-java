@@ -5,6 +5,7 @@ import com.lisovskyi.security.autoconfigure.security.UserByIdDetailsService;
 import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
@@ -19,17 +20,23 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class UserByIdDetailsServiceImpl implements UserByIdDetailsService {
 
     private final UserRepository userRepository;
 
     @Override
     public SecurityPrincipal loadUserById(Long userId) {
+        log.trace("Loading security details for userId: {}", userId);
         User user = userRepository
                 .findById(userId)
-                .orElseThrow(() -> new UsernameNotFoundException("No user with id " + userId));
+                .orElseThrow(() -> {
+                    log.warn("Security load failed: No user found with id {}", userId);
+                    return new UsernameNotFoundException("No user with id " + userId);
+                });
 
         if (user.getDeletedAt() != null) {
+            log.warn("Security load failed: User {} is marked as deleted", userId);
             throw new UsernameNotFoundException("No user with id " + userId);
         }
 

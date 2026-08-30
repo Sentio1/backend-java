@@ -17,10 +17,6 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
-    # V6__make_users_email_unique.sql mixes a CREATE INDEX CONCURRENTLY (can't run in
-    # a transaction) with a regular ALTER TABLE - Flyway refuses that combination
-    # unless this is set.
-    mixed: true
 
 logging:
   level:

@@ -3,9 +3,14 @@ package com.sentio.shared.config;
 import com.sentio.shared.security.CurrentOrganizationIdArgumentResolver;
 import com.sentio.shared.security.CurrentUserIdArgumentResolver;
 import java.util.List;
+
+import com.sentio.shared.web.StringToEntityIdConverterFactory;
 import org.jspecify.annotations.NonNull;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.format.FormatterRegistry;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -26,5 +31,16 @@ public class SharedWebAutoConfiguration implements WebMvcConfigurer {
     public void addArgumentResolvers(@NonNull List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(new CurrentOrganizationIdArgumentResolver());
         resolvers.add(new CurrentUserIdArgumentResolver());
+    }
+
+    @Override
+    public void addFormatters(@NonNull FormatterRegistry registry) {
+        registry.addConverterFactory(stringToEntityIdConverterFactory());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public StringToEntityIdConverterFactory stringToEntityIdConverterFactory() {
+        return new StringToEntityIdConverterFactory();
     }
 }

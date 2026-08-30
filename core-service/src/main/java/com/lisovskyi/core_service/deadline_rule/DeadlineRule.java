@@ -2,6 +2,9 @@ package com.lisovskyi.core_service.deadline_rule;
 
 import com.lisovskyi.core_service.case_.enums.ProcedureType;
 import com.lisovskyi.core_service.case_event.enums.EventCode;
+import com.lisovskyi.core_service.deadline_rule.enums.CountFrom;
+import com.lisovskyi.core_service.deadline_rule.enums.DayKind;
+import com.lisovskyi.core_service.deadline_rule.enums.DurationUnit;
 import com.lisovskyi.jpa.autoconfigure.entity.BaseEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import jakarta.persistence.*;
@@ -53,9 +56,11 @@ public class DeadlineRule extends BaseEntity {
     private short durationValue;
 
     // DAY | MONTH
+    @Enumerated(EnumType.STRING)
     @Column(name = "duration_unit", nullable = false, length = DURATION_UNIT_LENGTH)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Builder.Default
-    private String durationUnit = "DAY";
+    private DurationUnit durationUnit = DurationUnit.DAY;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "day_kind", nullable = false)
@@ -64,9 +69,11 @@ public class DeadlineRule extends BaseEntity {
     private DayKind dayKind = DayKind.CALENDAR;
 
     // строк тече з наступного дня
+    @Enumerated(EnumType.STRING)
     @Column(name = "count_from", nullable = false, length = COUNT_FROM_LENGTH)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Builder.Default
-    private String countFrom = "NEXT_DAY";
+    private CountFrom countFrom = CountFrom.NEXT_DAY;
 
     @Column(name = "is_extendable", nullable = false)
     @Builder.Default

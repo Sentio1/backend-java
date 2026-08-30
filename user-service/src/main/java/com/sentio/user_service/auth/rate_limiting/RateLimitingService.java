@@ -7,10 +7,12 @@ import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RateLimitingService {
 
     private final Cache<String, RateLimiter> limitersCache;
@@ -37,6 +39,7 @@ public class RateLimitingService {
                     limitersCache.get(emailKey, key -> RateLimiter.of(key, resolveConfig(emailConfig)));
 
             if (!emailRateLimiter.acquirePermission()) {
+                log.warn("Rate limit exceeded for action: {} by email: {}", action, email);
                 throw RequestNotPermitted.createRequestNotPermitted(emailRateLimiter);
             }
         }
@@ -48,6 +51,7 @@ public class RateLimitingService {
             RateLimiter ipRateLimiter = limitersCache.get(ipKey, key -> RateLimiter.of(key, resolveConfig(ipConfig)));
 
             if (!ipRateLimiter.acquirePermission()) {
+                log.warn("Rate limit exceeded for action: {} by IP: {}", action, ip);
                 throw RequestNotPermitted.createRequestNotPermitted(ipRateLimiter);
             }
         }
@@ -56,6 +60,9 @@ public class RateLimitingService {
     private RateLimiterConfig resolveConfig(String configName) {
         return rateLimiterRegistry
                 .getConfiguration(configName)
-                .orElseThrow(() -> new IllegalStateException("No rate limiter config: " + configName));
+                .orElseThrow(() -> {
+                    log.error("Missing rate limiter config: {}", configName);
+                    return new IllegalStateException("No rate limiter config: " + configName);
+                });
     }
 }

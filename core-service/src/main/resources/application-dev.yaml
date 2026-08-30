@@ -32,3 +32,4 @@ spring:
 logging:
   level:
     com.lisovskyi.*: DEBUG
+    org.apache.kafka: WARN

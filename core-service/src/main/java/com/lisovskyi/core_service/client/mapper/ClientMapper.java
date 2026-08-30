@@ -4,11 +4,11 @@ import com.lisovskyi.core_service.client.Client;
 import com.lisovskyi.core_service.client.dto.request.ClientCreateRequest;
 import com.lisovskyi.core_service.client.dto.request.ClientUpdateRequest;
 import com.lisovskyi.core_service.client.dto.response.ClientResponse;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingConstants;
-import org.mapstruct.MappingTarget;
+import com.lisovskyi.core_service.client_activity.ClientActivity;
+import org.mapstruct.*;
 import org.openapitools.jackson.nullable.JsonNullable;
+
+import java.util.function.Consumer;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface ClientMapper {
@@ -26,8 +26,13 @@ public interface ClientMapper {
     @Mapping(target = "deleteReason", ignore = true)
     @Mapping(target = "restoredAt", ignore = true)
     @Mapping(target = "restoredBy", ignore = true)
+    @Mapping(target = "activities", ignore = true)
     Client toEntity(ClientCreateRequest request, Long organizationId, Long createdById);
 
+    // Усі поля DTO нижче ignore=true й проставляються вручну в applyPresentFields(...): це PATCH,
+    // JsonNullable розрізняє "поле відсутнє в тілі" (не чіпати) від "поле є і дорівнює null"
+    // (очистити) - а звичайний згенерований MapStruct-мапінг через unwrap() обидва випадки
+    // зводить до null і тому завжди перезаписував поле, навіть коли воно просто не передане.
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -39,9 +44,79 @@ public interface ClientMapper {
     @Mapping(target = "restoredAt", ignore = true)
     @Mapping(target = "restoredBy", ignore = true)
     @Mapping(target = "type", ignore = true)
+    @Mapping(target = "activities", ignore = true)
+    @Mapping(target = "lastName", ignore = true)
+    @Mapping(target = "firstName", ignore = true)
+    @Mapping(target = "middleName", ignore = true)
+    @Mapping(target = "birthDate", ignore = true)
+    @Mapping(target = "rnokpp", ignore = true)
+    @Mapping(target = "passport", ignore = true)
+    @Mapping(target = "companyName", ignore = true)
+    @Mapping(target = "edrpou", ignore = true)
+    @Mapping(target = "directorName", ignore = true)
+    @Mapping(target = "contactPersonName", ignore = true)
+    @Mapping(target = "email", ignore = true)
+    @Mapping(target = "phoneNumber", ignore = true)
+    @Mapping(target = "address", ignore = true)
+    @Mapping(target = "notes", ignore = true)
     void updateEntityFromRequest(ClientUpdateRequest request, @MappingTarget Client client);
 
     ClientResponse toResponse(Client client);
+
+    @AfterMapping
+    default void applyPresentFields(ClientUpdateRequest request, @MappingTarget Client client) {
+        setIfPresent(request.lastName(), client::setLastName);
+        setIfPresent(request.firstName(), client::setFirstName);
+        setIfPresent(request.middleName(), client::setMiddleName);
+        setIfPresent(request.birthDate(), client::setBirthDate);
+        setIfPresent(request.rnokpp(), client::setRnokpp);
+        setIfPresent(request.passport(), client::setPassport);
+        setIfPresent(request.companyName(), client::setCompanyName);
+        setIfPresent(request.edrpou(), client::setEdrpou);
+        setIfPresent(request.directorName(), client::setDirectorName);
+        setIfPresent(request.contactPersonName(), client::setContactPersonName);
+        setIfPresent(request.email(), client::setEmail);
+        setIfPresent(request.phoneNumber(), client::setPhoneNumber);
+        setIfPresent(request.address(), client::setAddress);
+        setIfPresent(request.notes(), client::setNotes);
+    }
+
+    default <T> void setIfPresent(JsonNullable<T> value, Consumer<T> setter) {
+        if (value != null && value.isPresent()) {
+            setter.accept(value.get());
+        }
+    }
+
+    @AfterMapping
+    default void mapActivities(ClientCreateRequest request, @MappingTarget Client client) {
+        if (request.activities() != null && request.activities().isPresent()) {
+            var activities = request.activities().get();
+            if (activities != null && !activities.isEmpty()) {
+                activities.forEach(activity -> client.addActivity(ClientActivity.builder()
+                        .organizationId(client.getOrganizationId())
+                        .activity(activity)
+                        .build()));
+            }
+        }
+    }
+
+    @AfterMapping
+    default void mapActivities(ClientUpdateRequest request, @MappingTarget Client client) {
+        if (request.activities() != null && request.activities().isPresent()) {
+            client.getActivities().clear();
+            var activities = request.activities().get();
+            if (activities != null && !activities.isEmpty()) {
+                activities.forEach(activity -> client.addActivity(ClientActivity.builder()
+                        .organizationId(client.getOrganizationId())
+                        .activity(activity)
+                        .build()));
+            }
+        }
+    }
+
+    default String toActivityValue(ClientActivity activity) {
+        return activity.getActivity();
+    }
 
     default <T> T unwrap(JsonNullable<T> nullable) {
         return nullable == null || !nullable.isPresent() ? null : nullable.get();

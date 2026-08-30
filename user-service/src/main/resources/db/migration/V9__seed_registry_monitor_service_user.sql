@@ -11,14 +11,16 @@
 -- стартовим кроком застосунку, що читає SERVICE_SECRET з Doppler/env і
 -- (пере)хешує його в auth.users при зміні.
 --
--- УВАГА для AuthService.serviceToken(): це НЕ той самий випадок, що null
--- password у AuthService.login() (`user.getPassword() != null && !matches(...)`,
--- тобто null -> перевірка пропускається -> логін проходить). Той ідіом писаний
--- під чисті OAuth-акаунти, де взагалі немає локального пароля і сам факт
--- "залогінився через Google" вже є доказом особи. Тут навпаки: NULL означає
--- "секрет ще не налаштований у цьому оточенні" і має ЗАБОРОНЯТИ видачу токена,
--- а не дозволяти будь-який пароль. Умову для serviceToken() пиши інвертовано:
--- `user.getPassword() == null || !passwordEncoder.matches(secret, hash)` -> throw.
+-- УВАГА: це НЕ той самий випадок, що null password у AuthService.login()
+-- (`user.getPassword() != null && !matches(...)`, тобто null -> перевірка
+-- пропускається -> логін проходить). Той ідіом писаний під чисті OAuth-акаунти,
+-- де взагалі немає локального пароля і сам факт "залогінився через Google" вже
+-- є доказом особи. Тут навпаки: NULL означає "секрет ще не налаштований у
+-- цьому оточенні" і має ЗАБОРОНЯТИ видачу токена, а не дозволяти будь-який
+-- пароль. ServiceToken.serviceToken() перевіряє це інвертовано першим кроком:
+-- `user.getPassword() == null || !passwordEncoder.matches(secret, hash)` -> throw
+-- (саме інвертовано, бо passwordEncoder.matches(secret, null) сам кидає
+-- IllegalArgumentException замість false, якщо null-перевірки нема першою).
 INSERT INTO auth.users (id, email, password_hash, platform_role, created_at, updated_at)
 VALUES (
     nextval('auth.user_seq_gen'),

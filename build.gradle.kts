@@ -59,6 +59,7 @@ subprojects {
     }
 
     plugins.withId("org.springframework.boot") {
+        // graalvm native image
         pluginManager.apply("org.graalvm.buildtools.native")
         extensions.configure<org.graalvm.buildtools.gradle.dsl.GraalVMExtension> {
             binaries {
@@ -71,6 +72,22 @@ subprojects {
                     val activeProcessors = if (numberOfProcessors > 0) numberOfProcessors else 1
                     buildArgs.add("-J-XX:ActiveProcessorCount=$activeProcessors")
                 }
+            }
+        }
+
+        // doppler run
+        tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+            doFirst {
+                val output = providers.exec {
+                    commandLine("doppler", "secrets", "download", "--no-file", "--format", "env")
+                }.standardOutput.asText.get()
+
+                output.lines()
+                    .filter { it.contains("=") }
+                    .forEach { line ->
+                        val (key, value) = line.split("=", limit = 2)
+                        environment(key, value.trim('"'))
+                    }
             }
         }
     }

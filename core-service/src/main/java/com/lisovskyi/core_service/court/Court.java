@@ -8,6 +8,8 @@ import jakarta.persistence.Table;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.time.ZoneId;
+
 import static com.lisovskyi.core_service.court.CourtConstants.*;
 
 // Глобальний довідник судів — БЕЗ organization_id: суди спільні для всіх орендарів,
@@ -35,6 +37,14 @@ public class Court extends BaseEntity {
 
     @Column(name = "region", length = REGION_LENGTH)
     private String region;
+
+    // IANA zone id (напр. "Europe/Kyiv") - джерело істини для конвертації occurred_at ->
+    // календарна дата в Deadline Engine. Свідомо тут, а не на Organization: суд - локальна
+    // сутність цього ж сервісу (без мережі до user-service), і зона фізично належить суду,
+    // а не юрфірмі, яка через нього судиться.
+    @Column(name = "time_zone", nullable = false, length = TIME_ZONE_LENGTH)
+    @Builder.Default
+    private String timeZone = "Europe/Kyiv";
 
     @Column(name = "address", columnDefinition = "text")
     private String address;

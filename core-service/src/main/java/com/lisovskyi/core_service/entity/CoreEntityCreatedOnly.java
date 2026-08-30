@@ -19,7 +19,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @SuperBuilder
 @SQLRestriction("deleted_at IS NULL")
-public abstract class CoreEntityCreatedOnly extends CreationTimestampedEntity {
+public abstract class CoreEntityCreatedOnly extends CreationTimestampedEntity implements SoftDeleteEntity {
 
     @Column(name = "deleted_at")
     private Instant deletedAt;

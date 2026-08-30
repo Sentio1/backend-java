@@ -29,7 +29,7 @@ public class ServiceToken {
         User user = userRepository.findByEmail(request.clientId())
                 .orElseThrow(() -> new UnauthorizedException(INVALID_ERROR_MSG));
 
-        if (!passwordEncoder.matches(request.secret(), user.getPassword())) {
+        if (user.getPassword() == null || !passwordEncoder.matches(request.secret(), user.getPassword())) {
             throw new UnauthorizedException(INVALID_ERROR_MSG);
         }
 

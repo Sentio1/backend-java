@@ -10,7 +10,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 
 @Configuration
 @RequiredArgsConstructor
-/** OAuth2SecurityConfig class. */
 public class OAuth2SecurityConfig {
 
     private final GoogleOAuth2SuccessHandler successHandler;

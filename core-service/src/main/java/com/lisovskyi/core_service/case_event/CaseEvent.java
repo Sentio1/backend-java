@@ -64,6 +64,13 @@ public class CaseEvent extends CoreEntityCreatedOnly {
     @Column(name = "registry_document_id")
     private Long registryDocumentId;
 
+    // Посилання на повний текст документа в Mongo (Registry Monitor) - НЕ сам текст,
+    // текст навмисно лишається в Mongo (SEN-42), тут лише спосіб його знайти
+    // (Mongo ObjectId чи URL - формат узгоджується з Go-стороною). Заповнене лише
+    // для source = REGISTRY.
+    @Column(name = "registry_document_text_ref", length = REGISTRY_DOCUMENT_TEXT_REF_LENGTH)
+    private String registryDocumentTextRef;
+
     // soft-ref auth.users.id
     @Column(name = "created_by")
     private Long createdBy;

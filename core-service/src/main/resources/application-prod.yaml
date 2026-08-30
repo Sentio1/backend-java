@@ -14,6 +14,11 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
 
+  # Без дефолту навмисно (на відміну від dev у application.yaml) - тихий fallback
+  # на localhost:9092 у проді був би гіршим за явний збій старту застосунку.
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
   jpa:
     hibernate:
       ddl-auto: validate
@@ -22,6 +27,12 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+
+app:
+  jwt:
+    # Без дефолту навмисно, той самий принцип, що й kafka.bootstrap-servers вище -
+    # тихий fallback на localhost:8080 у проді був би гіршим за явний збій старту.
+    jwks-uri: ${JWT_JWKS_URI}
 
 server:
   # Так само, як у user-service: коректно лише за довіреним reverse-proxy/ingress,

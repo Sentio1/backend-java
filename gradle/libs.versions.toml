@@ -13,7 +13,7 @@ grpc-spring = "1.1.0.RELEASE"
 spring-ai = "2.0.0"
 
 # Custom starters
-lisovskyi-security = "0.4.0"
+lisovskyi-security = "0.5.2"
 lisovskyi-jpa = "0.2.0"
 lisovskyi-web-error = "0.1.6"
 
@@ -63,7 +63,7 @@ spring-data-redis = { module = "org.springframework.boot:spring-boot-starter-dat
 spring-data-mongodb = { module = "org.springframework.boot:spring-boot-starter-data-mongodb" }
 spring-data-elasticsearch = { module = "org.springframework.boot:spring-boot-starter-data-elasticsearch" }
 
-spring-kafka = { module = "org.springframework.kafka:spring-kafka" }
+spring-kafka = { module = "org.springframework.boot:spring-boot-starter-kafka" }
 
 spring-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
 
@@ -188,9 +188,9 @@ testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupit
 
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
 
-testcontainers-mongodb = { module = "org.testcontainers:mongodb" }
+testcontainers-mongodb = { module = "org.testcontainers:testcontainers-mongodb" }
 
-testcontainers-kafka = { module = "org.testcontainers:kafka" }
+testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka" }
 
 
 [plugins]

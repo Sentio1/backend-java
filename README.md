@@ -41,4 +41,14 @@ GET /api/v1/.well-known/jwks.json
 
 ### Сервісні виклики
 
-Виклики сервіс-до-сервісу (Go → Java, `document-service` → `case-service`) використовують окремий токен з `roles: ["SERVICE"]`, а не токен користувача — ще не реалізовано.
+Виклики сервіс-до-сервісу (Go → Java, `document-service` → `case-service`) використовують окремий токен з `roles: ["SERVICE"]`, а не токен користувача.
+
+```text
+POST /api/v1/auth/service-token
+```
+
+Client-credentials-подібний флоу: тіло запиту — `{ "clientId": "<email службового юзера>", "secret": "<SERVICE_SECRET>" }`. У відповідь — access-токен (той самий формат, що й звичайний, `roles: ["SERVICE"]`, без `org_id` — службовий юзер не належить жодній організації) і `expiresIn`.
+
+Кожен зовнішній caller (Go-воркер, майбутній `document-service`) має власний службовий `User` з `platform_role = SERVICE` і без жодного `organization_member` — наприклад, `registry-monitor@service.internal` для Registry Monitor (засіяний у `V9__seed_registry_monitor_service_user.sql`). `password_hash` цього юзера навмисно **не** встановлюється міграцією (щоб секрет не потрапив у git-історію навіть хешованим) — його виставляють окремим операційним кроком у кожному оточенні, читаючи `SERVICE_SECRET` з Doppler/env. Поки секрет не виставлено, `password_hash IS NULL` і `POST /auth/service-token` для цього юзера гарантовано відмовляє (а не пускає з будь-яким паролем) — див. коментар у самій міграції.
+
+Рейт-ліміти на цей ендпоінт налаштовані окремо (`RateLimitingService.checkServiceTokenLimits`, по `id` і по IP), як і для `/login`.

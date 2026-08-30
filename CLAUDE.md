@@ -43,7 +43,7 @@ Requires Java 25 (toolchain-pinned in root `build.gradle.kts`). All commands fro
 ```bash
 ./gradlew build                          # build all modules
 ./gradlew :user-service:bootRun          # run user-service (needs Postgres/env, see below)
-./gradlew :user-service:dopplerRun       # run via Doppler-injected secrets (custom task)
+doppler run -- ./gradlew :user-service:bootRun  # same, with Doppler-injected secrets
 ./gradlew :user-service:test             # run all tests (Testcontainers spins up Postgres)
 ./gradlew :user-service:test --tests "com.sentio.user_service.auth.AuthServiceTest"
 ./gradlew :user-service:test --tests "com.sentio.user_service.auth.AuthServiceTest.methodName"

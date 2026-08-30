@@ -2,10 +2,10 @@ package com.lisovskyi.core_service.case_event;
 
 import com.lisovskyi.core_service.case_event.dto.request.CaseEventAutoRegisterRequest;
 import com.lisovskyi.core_service.case_event.dto.request.CaseEventManualRegisterRequest;
+import com.lisovskyi.core_service.case_event.dto.request.CaseEventOccurredAtChangeRequest;
 import com.lisovskyi.core_service.case_event.dto.request.CaseEventUpdateRequest;
 import com.lisovskyi.core_service.case_event.dto.response.CaseEventResponse;
 import com.lisovskyi.core_service.case_event.enums.EventCode;
-import com.lisovskyi.core_service.case_event.dto.request.CaseEventOccurredAtChangeRequest;
 import com.sentio.shared.dto.PageResponse;
 import com.sentio.shared.entity.id.case_.CaseId;
 import com.sentio.shared.entity.id.case_event.CaseEventId;
@@ -15,13 +15,12 @@ import com.sentio.shared.security.CurrentOrganizationId;
 import com.sentio.shared.security.CurrentUserId;
 import com.sentio.shared.web.LocationUtility;
 import jakarta.validation.Valid;
+import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.net.URI;
 
 @RestController
 @RequestMapping("/cases/{caseId}/case-events")
@@ -43,8 +42,7 @@ public class CaseEventController {
     public ResponseEntity<CaseEventResponse> getCaseEventById(
             @PathVariable CaseEventId eventId,
             @PathVariable CaseId caseId,
-            @CurrentOrganizationId OrganizationId organizationId
-    ) {
+            @CurrentOrganizationId OrganizationId organizationId) {
         return ResponseEntity.ok(caseEventService.getCaseEventById(caseId, eventId, organizationId));
     }
 
@@ -82,7 +80,8 @@ public class CaseEventController {
             @CurrentOrganizationId OrganizationId organizationId,
             @CurrentUserId UserId changedById,
             @RequestBody @Valid CaseEventOccurredAtChangeRequest request) {
-        CaseEventResponse response = caseEventService.changeOccurredAt(caseId, eventId, organizationId, changedById, request);
+        CaseEventResponse response =
+                caseEventService.changeOccurredAt(caseId, eventId, organizationId, changedById, request);
         return ResponseEntity.ok(response);
     }
 

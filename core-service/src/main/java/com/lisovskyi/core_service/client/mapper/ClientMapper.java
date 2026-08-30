@@ -5,10 +5,9 @@ import com.lisovskyi.core_service.client.dto.request.ClientCreateRequest;
 import com.lisovskyi.core_service.client.dto.request.ClientUpdateRequest;
 import com.lisovskyi.core_service.client.dto.response.ClientResponse;
 import com.lisovskyi.core_service.client_activity.ClientActivity;
+import java.util.function.Consumer;
 import org.mapstruct.*;
 import org.openapitools.jackson.nullable.JsonNullable;
-
-import java.util.function.Consumer;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface ClientMapper {

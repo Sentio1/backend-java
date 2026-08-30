@@ -1,5 +1,7 @@
 package com.lisovskyi.core_service.client;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.lisovskyi.core_service.TestcontainersConfiguration;
 import com.lisovskyi.core_service.client.dto.request.ClientCreateRequest;
 import com.lisovskyi.core_service.client.dto.request.ClientUpdateRequest;
@@ -9,17 +11,14 @@ import com.sentio.shared.entity.id.client.ClientId;
 import com.sentio.shared.entity.id.organization.OrganizationId;
 import com.sentio.shared.entity.id.user.UserId;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 // Юніт-тест ClientMapperTest перевіряє поведінку @AfterMapping в пам'яті; цей IT перевіряє,
 // що те саме дійсно доїжджає до БД - персистяться, замінюються (orphanRemoval) і не
@@ -85,8 +84,8 @@ class ClientActivityPersistenceIT {
     @Test
     void createClient_withActivities_persistsThemWithTheClientsOwnOrganizationId() {
         OrganizationId organizationId = OrganizationId.of(2_001L);
-        ClientCreateRequest request = soleTraderRequest(
-                "1111111111", JsonNullable.of(List.of("62.01 Комп'ютерне програмування")));
+        ClientCreateRequest request =
+                soleTraderRequest("1111111111", JsonNullable.of(List.of("62.01 Комп'ютерне програмування")));
 
         ClientResponse response = clientService.createClient(organizationId, UserId.of(1L), request);
         flushAndDetach();
@@ -105,12 +104,14 @@ class ClientActivityPersistenceIT {
     void updateClient_withNewActivities_replacesOldRowsInsteadOfAccumulatingThem() {
         OrganizationId organizationId = OrganizationId.of(2_002L);
         ClientResponse created = clientService.createClient(
-                organizationId, UserId.of(1L), soleTraderRequest("2222222222", JsonNullable.of(List.of("62.01 Стара"))));
+                organizationId,
+                UserId.of(1L),
+                soleTraderRequest("2222222222", JsonNullable.of(List.of("62.01 Стара"))));
         flushAndDetach();
         ClientId clientId = ClientId.of(created.id());
 
-        ClientResponse updated =
-                clientService.updateClient(clientId, organizationId, updateRequest(JsonNullable.of(List.of("69.10 Нова"))));
+        ClientResponse updated = clientService.updateClient(
+                clientId, organizationId, updateRequest(JsonNullable.of(List.of("69.10 Нова"))));
         flushAndDetach();
 
         assertThat(updated.activities()).containsExactly("69.10 Нова");
@@ -124,7 +125,9 @@ class ClientActivityPersistenceIT {
     void updateClient_withActivitiesAbsentFromRequest_leavesExistingActivitiesUntouched() {
         OrganizationId organizationId = OrganizationId.of(2_003L);
         ClientResponse created = clientService.createClient(
-                organizationId, UserId.of(1L), soleTraderRequest("3333333333", JsonNullable.of(List.of("62.01 Стара"))));
+                organizationId,
+                UserId.of(1L),
+                soleTraderRequest("3333333333", JsonNullable.of(List.of("62.01 Стара"))));
         flushAndDetach();
         ClientId clientId = ClientId.of(created.id());
 
@@ -140,7 +143,9 @@ class ClientActivityPersistenceIT {
     void updateClient_withActivitiesExplicitlyNull_clearsThemInTheDatabase() {
         OrganizationId organizationId = OrganizationId.of(2_004L);
         ClientResponse created = clientService.createClient(
-                organizationId, UserId.of(1L), soleTraderRequest("4444444444", JsonNullable.of(List.of("62.01 Стара"))));
+                organizationId,
+                UserId.of(1L),
+                soleTraderRequest("4444444444", JsonNullable.of(List.of("62.01 Стара"))));
         flushAndDetach();
         ClientId clientId = ClientId.of(created.id());
 

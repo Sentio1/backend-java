@@ -51,7 +51,7 @@ public class OrganizationCreationService {
 
         OrganizationMember savedMembership = organizationMemberRepository.save(membership);
         log.info("Successfully added user: {} as OWNER to organization: {}", user.getId(), organization.getId());
-        
+
         return savedMembership;
     }
 }

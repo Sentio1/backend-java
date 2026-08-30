@@ -25,12 +25,13 @@ public class ServiceSecretReader implements CommandLineRunner {
             return;
         }
 
-        userRepository.findByEmail(SERVICE_EMAIL)
+        userRepository
+                .findByEmail(SERVICE_EMAIL)
                 .ifPresentOrElse(
-                user -> {
+                        user -> {
                             user.setPassword(passwordEncoder.encode(secret));
                             userRepository.save(user);
-                },
-                     () -> log.warn("registry-monitor@service.internal не знайдено - V9 не застосована?"));
+                        },
+                        () -> log.warn("registry-monitor@service.internal не знайдено - V9 не застосована?"));
     }
 }

@@ -1,5 +1,7 @@
 package com.lisovskyi.core_service.court;
 
+import static com.lisovskyi.core_service.court.CourtConstants.*;
+
 import com.lisovskyi.jpa.autoconfigure.entity.BaseEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import jakarta.persistence.Column;
@@ -7,10 +9,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-
-import java.time.ZoneId;
-
-import static com.lisovskyi.core_service.court.CourtConstants.*;
 
 // Глобальний довідник судів — БЕЗ organization_id: суди спільні для всіх орендарів,
 // це не дані організації, тому без TimestampedEntity/софт-делету.

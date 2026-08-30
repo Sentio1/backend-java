@@ -1,5 +1,7 @@
 package com.lisovskyi.core_service.client;
 
+import static com.sentio.shared.persistence.ConstraintViolations.isUniqueConstraintViolation;
+
 import com.lisovskyi.core_service.case_.enums.CaseStatus;
 import com.lisovskyi.core_service.case_party.CasePartyRepository;
 import com.lisovskyi.core_service.client.dto.request.ClientCreateRequest;
@@ -14,6 +16,11 @@ import com.sentio.shared.dto.PageResponse;
 import com.sentio.shared.entity.id.client.ClientId;
 import com.sentio.shared.entity.id.organization.OrganizationId;
 import com.sentio.shared.entity.id.user.UserId;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -21,14 +28,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static com.sentio.shared.persistence.ConstraintViolations.isUniqueConstraintViolation;
 
 @Service
 @RequiredArgsConstructor
@@ -40,9 +39,8 @@ public class ClientService implements SoftDeletable {
 
     private final ClientMapper clientMapper;
 
-    private static final Set<CaseStatus> TERMINAL_CASE_STATUSES = Arrays.stream(CaseStatus.values())
-            .filter(CaseStatus::isTerminal)
-            .collect(Collectors.toUnmodifiableSet());
+    private static final Set<CaseStatus> TERMINAL_CASE_STATUSES =
+            Arrays.stream(CaseStatus.values()).filter(CaseStatus::isTerminal).collect(Collectors.toUnmodifiableSet());
 
     @Transactional(readOnly = true)
     public PageResponse<ClientResponse> getAllClients(OrganizationId organizationId, Pageable pageable) {
@@ -72,8 +70,9 @@ public class ClientService implements SoftDeletable {
     @Transactional(readOnly = true)
     public PageResponse<ClientResponse> searchClient(OrganizationId organizationId, String query, Pageable pageable) {
         log.debug("Searching clients in orgId: {} with query: '{}'", organizationId, query);
-        return PageResponse.of(
-                clientRepository.searchClient(organizationId.id(), query, pageable).map(clientMapper::toResponse));
+        return PageResponse.of(clientRepository
+                .searchClient(organizationId.id(), query, pageable)
+                .map(clientMapper::toResponse));
     }
 
     @Transactional
@@ -113,7 +112,8 @@ public class ClientService implements SoftDeletable {
     }
 
     @Transactional
-    public void deleteClient(ClientId clientId, OrganizationId organizationId, UserId deletedById, String deleteReason) {
+    public void deleteClient(
+            ClientId clientId, OrganizationId organizationId, UserId deletedById, String deleteReason) {
         log.debug("Attempting to delete client clientId: {} for orgId: {}", clientId, organizationId);
         Client client = clientRepository
                 .findByIdAndOrganizationId(clientId.id(), organizationId.id())
@@ -144,7 +144,10 @@ public class ClientService implements SoftDeletable {
     private ClientResponse createClientNotTransactional(
             OrganizationId organizationId, UserId createdById, ClientCreateRequest request) {
         assertUniqueTaxIds(
-                organizationId.id(), request.rnokpp().orElse(null), request.edrpou().orElse(null), null);
+                organizationId.id(),
+                request.rnokpp().orElse(null),
+                request.edrpou().orElse(null),
+                null);
 
         Client client = clientMapper.toEntity(request, organizationId.id(), createdById.id());
 

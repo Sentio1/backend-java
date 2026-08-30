@@ -1,10 +1,9 @@
 package com.lisovskyi.core_service.deadline.dto.response;
 
 import com.lisovskyi.core_service.deadline.DeadlineStatus;
-import lombok.Builder;
-
 import java.time.Instant;
 import java.time.LocalDate;
+import lombok.Builder;
 
 @Builder
 public record DeadlineResponse(
@@ -20,5 +19,4 @@ public record DeadlineResponse(
         Instant completedAt,
         Long completedBy,
         LocalDate extendedTo,
-        String note
-) {}
+        String note) {}

@@ -1,22 +1,21 @@
 package com.lisovskyi.core_service.deadline;
 
+import static com.lisovskyi.core_service.deadline.DeadlineConstants.LEGAL_BASIS_LENGTH;
+import static com.lisovskyi.core_service.deadline.DeadlineConstants.TITLE_LENGTH;
+
 import com.lisovskyi.core_service.case_.Case;
 import com.lisovskyi.core_service.case_event.CaseEvent;
 import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
 import com.lisovskyi.core_service.entity.CoreEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import jakarta.persistence.*;
+import java.time.Instant;
+import java.time.LocalDate;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
-
-import java.time.Instant;
-import java.time.LocalDate;
-
-import static com.lisovskyi.core_service.deadline.DeadlineConstants.LEGAL_BASIS_LENGTH;
-import static com.lisovskyi.core_service.deadline.DeadlineConstants.TITLE_LENGTH;
 
 // Ядро продукту — розраховані строки по справі.
 @Entity

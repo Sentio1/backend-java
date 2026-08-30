@@ -53,7 +53,11 @@ public class OrganizationInviteService {
     @Transactional
     public OrganizationInviteCreatedResponse inviteUserToOrganization(
             OrganizationInviteRequest inviteRequest, long orgId, long userId) {
-        log.debug("Attempting to invite user with email: {} to orgId: {} by userId: {}", inviteRequest.email(), orgId, userId);
+        log.debug(
+                "Attempting to invite user with email: {} to orgId: {} by userId: {}",
+                inviteRequest.email(),
+                orgId,
+                userId);
         if (organizationInviteRepository.existsByOrganizationIdAndEmailAndAcceptedAtIsNullAndRevokedAtIsNull(
                 orgId, inviteRequest.email())) {
             log.warn("Invite failed: Active invite for {} already exists in orgId: {}", inviteRequest.email(), orgId);
@@ -88,7 +92,11 @@ public class OrganizationInviteService {
                 .build();
 
         OrganizationInvite savedInvite = organizationInviteRepository.save(organizationInvite);
-        log.info("Successfully invited email: {} to orgId: {} (inviteId: {})", inviteRequest.email(), orgId, savedInvite.getId());
+        log.info(
+                "Successfully invited email: {} to orgId: {} (inviteId: {})",
+                inviteRequest.email(),
+                orgId,
+                savedInvite.getId());
 
         return organizationInviteMapper.toCreatedResponse(savedInvite, token);
     }
@@ -120,8 +128,11 @@ public class OrganizationInviteService {
         User user = userFinder.findById(userId);
 
         if (!organizationInvite.getEmail().equalsIgnoreCase(user.getEmail())) {
-            log.warn("Accept invite failed: Email mismatch for invite {}. Expected: {}, Actual: {}", 
-                    organizationInvite.getId(), organizationInvite.getEmail(), user.getEmail());
+            log.warn(
+                    "Accept invite failed: Email mismatch for invite {}. Expected: {}, Actual: {}",
+                    organizationInvite.getId(),
+                    organizationInvite.getEmail(),
+                    user.getEmail());
             throw new UnauthorizedException("This invite was issued to a different email address");
         }
 
@@ -146,10 +157,14 @@ public class OrganizationInviteService {
         organizationInviteRepository.save(organizationInvite);
 
         organizationInvite.setAcceptedAt(Instant.now());
-        
+
         OrganizationMember savedMember = organizationMemberRepository.save(organizationMember);
-        log.info("Successfully accepted invite {} - userId: {} joined orgId: {} as {}", 
-                organizationInvite.getId(), userId, organization.getId(), savedMember.getRole());
+        log.info(
+                "Successfully accepted invite {} - userId: {} joined orgId: {} as {}",
+                organizationInvite.getId(),
+                userId,
+                organization.getId(),
+                savedMember.getRole());
 
         return organizationInviteMapper.toAcceptResponse(savedMember);
     }

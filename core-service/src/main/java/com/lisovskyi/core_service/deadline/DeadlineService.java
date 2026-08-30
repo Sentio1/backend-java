@@ -24,16 +24,24 @@ public class DeadlineService {
     private final CaseFinder caseFinder;
 
     @Transactional(readOnly = true)
-    public PageResponse<DeadlineResponse> getAllDeadlines(CaseId caseId, OrganizationId organizationId, CaseEventId triggeringEventId, Pageable pageable) {
-        log.debug("Fetching deadlines for caseId: {}, orgId: {}, triggeringEventId: {}", caseId, organizationId, triggeringEventId);
+    public PageResponse<DeadlineResponse> getAllDeadlines(
+            CaseId caseId, OrganizationId organizationId, CaseEventId triggeringEventId, Pageable pageable) {
+        log.debug(
+                "Fetching deadlines for caseId: {}, orgId: {}, triggeringEventId: {}",
+                caseId,
+                organizationId,
+                triggeringEventId);
         caseFinder.findByIdAndOrganizationId(caseId.id(), organizationId.id());
 
         Page<DeadlineResponse> deadlines;
         if (triggeringEventId == null) {
-            deadlines = deadlineRepository.findAllByCaseIdAndOrganizationId(caseId.id(), organizationId.id(), pageable)
+            deadlines = deadlineRepository
+                    .findAllByCaseIdAndOrganizationId(caseId.id(), organizationId.id(), pageable)
                     .map(deadlineMapper::toResponse);
         } else {
-            deadlines = deadlineRepository.findAllByTriggeringEventIdAndCaseIdAndOrganizationId(triggeringEventId.id(), caseId.id(), organizationId.id(), pageable)
+            deadlines = deadlineRepository
+                    .findAllByTriggeringEventIdAndCaseIdAndOrganizationId(
+                            triggeringEventId.id(), caseId.id(), organizationId.id(), pageable)
                     .map(deadlineMapper::toResponse);
         }
 

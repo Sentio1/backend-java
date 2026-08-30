@@ -1,19 +1,18 @@
 package com.lisovskyi.core_service.client;
 
+import static com.lisovskyi.core_service.client.ClientConstants.*;
+
 import com.lisovskyi.core_service.client_activity.ClientActivity;
 import com.lisovskyi.core_service.entity.CoreEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import jakarta.persistence.*;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-
-import static com.lisovskyi.core_service.client.ClientConstants.*;
 
 @Entity
 @Table(name = "clients")

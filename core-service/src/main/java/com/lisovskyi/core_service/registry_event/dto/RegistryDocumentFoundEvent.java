@@ -9,5 +9,4 @@ public record RegistryDocumentFoundEvent(
         String type,
         Instant occurredAt,
         String court,
-        String documentTextRef
-) {}
+        String documentTextRef) {}

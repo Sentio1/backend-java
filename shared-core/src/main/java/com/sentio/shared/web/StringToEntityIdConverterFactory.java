@@ -1,20 +1,20 @@
 package com.sentio.shared.web;
 
 import com.sentio.shared.entity.id.EntityId;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import org.jspecify.annotations.NonNull;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.core.convert.converter.ConverterFactory;
 import org.springframework.stereotype.Component;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
-
 @Component
 public class StringToEntityIdConverterFactory implements ConverterFactory<String, EntityId> {
 
     @Override
-    public @NonNull <T extends EntityId> Converter<String, ? extends T> getConverter(@NonNull final Class<T> targetType) {
+    public @NonNull <T extends EntityId> Converter<String, ? extends T> getConverter(
+            @NonNull final Class<T> targetType) {
         return new StringToEntityIdConverter<>(targetType);
     }
 
@@ -38,7 +38,8 @@ public class StringToEntityIdConverterFactory implements ConverterFactory<String
                     resolvedHandle = MethodHandles.publicLookup()
                             .findConstructor(targetType, MethodType.methodType(void.class, long.class));
                 } catch (NoSuchMethodException | IllegalAccessException e) {
-                    throw new IllegalStateException("EntityId " + targetTypeName + " must have of(long) or public constructor(long)", e);
+                    throw new IllegalStateException(
+                            "EntityId " + targetTypeName + " must have of(long) or public constructor(long)", e);
                 }
             }
 
@@ -55,7 +56,8 @@ public class StringToEntityIdConverterFactory implements ConverterFactory<String
             } catch (RuntimeException | Error e) {
                 throw e;
             } catch (Throwable t) {
-                throw new IllegalArgumentException("Failed to instantiate " + targetTypeName + " from value: " + source, t);
+                throw new IllegalArgumentException(
+                        "Failed to instantiate " + targetTypeName + " from value: " + source, t);
             }
         }
     }

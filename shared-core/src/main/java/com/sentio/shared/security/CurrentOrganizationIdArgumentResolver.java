@@ -15,8 +15,8 @@ public class CurrentOrganizationIdArgumentResolver implements HandlerMethodArgum
     public boolean supportsParameter(@NonNull MethodParameter parameter) {
         return parameter.hasParameterAnnotation(CurrentOrganizationId.class)
                 && (OrganizationId.class.equals(parameter.getParameterType())
-                || Long.class.equals(parameter.getParameterType())
-                || long.class.equals(parameter.getParameterType()));
+                        || Long.class.equals(parameter.getParameterType())
+                        || long.class.equals(parameter.getParameterType()));
     }
 
     @Override

@@ -1,9 +1,8 @@
 package com.sentio.shared.web;
 
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-
-import java.net.URI;
 
 public final class LocationUtility {
 
@@ -12,14 +11,13 @@ public final class LocationUtility {
     }
 
     public static URI buildLocation(Object id) {
-        return ServletUriComponentsBuilder
-                .fromCurrentRequest()
+        return ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(id)
                 .toUri();
     }
 
-    public static <T>ResponseEntity<T> createdWithLocation(Object id, T body) {
+    public static <T> ResponseEntity<T> createdWithLocation(Object id, T body) {
         return ResponseEntity.created(buildLocation(id)).body(body);
     }
 

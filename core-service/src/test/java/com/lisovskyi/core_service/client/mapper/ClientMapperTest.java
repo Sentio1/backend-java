@@ -1,18 +1,17 @@
 package com.lisovskyi.core_service.client.mapper;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.lisovskyi.core_service.client.Client;
 import com.lisovskyi.core_service.client.ClientType;
 import com.lisovskyi.core_service.client.dto.request.ClientCreateRequest;
 import com.lisovskyi.core_service.client.dto.request.ClientUpdateRequest;
 import com.lisovskyi.core_service.client.dto.response.ClientResponse;
 import com.lisovskyi.core_service.client_activity.ClientActivity;
-import org.junit.jupiter.api.Test;
-import org.openapitools.jackson.nullable.JsonNullable;
-
 import java.time.LocalDate;
 import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import org.openapitools.jackson.nullable.JsonNullable;
 
 class ClientMapperTest {
 
@@ -66,7 +65,8 @@ class ClientMapperTest {
 
         Client client = clientMapper.toEntity(request, 100L, 5L);
 
-        assertThat(client.getActivities()).extracting(ClientActivity::getActivity)
+        assertThat(client.getActivities())
+                .extracting(ClientActivity::getActivity)
                 .containsExactly("62.01 Комп'ютерне програмування", "69.10 Юридична діяльність");
         assertThat(client.getActivities()).allSatisfy(activity -> {
             assertThat(activity.getClient()).isSameAs(client);
@@ -161,8 +161,10 @@ class ClientMapperTest {
                 .firstName("Іван")
                 .createdBy(5L)
                 .build();
-        client.addActivity(
-                ClientActivity.builder().organizationId(100L).activity("62.01 Стара діяльність").build());
+        client.addActivity(ClientActivity.builder()
+                .organizationId(100L)
+                .activity("62.01 Стара діяльність")
+                .build());
         return client;
     }
 
@@ -173,7 +175,8 @@ class ClientMapperTest {
 
         clientMapper.updateEntityFromRequest(request, client);
 
-        assertThat(client.getActivities()).extracting(ClientActivity::getActivity)
+        assertThat(client.getActivities())
+                .extracting(ClientActivity::getActivity)
                 .containsExactly("62.01 Стара діяльність");
     }
 
@@ -194,7 +197,8 @@ class ClientMapperTest {
 
         clientMapper.updateEntityFromRequest(request, client);
 
-        assertThat(client.getActivities()).extracting(ClientActivity::getActivity)
+        assertThat(client.getActivities())
+                .extracting(ClientActivity::getActivity)
                 .containsExactly("69.10 Нова діяльність");
         assertThat(client.getActivities()).allSatisfy(activity -> {
             assertThat(activity.getClient()).isSameAs(client);
@@ -207,7 +211,10 @@ class ClientMapperTest {
     @Test
     void toResponse_mapsClientActivitiesToPlainStringList() {
         Client client = existingClientWithActivities();
-        client.addActivity(ClientActivity.builder().organizationId(100L).activity("69.10 Друга діяльність").build());
+        client.addActivity(ClientActivity.builder()
+                .organizationId(100L)
+                .activity("69.10 Друга діяльність")
+                .build());
 
         ClientResponse response = clientMapper.toResponse(client);
 

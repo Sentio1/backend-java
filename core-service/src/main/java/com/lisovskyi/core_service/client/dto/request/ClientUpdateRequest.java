@@ -1,16 +1,15 @@
 package com.lisovskyi.core_service.client.dto.request;
 
+import static com.lisovskyi.core_service.client.ClientConstants.*;
+
 import com.lisovskyi.core_service.client.validation.Edrpou;
 import com.lisovskyi.core_service.client.validation.Rnokpp;
 import com.sentio.shared.util.StringNormalization;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
-import org.openapitools.jackson.nullable.JsonNullable;
-
 import java.time.LocalDate;
 import java.util.List;
-
-import static com.lisovskyi.core_service.client.ClientConstants.*;
+import org.openapitools.jackson.nullable.JsonNullable;
 
 public record ClientUpdateRequest(
 

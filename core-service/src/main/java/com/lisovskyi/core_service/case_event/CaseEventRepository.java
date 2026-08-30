@@ -1,15 +1,14 @@
 package com.lisovskyi.core_service.case_event;
 
 import com.lisovskyi.core_service.case_event.enums.EventCode;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface CaseEventRepository extends JpaRepository<CaseEvent, Long> {
@@ -49,11 +48,12 @@ public interface CaseEventRepository extends JpaRepository<CaseEvent, Long> {
     Optional<CaseEvent> findByIdAndCaseIdAndOrganizationId(
             @Param("id") Long id, @Param("caseId") Long caseId, @Param("organizationId") Long organizationId);
 
-    @Query(value = "SELECT * FROM core.case_events ce " +
-            "WHERE ce.id = :id " +
-            "AND ce.case_id = :caseId " +
-            "AND ce.organization_id = :organizationId " +
-            "AND ce.deleted_at IS NOT NULL",
-        nativeQuery = true)
-    Optional<CaseEvent> findDeletedByIdAndCaseIdAndOrganizationId(@Param("id") Long id, @Param("caseId") Long caseId, @Param("organizationId") Long organizationId);
+    @Query(
+            value = "SELECT * FROM core.case_events ce " + "WHERE ce.id = :id "
+                    + "AND ce.case_id = :caseId "
+                    + "AND ce.organization_id = :organizationId "
+                    + "AND ce.deleted_at IS NOT NULL",
+            nativeQuery = true)
+    Optional<CaseEvent> findDeletedByIdAndCaseIdAndOrganizationId(
+            @Param("id") Long id, @Param("caseId") Long caseId, @Param("organizationId") Long organizationId);
 }

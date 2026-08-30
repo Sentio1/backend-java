@@ -58,11 +58,9 @@ public class RateLimitingService {
     }
 
     private RateLimiterConfig resolveConfig(String configName) {
-        return rateLimiterRegistry
-                .getConfiguration(configName)
-                .orElseThrow(() -> {
-                    log.error("Missing rate limiter config: {}", configName);
-                    return new IllegalStateException("No rate limiter config: " + configName);
-                });
+        return rateLimiterRegistry.getConfiguration(configName).orElseThrow(() -> {
+            log.error("Missing rate limiter config: {}", configName);
+            return new IllegalStateException("No rate limiter config: " + configName);
+        });
     }
 }

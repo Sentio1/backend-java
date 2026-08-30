@@ -15,10 +15,10 @@ public class CaseFinderImpl extends AbstractEntityFinder<Case, Long> implements 
     private final CaseRepository caseRepository;
 
     @Override
-    public Case findByIdAndOrganizationId(Long id, Long organizationId) throws IllegalArgumentException, ResourceNotFoundException {
+    public Case findByIdAndOrganizationId(Long id, Long organizationId)
+            throws IllegalArgumentException, ResourceNotFoundException {
         return findBy(id, organizationId, caseRepository::findByIdAndOrganizationId);
     }
-
 
     @Override
     protected JpaRepository<Case, Long> getRepository() {
@@ -29,6 +29,4 @@ public class CaseFinderImpl extends AbstractEntityFinder<Case, Long> implements 
     protected String getEntityName() {
         return "Case";
     }
-
-
 }

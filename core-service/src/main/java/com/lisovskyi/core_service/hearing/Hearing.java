@@ -1,9 +1,13 @@
 package com.lisovskyi.core_service.hearing;
 
+import static com.lisovskyi.core_service.hearing.HearingConstants.COURTROOM_LENGTH;
+import static com.lisovskyi.core_service.hearing.HearingConstants.KIND_LENGTH;
+
 import com.lisovskyi.core_service.case_.Case;
 import com.lisovskyi.core_service.entity.CoreEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import jakarta.persistence.*;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,11 +15,6 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
-import java.time.Instant;
-
-import static com.lisovskyi.core_service.hearing.HearingConstants.COURTROOM_LENGTH;
-import static com.lisovskyi.core_service.hearing.HearingConstants.KIND_LENGTH;
 
 @Entity
 @Table(name = "hearings")

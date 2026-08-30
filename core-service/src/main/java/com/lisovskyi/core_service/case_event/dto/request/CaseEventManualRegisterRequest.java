@@ -1,14 +1,13 @@
 package com.lisovskyi.core_service.case_event.dto.request;
 
+import static com.lisovskyi.core_service.case_.CaseConstants.TITLE_LENGTH;
+
 import com.lisovskyi.core_service.case_event.enums.EventCode;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Builder;
-
 import java.time.Instant;
-
-import static com.lisovskyi.core_service.case_.CaseConstants.TITLE_LENGTH;
+import lombok.Builder;
 
 @Builder
 public record CaseEventManualRegisterRequest(
@@ -18,5 +17,4 @@ public record CaseEventManualRegisterRequest(
 
         String description,
 
-        @NotNull Instant occurredAt
-) {}
+        @NotNull Instant occurredAt) {}

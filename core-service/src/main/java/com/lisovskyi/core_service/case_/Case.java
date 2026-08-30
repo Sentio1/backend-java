@@ -1,20 +1,19 @@
 package com.lisovskyi.core_service.case_;
 
+import static com.lisovskyi.core_service.case_.CaseConstants.*;
+
 import com.lisovskyi.core_service.case_.enums.CaseStatus;
 import com.lisovskyi.core_service.case_.enums.ProcedureType;
 import com.lisovskyi.core_service.court.Court;
 import com.lisovskyi.core_service.entity.CoreEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import jakarta.persistence.*;
+import java.time.Instant;
+import java.time.LocalDate;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
-import java.time.Instant;
-import java.time.LocalDate;
-
-import static com.lisovskyi.core_service.case_.CaseConstants.*;
 
 // Таблиця core.cases. Клас названо CaseEntity, а не Case — "case" зарезервоване слово
 // Java і не може бути ідентифікатором; послідовність відповідно перейменована на

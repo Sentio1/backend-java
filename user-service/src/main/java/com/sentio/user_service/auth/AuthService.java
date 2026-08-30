@@ -84,7 +84,9 @@ public class AuthService {
             // "uq_users_email" here would never match, so this catch would always
             // fall through to `throw e` and leak the raw 500 this was meant to avoid.
             if (isUniqueConstraintViolation(e, "users_email_active_idx")) {
-                log.warn("Registration failed (constraint violation): user with email {} already exists", request.email());
+                log.warn(
+                        "Registration failed (constraint violation): user with email {} already exists",
+                        request.email());
                 throw new ResourceAlreadyExistsException("User with email: " + request.email() + " already exists");
             }
             log.error("DataIntegrityViolationException during registration for email: {}", request.email(), e);
@@ -95,11 +97,10 @@ public class AuthService {
     @Transactional
     public AuthResult login(LoginRequest request, String ip, String userAgent) {
         log.debug("Attempting to login user with email: {}", request.email());
-        User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> {
-                    log.warn("Login failed: user with email {} not found", request.email());
-                    return new UnauthorizedException(INVALID_ERROR_MSG);
-                });
+        User user = userRepository.findByEmail(request.email()).orElseThrow(() -> {
+            log.warn("Login failed: user with email {} not found", request.email());
+            return new UnauthorizedException(INVALID_ERROR_MSG);
+        });
 
         authGuards.assertNotDeleted(user, INVALID_ERROR_MSG);
 
@@ -165,11 +166,15 @@ public class AuthService {
                 });
 
         if (refreshToken.getRevokedAt() != null) {
-            log.warn("Refresh failed: token has been revoked (userId: {})", refreshToken.getUser().getId());
+            log.warn(
+                    "Refresh failed: token has been revoked (userId: {})",
+                    refreshToken.getUser().getId());
             throw new UnauthorizedException("Refresh token has been revoked");
         }
         if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
-            log.warn("Refresh failed: token has expired (userId: {})", refreshToken.getUser().getId());
+            log.warn(
+                    "Refresh failed: token has expired (userId: {})",
+                    refreshToken.getUser().getId());
             throw new UnauthorizedException("Refresh token has expired");
         }
 
@@ -193,11 +198,17 @@ public class AuthService {
         if (refreshToken != null) {
             String hashedToken = opaqueTokenService.hash(refreshToken);
 
-            refreshTokenRepository.findByTokenHash(hashedToken).ifPresentOrElse(rt -> {
-                rt.setRevokedAt(Instant.now());
-                refreshTokenRepository.save(rt);
-                log.info("Successfully revoked refresh token on logout for userId: {}", rt.getUser().getId());
-            }, () -> log.debug("Refresh token not found during logout"));
+            refreshTokenRepository
+                    .findByTokenHash(hashedToken)
+                    .ifPresentOrElse(
+                            rt -> {
+                                rt.setRevokedAt(Instant.now());
+                                refreshTokenRepository.save(rt);
+                                log.info(
+                                        "Successfully revoked refresh token on logout for userId: {}",
+                                        rt.getUser().getId());
+                            },
+                            () -> log.debug("Refresh token not found during logout"));
         }
 
         if (accessToken != null) {

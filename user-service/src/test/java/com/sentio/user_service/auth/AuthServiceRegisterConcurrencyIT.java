@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsException;
 import com.sentio.user_service.TestcontainersConfiguration;
-import com.sentio.user_service.auth.dto.response.AuthResult;
 import com.sentio.user_service.auth.dto.request.RegistrationRequest;
+import com.sentio.user_service.auth.dto.response.AuthResult;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;

@@ -1,19 +1,18 @@
 package com.lisovskyi.core_service.case_event;
 
+import static com.lisovskyi.core_service.case_event.CaseEventConstants.*;
+
 import com.lisovskyi.core_service.case_.Case;
 import com.lisovskyi.core_service.case_event.enums.EventCode;
 import com.lisovskyi.core_service.case_event.enums.Source;
 import com.lisovskyi.core_service.entity.CoreEntityCreatedOnly;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import jakarta.persistence.*;
+import java.time.Instant;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
-import java.time.Instant;
-
-import static com.lisovskyi.core_service.case_event.CaseEventConstants.*;
 
 @Entity
 @Table(name = "case_events")

@@ -7,7 +7,9 @@ import org.springframework.http.HttpStatus;
 public class ClientHasActiveCasesException extends AppException {
 
     public ClientHasActiveCasesException(ClientId clientId) {
-        super("Client " + clientId + " has active cases and cannot be deleted",
-                HttpStatus.CONFLICT, "CLIENT_HAS_ACTIVE_CASES");
+        super(
+                "Client " + clientId + " has active cases and cannot be deleted",
+                HttpStatus.CONFLICT,
+                "CLIENT_HAS_ACTIVE_CASES");
     }
 }

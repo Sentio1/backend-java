@@ -1,5 +1,7 @@
 package com.lisovskyi.core_service.case_event;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.lisovskyi.core_service.TestcontainersConfiguration;
 import com.lisovskyi.core_service.case_.Case;
 import com.lisovskyi.core_service.case_.CaseRepository;
@@ -19,17 +21,14 @@ import com.sentio.shared.entity.id.case_.CaseId;
 import com.sentio.shared.entity.id.organization.OrganizationId;
 import com.sentio.shared.entity.id.user.UserId;
 import jakarta.persistence.EntityManager;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDate;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 // Наскрізний тест deadlineEngine (SEN-19): від CaseEventService.registerCaseEvent через
 // DeadlineRuleRepository.findByActiveRule і WorkingDayCalculator/CALENDAR-арифметику до
@@ -127,7 +126,8 @@ class CaseEventDeadlineEngineIT {
         // startsOn = occurredAt (03.06, пн) + 1 день (NEXT_DAY) = 04.06
         // dueOn = startsOn + 5 календарних днів (CALENDAR) = 09.06
         assertThat(response.deadlineId()).isNotNull();
-        Deadline firstDeadline = deadlineRepository.findById(response.deadlineId()).orElseThrow();
+        Deadline firstDeadline =
+                deadlineRepository.findById(response.deadlineId()).orElseThrow();
         assertThat(firstDeadline.getStartsOn()).isEqualTo(LocalDate.of(2024, 6, 4));
         assertThat(firstDeadline.getDueOn()).isEqualTo(LocalDate.of(2024, 6, 9));
         assertThat(firstDeadline.getTitle()).isEqualTo(rule.getTitle());
@@ -141,7 +141,8 @@ class CaseEventDeadlineEngineIT {
         caseEventRepository.save(caseEvent);
         flushAndDetach();
 
-        CaseEvent reloadedCaseEvent = caseEventRepository.findById(response.id()).orElseThrow();
+        CaseEvent reloadedCaseEvent =
+                caseEventRepository.findById(response.id()).orElseThrow();
         Long secondDeadlineId = caseEventService.deadlineEngine(reloadedCaseEvent);
         flushAndDetach();
 

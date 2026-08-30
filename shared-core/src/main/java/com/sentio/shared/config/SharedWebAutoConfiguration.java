@@ -2,9 +2,8 @@ package com.sentio.shared.config;
 
 import com.sentio.shared.security.CurrentOrganizationIdArgumentResolver;
 import com.sentio.shared.security.CurrentUserIdArgumentResolver;
-import java.util.List;
-
 import com.sentio.shared.web.StringToEntityIdConverterFactory;
+import java.util.List;
 import org.jspecify.annotations.NonNull;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

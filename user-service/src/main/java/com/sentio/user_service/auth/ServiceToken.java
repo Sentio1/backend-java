@@ -1,5 +1,7 @@
 package com.sentio.user_service.auth;
 
+import static com.sentio.user_service.auth.AuthService.INVALID_ERROR_MSG;
+
 import com.lisovskyi.security.autoconfigure.security.jwt.JwtProperties;
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
 import com.sentio.user_service.auth.dto.request.ServiceTokenRequest;
@@ -13,8 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import static com.sentio.user_service.auth.AuthService.INVALID_ERROR_MSG;
-
 @Service
 @RequiredArgsConstructor
 public class ServiceToken {
@@ -26,7 +26,8 @@ public class ServiceToken {
 
     @Transactional
     public ServiceTokenResult serviceToken(ServiceTokenRequest request) {
-        User user = userRepository.findByEmail(request.clientId())
+        User user = userRepository
+                .findByEmail(request.clientId())
                 .orElseThrow(() -> new UnauthorizedException(INVALID_ERROR_MSG));
 
         if (user.getPassword() == null || !passwordEncoder.matches(request.secret(), user.getPassword())) {
@@ -38,9 +39,6 @@ public class ServiceToken {
         }
 
         return new ServiceTokenResult(
-                tokenIssuer.issueServiceAccessToken(user),
-                "Bearer",
-                jwtProperties.getAccessTokenExpiration()
-        );
+                tokenIssuer.issueServiceAccessToken(user), "Bearer", jwtProperties.getAccessTokenExpiration());
     }
 }

@@ -4,13 +4,12 @@ import com.lisovskyi.core_service.case_event.CaseEvent;
 import com.lisovskyi.core_service.entity.CoreEntityCreatedOnly;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import jakarta.persistence.*;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
-
-import java.time.Instant;
 
 @Entity
 @Table(name = "case_event_occurred_at_histories")

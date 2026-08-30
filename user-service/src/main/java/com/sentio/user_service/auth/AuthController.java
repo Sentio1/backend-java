@@ -77,9 +77,9 @@ public class AuthController {
 
     @PostMapping("/service-token")
     public ResponseEntity<ServiceTokenResult> serviceToken(
-            @RequestBody @Valid ServiceTokenRequest serviceTokenRequest,
-            final HttpServletRequest request) {
-        rateLimitingService.checkServiceTokenLimits(serviceTokenRequest.clientId(), HttpRequestUtils.getClientIP(request));
+            @RequestBody @Valid ServiceTokenRequest serviceTokenRequest, final HttpServletRequest request) {
+        rateLimitingService.checkServiceTokenLimits(
+                serviceTokenRequest.clientId(), HttpRequestUtils.getClientIP(request));
 
         ServiceTokenResult accessToken = serviceToken.serviceToken(serviceTokenRequest);
         return ResponseEntity.ok().body(accessToken);

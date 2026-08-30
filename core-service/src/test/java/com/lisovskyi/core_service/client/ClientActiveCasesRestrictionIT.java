@@ -1,5 +1,8 @@
 package com.lisovskyi.core_service.client;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.lisovskyi.core_service.TestcontainersConfiguration;
 import com.lisovskyi.core_service.case_.Case;
 import com.lisovskyi.core_service.case_.CaseRepository;
@@ -19,9 +22,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.Transactional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 // SEN-20 AC: "клієнт з активними справами не видаляється - тільки архівується". Перевіряє
 // саме склейку ClientService.deleteClient -> CasePartyRepository.existsActiveCaseForClient,
@@ -125,7 +125,8 @@ class ClientActiveCasesRestrictionIT {
         linkAsParty(organizationId, archivedCase, client);
         flushAndDetach();
 
-        clientService.deleteClient(ClientId.of(client.getId()), OrganizationId.of(organizationId), UserId.of(1L), "test");
+        clientService.deleteClient(
+                ClientId.of(client.getId()), OrganizationId.of(organizationId), UserId.of(1L), "test");
         flushAndDetach();
 
         assertThat(clientRepository.findByIdAndOrganizationId(client.getId(), organizationId))
@@ -138,7 +139,8 @@ class ClientActiveCasesRestrictionIT {
         Client client = persistClient(organizationId);
         flushAndDetach();
 
-        clientService.deleteClient(ClientId.of(client.getId()), OrganizationId.of(organizationId), UserId.of(1L), "test");
+        clientService.deleteClient(
+                ClientId.of(client.getId()), OrganizationId.of(organizationId), UserId.of(1L), "test");
         flushAndDetach();
 
         assertThat(clientRepository.findByIdAndOrganizationId(client.getId(), organizationId))

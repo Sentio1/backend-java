@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
 import com.sentio.user_service.TestcontainersConfiguration;
-import com.sentio.user_service.auth.dto.response.AuthTokens;
 import com.sentio.user_service.auth.dto.request.RegistrationRequest;
+import com.sentio.user_service.auth.dto.response.AuthTokens;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;

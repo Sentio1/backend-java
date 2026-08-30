@@ -1,5 +1,8 @@
 package com.lisovskyi.core_service.registry_event.config;
 
+import static com.lisovskyi.core_service.registry_event.RegistryEventConstants.MAX_RETRY_ATTEMPTS;
+import static com.lisovskyi.core_service.registry_event.RegistryEventConstants.RETRY_BACKOFF_MS;
+
 import com.lisovskyi.core_service.registry_event.dto.RegistryDocumentFoundEvent;
 import org.apache.kafka.common.KafkaException;
 import org.springframework.boot.kafka.autoconfigure.ConcurrentKafkaListenerContainerFactoryConfigurer;
@@ -12,9 +15,6 @@ import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.FixedBackOff;
-
-import static com.lisovskyi.core_service.registry_event.RegistryEventConstants.MAX_RETRY_ATTEMPTS;
-import static com.lisovskyi.core_service.registry_event.RegistryEventConstants.RETRY_BACKOFF_MS;
 
 /**
  * "Plain" налаштування (bootstrap-servers, group-id, (де)серіалізатори, offset-reset,

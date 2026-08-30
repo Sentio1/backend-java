@@ -19,9 +19,8 @@ public class CaseEventOccurredAtHistoryController {
 
     @GetMapping
     public ResponseEntity<PageResponse<CaseEventOccurredAtHistoryResponse>> getAllCaseEventOccurredAtHistories(
-            @PathVariable Long caseId,
-            @PathVariable Long eventId,
-            final Pageable pageable) {
-        return ResponseEntity.ok(caseEventOccurredAtHistoryService.getAllCaseEventOccurredAtHistories(caseId, eventId, pageable));
+            @PathVariable Long caseId, @PathVariable Long eventId, final Pageable pageable) {
+        return ResponseEntity.ok(
+                caseEventOccurredAtHistoryService.getAllCaseEventOccurredAtHistories(caseId, eventId, pageable));
     }
 }

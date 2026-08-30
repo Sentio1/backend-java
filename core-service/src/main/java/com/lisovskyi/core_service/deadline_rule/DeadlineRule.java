@@ -1,5 +1,7 @@
 package com.lisovskyi.core_service.deadline_rule;
 
+import static com.lisovskyi.core_service.deadline_rule.DeadlineRuleConstants.*;
+
 import com.lisovskyi.core_service.case_.enums.ProcedureType;
 import com.lisovskyi.core_service.case_event.enums.EventCode;
 import com.lisovskyi.core_service.deadline_rule.enums.CountFrom;
@@ -8,14 +10,11 @@ import com.lisovskyi.core_service.deadline_rule.enums.DurationUnit;
 import com.lisovskyi.jpa.autoconfigure.entity.BaseEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
-import java.time.LocalDate;
-
-import static com.lisovskyi.core_service.deadline_rule.DeadlineRuleConstants.*;
 
 // Довідник правил, версіонований — редакції кодексів змінюються, і старі справи не
 // мають "переїжджати" на нові строки. БЕЗ organization_id: правила спільні для всіх

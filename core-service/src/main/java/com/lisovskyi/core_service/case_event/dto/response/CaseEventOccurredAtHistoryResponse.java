@@ -9,5 +9,4 @@ public record CaseEventOccurredAtHistoryResponse(
         Instant newOccurredAt,
         long changedBy,
         Instant changedAt,
-        String reason
-) {}
+        String reason) {}

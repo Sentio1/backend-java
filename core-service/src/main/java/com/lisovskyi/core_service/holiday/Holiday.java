@@ -1,14 +1,13 @@
 package com.lisovskyi.core_service.holiday;
 
+import static com.lisovskyi.core_service.holiday.HolidayConstants.NAME_LENGTH;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.*;
-
 import java.time.LocalDate;
-
-import static com.lisovskyi.core_service.holiday.HolidayConstants.NAME_LENGTH;
+import lombok.*;
 
 // Спільний виробничий календар для всіх орендарів — БЕЗ organization_id.
 // На відміну від решти сутностей схеми core, первинний ключ тут природний (дата),

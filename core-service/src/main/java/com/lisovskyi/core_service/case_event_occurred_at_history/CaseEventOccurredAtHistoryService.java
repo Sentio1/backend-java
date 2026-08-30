@@ -20,13 +20,13 @@ public class CaseEventOccurredAtHistoryService {
     private final CaseFinder caseFinder;
 
     @Transactional(readOnly = true)
-    public PageResponse<CaseEventOccurredAtHistoryResponse> getAllCaseEventOccurredAtHistories(Long caseId, Long organizationId, Pageable pageable) {
+    public PageResponse<CaseEventOccurredAtHistoryResponse> getAllCaseEventOccurredAtHistories(
+            Long caseId, Long organizationId, Pageable pageable) {
         log.debug("Fetching case event occurredAt histories for caseId: {}, orgId: {}", caseId, organizationId);
         caseFinder.findByIdAndOrganizationId(caseId, organizationId);
 
-        return PageResponse.of(
-                caseEventOccurredAtHistoryRepository.findAllByCaseIdAndOrganizationId(caseId, organizationId, pageable)
-                        .map(caseEventMapper::toResponse)
-        );
+        return PageResponse.of(caseEventOccurredAtHistoryRepository
+                .findAllByCaseIdAndOrganizationId(caseId, organizationId, pageable)
+                .map(caseEventMapper::toResponse));
     }
 }

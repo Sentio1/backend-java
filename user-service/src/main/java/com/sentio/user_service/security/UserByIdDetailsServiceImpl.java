@@ -28,12 +28,10 @@ public class UserByIdDetailsServiceImpl implements UserByIdDetailsService {
     @Override
     public SecurityPrincipal loadUserById(Long userId) {
         log.trace("Loading security details for userId: {}", userId);
-        User user = userRepository
-                .findById(userId)
-                .orElseThrow(() -> {
-                    log.warn("Security load failed: No user found with id {}", userId);
-                    return new UsernameNotFoundException("No user with id " + userId);
-                });
+        User user = userRepository.findById(userId).orElseThrow(() -> {
+            log.warn("Security load failed: No user found with id {}", userId);
+            return new UsernameNotFoundException("No user with id " + userId);
+        });
 
         if (user.getDeletedAt() != null) {
             log.warn("Security load failed: User {} is marked as deleted", userId);

@@ -10,15 +10,13 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CaseEventOccurredAtHistoryRepository extends JpaRepository<CaseEventOccurredAtHistory, Long> {
 
-    // derived-query нейминг тут не працює: шлях case_.id (CaseEvent) проходить
-    // через поле з underscore (case_ — "case" зарезервоване слово Java), яке
-    // Spring Data не парсить з "CaseId" - той самий патерн, що в CaseEventRepository.
     @Query("""
         SELECT h FROM CaseEventOccurredAtHistory h
-        WHERE h.caseEvent.case_.id = :caseId
+        WHERE h.caseEvent.id = :caseEventId
+          AND h.caseEvent.case_.id = :caseId
           AND h.organizationId = :organizationId
         ORDER BY h.changedAt DESC
         """)
-    Page<CaseEventOccurredAtHistory> findAllByCaseIdAndOrganizationId(
-            @Param("caseId") Long caseId, @Param("organizationId") Long organizationId, Pageable pageable);
+    Page<CaseEventOccurredAtHistory> findAllByCaseEventIdAndCaseIdAndOrganizationId(
+            @Param("caseEventId") Long caseEventId, @Param("caseId") Long caseId, @Param("organizationId") Long organizationId, Pageable pageable);
 }

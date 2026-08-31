@@ -2,6 +2,10 @@ package com.lisovskyi.core_service.case_event_occurred_at_history;
 
 import com.lisovskyi.core_service.case_event.dto.response.CaseEventOccurredAtHistoryResponse;
 import com.sentio.shared.dto.PageResponse;
+import com.sentio.shared.entity.id.case_.CaseId;
+import com.sentio.shared.entity.id.case_event.CaseEventId;
+import com.sentio.shared.entity.id.organization.OrganizationId;
+import com.sentio.shared.security.CurrentOrganizationId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +23,11 @@ public class CaseEventOccurredAtHistoryController {
 
     @GetMapping
     public ResponseEntity<PageResponse<CaseEventOccurredAtHistoryResponse>> getAllCaseEventOccurredAtHistories(
-            @PathVariable Long caseId, @PathVariable Long eventId, final Pageable pageable) {
+            @PathVariable CaseId caseId,
+            @PathVariable CaseEventId eventId,
+            @CurrentOrganizationId OrganizationId organizationId,
+            final Pageable pageable) {
         return ResponseEntity.ok(
-                caseEventOccurredAtHistoryService.getAllCaseEventOccurredAtHistories(caseId, eventId, pageable));
+                caseEventOccurredAtHistoryService.getAllCaseEventOccurredAtHistories(caseId, eventId, organizationId, pageable));
     }
 }

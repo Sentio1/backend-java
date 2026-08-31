@@ -37,7 +37,27 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
             nativeQuery = true)
     Optional<Client> findDeletedByIdAndOrganizationId(Long id, Long organizationId);
 
-    boolean existsByOrganizationIdAndRnokppAndIdNot(Long organizationId, String rnokpp, Long id);
+    @Query("""
+    SELECT COUNT(c) > 0 FROM Client c
+    WHERE c.organizationId = :organizationId
+      AND c.rnokpp = :rnokpp
+      AND (:excludeId IS NULL OR c.id != :excludeId)
+      AND c.deletedAt IS NULL
+""")
+    boolean existsActiveByOrganizationIdAndRnokpp(
+            @Param("organizationId") Long organizationId,
+            @Param("rnokpp") String rnokpp,
+            @Param("excludeId") Long excludeId);
 
-    boolean existsByOrganizationIdAndEdrpouAndIdNot(Long organizationId, String edrpou, Long id);
+    @Query("""
+    SELECT COUNT(c) > 0 FROM Client c
+    WHERE c.organizationId = :organizationId
+      AND c.edrpou = :edrpou
+      AND (:excludeId IS NULL OR c.id != :excludeId)
+      AND c.deletedAt IS NULL
+""")
+    boolean existsActiveByOrganizationIdAndEdrpou(
+            @Param("organizationId") Long organizationId,
+            @Param("edrpou") String edrpou,
+            @Param("excludeId") Long excludeId);
 }

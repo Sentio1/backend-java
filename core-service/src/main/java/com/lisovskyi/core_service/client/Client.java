@@ -28,8 +28,9 @@ public class Client extends CoreEntity {
     @Column(name = "organization_id", nullable = false)
     private long organizationId;
 
+    // ця колонка визначається при створенні та не може бути змінена
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
+    @Column(name = "type", nullable = false, updatable = false)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Builder.Default
     private ClientType type = ClientType.INDIVIDUAL;
@@ -89,6 +90,7 @@ public class Client extends CoreEntity {
     public void addActivity(ClientActivity activity) {
         activities.add(activity);
         activity.setClient(this);
+        activity.setOrganizationId(this.organizationId);
     }
 
     public void removeActivity(ClientActivity activity) {

@@ -16,7 +16,6 @@ import com.sentio.shared.dto.PageResponse;
 import com.sentio.shared.entity.id.client.ClientId;
 import com.sentio.shared.entity.id.organization.OrganizationId;
 import com.sentio.shared.entity.id.user.UserId;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -36,7 +35,6 @@ public class ClientService implements SoftDeletable {
 
     private final ClientRepository clientRepository;
     private final CasePartyRepository casePartyRepository;
-
     private final ClientMapper clientMapper;
 
     private static final Set<CaseStatus> TERMINAL_CASE_STATUSES =
@@ -69,7 +67,8 @@ public class ClientService implements SoftDeletable {
 
     @Transactional(readOnly = true)
     public PageResponse<ClientResponse> searchClient(OrganizationId organizationId, String query, Pageable pageable) {
-        log.debug("Searching clients in orgId: {} with query: '{}'", organizationId, query);
+        // Сирий query не логуємо, оскільки пошук може виконуватись за чутливими даними (РНОКПП, паспорт)
+        log.debug("Searching clients in orgId: {}", organizationId);
         return PageResponse.of(clientRepository
                 .searchClient(organizationId.id(), query, pageable)
                 .map(clientMapper::toResponse));
@@ -79,10 +78,35 @@ public class ClientService implements SoftDeletable {
     public List<ClientResponse> createManyClients(
             OrganizationId organizationId, UserId createdById, List<ClientCreateRequest> requests) {
         log.debug("Creating {} clients for orgId: {}", requests.size(), organizationId);
-        List<ClientResponse> result = new ArrayList<>();
-        requests.forEach(request -> result.add(createClientNotTransactional(organizationId, createdById, request)));
-        log.info("Successfully created {} clients for orgId: {}", result.size(), organizationId);
-        return result;
+
+        List<Client> entities = requests.stream()
+                .map(request -> {
+                    assertUniqueTaxIds(
+                            organizationId.id(),
+                            request.rnokpp().orElse(null),
+                            request.edrpou().orElse(null),
+                            null);
+                    return clientMapper.toEntity(request, organizationId.id(), createdById.id());
+                })
+                .toList();
+
+        try {
+            List<ClientResponse> result = clientRepository.saveAllAndFlush(entities)
+                    .stream()
+                    .map(clientMapper::toResponse)
+                    .toList();
+
+            log.info("Successfully created {} clients for orgId: {}", result.size(), organizationId);
+            return result;
+        } catch (DataIntegrityViolationException e) {
+            if (isUniqueConstraintViolation(e, "uq_clients_org_rnokpp", "uq_clients_org_edrpou")) {
+                log.warn("Failed to create clients batch: Duplicate tax identifier in orgId: {}", organizationId);
+                throw new ResourceAlreadyExistsException(
+                        "Client with the same RNOKPP or EDRPOU already exists in this organization");
+            }
+            log.error("Data integrity violation while batch creating clients in orgId: {}", organizationId, e);
+            throw e;
+        }
     }
 
     @Transactional
@@ -94,9 +118,14 @@ public class ClientService implements SoftDeletable {
     @Transactional
     public ClientResponse updateClient(ClientId clientId, OrganizationId organizationId, ClientUpdateRequest request) {
         log.debug("Attempting to update client id: {} for orgId: {}", clientId, organizationId);
+
         Client client = clientRepository
                 .findByIdAndOrganizationId(clientId.id(), organizationId.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Client", "id", clientId));
+
+        if (request.activities().isPresent() && client.getType() != ClientType.SOLE_TRADER) {
+            throw new IllegalArgumentException("Activities can only be modified for SOLE_TRADER clients");
+        }
 
         String rnokpp = request.rnokpp().orElse(null);
         String edrpou = request.edrpou().orElse(null);
@@ -106,9 +135,20 @@ public class ClientService implements SoftDeletable {
         }
 
         clientMapper.updateEntityFromRequest(request, client);
-        Client savedClient = clientRepository.save(client);
-        log.info("Successfully updated client id: {}", clientId);
-        return clientMapper.toResponse(savedClient);
+
+        try {
+            Client savedClient = clientRepository.saveAndFlush(client);
+            log.info("Successfully updated client id: {} for orgId: {}", clientId, organizationId);
+            return clientMapper.toResponse(savedClient);
+        } catch (DataIntegrityViolationException e) {
+            if (isUniqueConstraintViolation(e, "uq_clients_org_rnokpp", "uq_clients_org_edrpou")) {
+                log.warn("Failed to update client id: {}: Duplicate tax identifier in orgId: {}", clientId, organizationId);
+                throw new ResourceAlreadyExistsException(
+                        "Client with the same RNOKPP or EDRPOU already exists in this organization");
+            }
+            log.error("Data integrity violation while updating client id: {} in orgId: {}", clientId, organizationId, e);
+            throw e;
+        }
     }
 
     @Transactional
@@ -119,14 +159,13 @@ public class ClientService implements SoftDeletable {
                 .findByIdAndOrganizationId(clientId.id(), organizationId.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Client", "id", clientId));
 
-        // замість архівування, просто кидаю помилку, щоб не "видалити" клієнта
         if (casePartyRepository.existsActiveCaseForClient(clientId.id(), organizationId.id(), TERMINAL_CASE_STATUSES)) {
             throw new ClientHasActiveCasesException(clientId);
         }
 
         deleteEntity(client, deletedById.id(), deleteReason);
         clientRepository.save(client);
-        log.info("Successfully deleted client clientId: {}", clientId);
+        log.info("Successfully deleted client clientId: {} in orgId: {}", clientId, organizationId);
     }
 
     @Transactional
@@ -136,9 +175,22 @@ public class ClientService implements SoftDeletable {
                 .findDeletedByIdAndOrganizationId(clientId.id(), organizationId.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Client", "id", clientId));
 
+        assertUniqueTaxIds(organizationId.id(), client.getRnokpp(), client.getEdrpou(), clientId.id());
+
         restoreEntity(client, restoredById.id());
-        clientRepository.save(client);
-        log.info("Successfully restored client clientId: {}", clientId);
+
+        try {
+            clientRepository.saveAndFlush(client);
+            log.info("Successfully restored client clientId: {} in orgId: {}", clientId, organizationId);
+        } catch (DataIntegrityViolationException e) {
+            if (isUniqueConstraintViolation(e, "uq_clients_org_rnokpp", "uq_clients_org_edrpou")) {
+                log.warn("Failed to restore client id: {}: Duplicate tax identifier in orgId: {}", clientId, organizationId);
+                throw new ResourceAlreadyExistsException(
+                        "Client with the same RNOKPP or EDRPOU already exists in this organization");
+            }
+            log.error("Data integrity violation while restoring client id: {} in orgId: {}", clientId, organizationId, e);
+            throw e;
+        }
     }
 
     private ClientResponse createClientNotTransactional(
@@ -157,7 +209,7 @@ public class ClientService implements SoftDeletable {
             return clientMapper.toResponse(savedClient);
         } catch (DataIntegrityViolationException e) {
             if (isUniqueConstraintViolation(e, "uq_clients_org_rnokpp", "uq_clients_org_edrpou")) {
-                log.warn("Failed to create client: Duplicate RNOKPP/EDRPOU in orgId: {}", organizationId);
+                log.warn("Failed to create client: Duplicate tax identifier in orgId: {}", organizationId);
                 throw new ResourceAlreadyExistsException(
                         "Client with the same RNOKPP or EDRPOU already exists in this organization");
             }
@@ -170,14 +222,15 @@ public class ClientService implements SoftDeletable {
     // узгоджено з частковими unique-індексами в V11__clients_unique_tax_ids.sql.
     private void assertUniqueTaxIds(Long organizationId, String rnokpp, String edrpou, Long excludeId) {
         if (StringUtils.hasText(rnokpp)
-                && clientRepository.existsByOrganizationIdAndRnokppAndIdNot(organizationId, rnokpp, excludeId)) {
-            log.warn("Validation failed: Client with RNOKPP {} already exists in orgId: {}", rnokpp, organizationId);
-            throw new ResourceAlreadyExistsException("Client", "rnokpp", rnokpp);
+                && clientRepository.existsActiveByOrganizationIdAndRnokpp(organizationId, rnokpp, excludeId)) {
+            log.warn("Validation failed: Client with duplicate RNOKPP already exists in orgId: {}", organizationId);
+            throw new ResourceAlreadyExistsException("Client", "rnokpp", "DUPLICATE_VALUE");
         }
+
         if (StringUtils.hasText(edrpou)
-                && clientRepository.existsByOrganizationIdAndEdrpouAndIdNot(organizationId, edrpou, excludeId)) {
-            log.warn("Validation failed: Client with EDRPOU {} already exists in orgId: {}", edrpou, organizationId);
-            throw new ResourceAlreadyExistsException("Client", "edrpou", edrpou);
+                && clientRepository.existsActiveByOrganizationIdAndEdrpou(organizationId, edrpou, excludeId)) {
+            log.warn("Validation failed: Client with duplicate EDRPOU already exists in orgId: {}", organizationId);
+            throw new ResourceAlreadyExistsException("Client", "edrpou", "DUPLICATE_VALUE");
         }
     }
 }

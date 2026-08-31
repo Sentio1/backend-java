@@ -17,6 +17,7 @@ import com.sentio.shared.entity.id.client.ClientId;
 import com.sentio.shared.entity.id.organization.OrganizationId;
 import com.sentio.shared.entity.id.user.UserId;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -69,6 +70,10 @@ class ClientActiveCasesRestrictionIT {
                 .type(ClientType.INDIVIDUAL)
                 .firstName("Іван")
                 .lastName("Тестовий")
+                .birthDate(LocalDate.of(1990, 1, 1))
+                .rnokpp("3123456789")
+                .address("м. Київ, вул. Хрещатик, 1")
+                .email("test@example.com")
                 .createdBy(1L)
                 .build();
         return clientRepository.save(client);

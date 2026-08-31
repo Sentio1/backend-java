@@ -43,21 +43,24 @@ class ClientActivityPersistenceIT {
     }
 
     private ClientCreateRequest soleTraderRequest(String rnokpp, JsonNullable<List<String>> activities) {
+        // clients_type_data_integrity_check (V23) + isValidBirthDate/isValidAddress/isValidContacts
+        // вимагають для SOLE_TRADER birthDate/address/контакт незалежно від того, що саме
+        // перевіряє конкретний тест - інакше insert падає ще до того, як дійде до activities.
         return new ClientCreateRequest(
                 ClientType.SOLE_TRADER,
                 JsonNullable.of("Тестовий"),
                 JsonNullable.of("Іван"),
                 JsonNullable.undefined(),
-                JsonNullable.<LocalDate>undefined(),
+                JsonNullable.of(LocalDate.of(1990, 1, 1)),
                 JsonNullable.of(rnokpp),
                 JsonNullable.undefined(),
                 JsonNullable.undefined(),
                 JsonNullable.undefined(),
                 JsonNullable.undefined(),
                 JsonNullable.undefined(),
+                JsonNullable.of("test@example.com"),
                 JsonNullable.undefined(),
-                JsonNullable.undefined(),
-                JsonNullable.undefined(),
+                JsonNullable.of("м. Київ, вул. Хрещатик, 1"),
                 JsonNullable.undefined(),
                 activities);
     }

@@ -3,9 +3,14 @@ package com.lisovskyi.core_service.client.mapper;
 import com.lisovskyi.core_service.client.Client;
 import com.lisovskyi.core_service.client.dto.request.ClientCreateRequest;
 import com.lisovskyi.core_service.client.dto.request.ClientUpdateRequest;
+import com.lisovskyi.core_service.client.dto.response.ClientMaskedResponse;
 import com.lisovskyi.core_service.client.dto.response.ClientResponse;
 import com.lisovskyi.core_service.client_activity.ClientActivity;
+
+import java.time.LocalDate;
 import java.util.function.Consumer;
+
+import com.sentio.shared.util.DataMaskingUtils;
 import org.mapstruct.*;
 import org.openapitools.jackson.nullable.JsonNullable;
 
@@ -61,6 +66,27 @@ public interface ClientMapper {
     void updateEntityFromRequest(ClientUpdateRequest request, @MappingTarget Client client);
 
     ClientResponse toResponse(Client client);
+
+    @Named("toMaskedResponse")
+    @Mapping(target = "rnokpp", source = "rnokpp", qualifiedByName = "maskRnokpp")
+    @Mapping(target = "passport", source = "passport", qualifiedByName = "maskPassport")
+    @Mapping(target = "birthDate", source = "birthDate", qualifiedByName = "maskBirthDate")
+    ClientMaskedResponse toMaskedResponse(Client client);
+
+    @Named("maskRnokpp")
+    default String maskRnokpp(String rnokpp) {
+        return DataMaskingUtils.maskRnokpp(rnokpp);
+    }
+
+    @Named("maskPassport")
+    default String maskPassport(String passport) {
+        return DataMaskingUtils.maskPassport(passport);
+    }
+
+    @Named("maskBirthDate")
+    default String maskBirthDate(LocalDate birthDate) {
+        return DataMaskingUtils.maskBirthDate(birthDate);
+    }
 
     @AfterMapping
     default void applyPresentFields(ClientUpdateRequest request, @MappingTarget Client client) {

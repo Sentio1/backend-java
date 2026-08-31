@@ -45,7 +45,9 @@ public record ClientCreateRequest(
 
     // 1. ПІБ або Назва компанії
     @JsonIgnore
-    @AssertTrue(message = "For COMPANY, 'companyName' is required. For individuals/sole traders, 'lastName' and 'firstName' are required.")
+    @AssertTrue(
+            message =
+                    "For COMPANY, 'companyName' is required. For individuals/sole traders, 'lastName' and 'firstName' are required.")
     public boolean isValidNaming() {
         if (type == null) return true;
         if (type == ClientType.COMPANY) {
@@ -57,7 +59,9 @@ public record ClientCreateRequest(
 
     // 2. Ідентифікаційні коди (РНОКПП / ЄДРПОУ / Паспорт)
     @JsonIgnore
-    @AssertTrue(message = "For INDIVIDUAL, 'rnokpp' (or 'passport') is required. For SOLE_TRADER, 'rnokpp' or 'edrpou' (or 'passport') is required. For COMPANY, 'edrpou' is required.")
+    @AssertTrue(
+            message =
+                    "For INDIVIDUAL, 'rnokpp' (or 'passport') is required. For SOLE_TRADER, 'rnokpp' or 'edrpou' (or 'passport') is required. For COMPANY, 'edrpou' is required.")
     public boolean isValidTaxIdentifier() {
         if (type == null) return true;
         boolean hasRnokpp = StringUtils.hasText(rnokpp.orElse(null));

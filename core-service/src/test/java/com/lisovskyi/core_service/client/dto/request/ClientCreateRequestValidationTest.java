@@ -97,7 +97,8 @@ class ClientCreateRequestValidationTest {
 
     @Test
     void individual_withPassportInsteadOfRnokpp_hasNoViolations() {
-        assertThat(violationsOf(validIndividual().clearRnokpp().passport("АА123456"))).isEmpty();
+        assertThat(violationsOf(validIndividual().clearRnokpp().passport("АА123456")))
+                .isEmpty();
     }
 
     @Test
@@ -127,14 +128,12 @@ class ClientCreateRequestValidationTest {
     @Test
     void individual_withoutName_failsIsValidNaming() {
         assertSingleViolationContains(
-                validIndividual().clearLastName().clearFirstName(),
-                "'lastName' and 'firstName' are required");
+                validIndividual().clearLastName().clearFirstName(), "'lastName' and 'firstName' are required");
     }
 
     @Test
     void individual_withoutRnokppAndPassport_failsIsValidTaxIdentifier() {
-        assertSingleViolationContains(
-                validIndividual().clearRnokpp(), "'rnokpp' (or 'passport') is required");
+        assertSingleViolationContains(validIndividual().clearRnokpp(), "'rnokpp' (or 'passport') is required");
     }
 
     @Test

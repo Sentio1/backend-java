@@ -25,12 +25,16 @@ public class CaseEventOccurredAtHistoryService {
     @Transactional(readOnly = true)
     public PageResponse<CaseEventOccurredAtHistoryResponse> getAllCaseEventOccurredAtHistories(
             CaseId caseId, CaseEventId caseEventId, OrganizationId organizationId, Pageable pageable) {
-        log.debug("Fetching case event occurredAt histories for caseId: {}, eventId: {}, orgId: {}",
-                caseId, caseEventId, organizationId);
+        log.debug(
+                "Fetching case event occurredAt histories for caseId: {}, eventId: {}, orgId: {}",
+                caseId,
+                caseEventId,
+                organizationId);
         caseFinder.findByIdAndOrganizationId(caseId.id(), organizationId.id());
 
         return PageResponse.of(caseEventOccurredAtHistoryRepository
-                .findAllByCaseEventIdAndCaseIdAndOrganizationId(caseEventId.id(), caseId.id(), organizationId.id(), pageable)
+                .findAllByCaseEventIdAndCaseIdAndOrganizationId(
+                        caseEventId.id(), caseId.id(), organizationId.id(), pageable)
                 .map(caseEventMapper::toResponse));
     }
 }

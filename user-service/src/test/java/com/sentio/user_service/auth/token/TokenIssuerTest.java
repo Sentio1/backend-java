@@ -178,8 +178,9 @@ class TokenIssuerTest {
         verify(refreshTokenRepository).saveAll(captor.capture());
         assertThat(captor.getValue()).containsExactly(activeSessions.get(0));
         assertThat(activeSessions.get(0).getRevokedAt()).isNotNull();
-        activeSessions.subList(1, activeSessions.size()).forEach(session -> assertThat(session.getRevokedAt())
-                .isNull());
+        activeSessions
+                .subList(1, activeSessions.size())
+                .forEach(session -> assertThat(session.getRevokedAt()).isNull());
     }
 
     @Test

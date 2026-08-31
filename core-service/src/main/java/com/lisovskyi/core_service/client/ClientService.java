@@ -91,8 +91,7 @@ public class ClientService implements SoftDeletable {
                 .toList();
 
         try {
-            List<ClientResponse> result = clientRepository.saveAllAndFlush(entities)
-                    .stream()
+            List<ClientResponse> result = clientRepository.saveAllAndFlush(entities).stream()
                     .map(clientMapper::toResponse)
                     .toList();
 
@@ -142,11 +141,15 @@ public class ClientService implements SoftDeletable {
             return clientMapper.toResponse(savedClient);
         } catch (DataIntegrityViolationException e) {
             if (isUniqueConstraintViolation(e, "uq_clients_org_rnokpp", "uq_clients_org_edrpou")) {
-                log.warn("Failed to update client id: {}: Duplicate tax identifier in orgId: {}", clientId, organizationId);
+                log.warn(
+                        "Failed to update client id: {}: Duplicate tax identifier in orgId: {}",
+                        clientId,
+                        organizationId);
                 throw new ResourceAlreadyExistsException(
                         "Client with the same RNOKPP or EDRPOU already exists in this organization");
             }
-            log.error("Data integrity violation while updating client id: {} in orgId: {}", clientId, organizationId, e);
+            log.error(
+                    "Data integrity violation while updating client id: {} in orgId: {}", clientId, organizationId, e);
             throw e;
         }
     }
@@ -184,11 +187,15 @@ public class ClientService implements SoftDeletable {
             log.info("Successfully restored client clientId: {} in orgId: {}", clientId, organizationId);
         } catch (DataIntegrityViolationException e) {
             if (isUniqueConstraintViolation(e, "uq_clients_org_rnokpp", "uq_clients_org_edrpou")) {
-                log.warn("Failed to restore client id: {}: Duplicate tax identifier in orgId: {}", clientId, organizationId);
+                log.warn(
+                        "Failed to restore client id: {}: Duplicate tax identifier in orgId: {}",
+                        clientId,
+                        organizationId);
                 throw new ResourceAlreadyExistsException(
                         "Client with the same RNOKPP or EDRPOU already exists in this organization");
             }
-            log.error("Data integrity violation while restoring client id: {} in orgId: {}", clientId, organizationId, e);
+            log.error(
+                    "Data integrity violation while restoring client id: {} in orgId: {}", clientId, organizationId, e);
             throw e;
         }
     }

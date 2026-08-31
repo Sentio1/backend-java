@@ -6,11 +6,9 @@ import com.lisovskyi.core_service.client.dto.request.ClientUpdateRequest;
 import com.lisovskyi.core_service.client.dto.response.ClientMaskedResponse;
 import com.lisovskyi.core_service.client.dto.response.ClientResponse;
 import com.lisovskyi.core_service.client_activity.ClientActivity;
-
+import com.sentio.shared.util.DataMaskingUtils;
 import java.time.LocalDate;
 import java.util.function.Consumer;
-
-import com.sentio.shared.util.DataMaskingUtils;
 import org.mapstruct.*;
 import org.openapitools.jackson.nullable.JsonNullable;
 

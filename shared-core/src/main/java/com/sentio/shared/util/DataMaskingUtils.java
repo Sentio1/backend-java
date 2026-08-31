@@ -1,8 +1,7 @@
 package com.sentio.shared.util;
 
-import org.springframework.util.StringUtils;
-
 import java.time.LocalDate;
+import org.springframework.util.StringUtils;
 
 public final class DataMaskingUtils {
 
@@ -27,9 +26,9 @@ public final class DataMaskingUtils {
 
         int maskCount = length - visibleTotal;
 
-        return trimmed.substring(0, visiblePrefix) +
-                String.valueOf(maskChar).repeat(maskCount) +
-                trimmed.substring(length - visibleSuffix, length);
+        return trimmed.substring(0, visiblePrefix)
+                + String.valueOf(maskChar).repeat(maskCount)
+                + trimmed.substring(length - visibleSuffix, length);
     }
 
     public static String mask(final String value, int visiblePrefix, int visibleSuffix) {

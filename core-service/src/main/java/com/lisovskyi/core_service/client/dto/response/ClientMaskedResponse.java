@@ -1,7 +1,6 @@
 package com.lisovskyi.core_service.client.dto.response;
 
 import com.lisovskyi.core_service.client.ClientType;
-
 import java.time.Instant;
 import java.util.List;
 

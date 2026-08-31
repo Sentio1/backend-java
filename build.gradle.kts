@@ -47,7 +47,7 @@ subprojects {
     spotless {
         java {
             target("src/main/java/**/*.java", "src/test/java/**/*.java")
-            palantirJavaFormat()
+            palantirJavaFormat("2.97.0")
             removeUnusedImports()
             trimTrailingWhitespace()
             endWithNewline()

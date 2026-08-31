@@ -18,5 +18,8 @@ public interface CaseEventOccurredAtHistoryRepository extends JpaRepository<Case
         ORDER BY h.changedAt DESC
         """)
     Page<CaseEventOccurredAtHistory> findAllByCaseEventIdAndCaseIdAndOrganizationId(
-            @Param("caseEventId") Long caseEventId, @Param("caseId") Long caseId, @Param("organizationId") Long organizationId, Pageable pageable);
+            @Param("caseEventId") Long caseEventId,
+            @Param("caseId") Long caseId,
+            @Param("organizationId") Long organizationId,
+            Pageable pageable);
 }

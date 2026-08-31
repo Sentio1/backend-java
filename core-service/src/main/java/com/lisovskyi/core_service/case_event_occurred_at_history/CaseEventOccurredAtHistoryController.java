@@ -27,7 +27,7 @@ public class CaseEventOccurredAtHistoryController {
             @PathVariable CaseEventId eventId,
             @CurrentOrganizationId OrganizationId organizationId,
             final Pageable pageable) {
-        return ResponseEntity.ok(
-                caseEventOccurredAtHistoryService.getAllCaseEventOccurredAtHistories(caseId, eventId, organizationId, pageable));
+        return ResponseEntity.ok(caseEventOccurredAtHistoryService.getAllCaseEventOccurredAtHistories(
+                caseId, eventId, organizationId, pageable));
     }
 }

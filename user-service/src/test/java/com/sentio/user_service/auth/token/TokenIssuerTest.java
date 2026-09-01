@@ -16,6 +16,7 @@ import com.sentio.user_service.organization.enums.OrgRole;
 import com.sentio.user_service.refresh_token.RefreshToken;
 import com.sentio.user_service.refresh_token.RefreshTokenConstants;
 import com.sentio.user_service.refresh_token.RefreshTokenRepository;
+import com.sentio.user_service.refresh_token.finder.RefreshTokenFinder;
 import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.enums.PlatformRole;
 import java.nio.charset.StandardCharsets;
@@ -44,6 +45,9 @@ class TokenIssuerTest {
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
 
+    @Mock
+    private RefreshTokenFinder refreshTokenFinder;
+
     private JwtProperties jwtProperties;
     private JwtService jwtService;
     private TokenIssuer tokenIssuer;
@@ -62,7 +66,7 @@ class TokenIssuerTest {
                 jwtService,
                 new OpaqueTokenService(),
                 refreshTokenRepository,
-                new ActiveSessionLimiter(refreshTokenRepository));
+                new ActiveSessionLimiter(refreshTokenRepository, refreshTokenFinder));
     }
 
     // JwtService doesn't expose a generic claims getter, and neither jjwt nor
@@ -169,7 +173,7 @@ class TokenIssuerTest {
                     .expiresAt(Instant.now().plusSeconds(3600))
                     .build());
         }
-        when(refreshTokenRepository.findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtAsc(1L))
+        when(refreshTokenFinder.findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtAsc(1L))
                 .thenReturn(activeSessions);
 
         tokenIssuer.issue(user, membership, "203.0.113.5", "JUnit-Agent/1.0");
@@ -189,7 +193,7 @@ class TokenIssuerTest {
         user.setId(1L);
         OrganizationMember membership = membershipFor(user, OrgRole.LAWYER);
 
-        when(refreshTokenRepository.findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtAsc(1L))
+        when(refreshTokenFinder.findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtAsc(1L))
                 .thenReturn(List.of());
 
         tokenIssuer.issue(user, membership, "203.0.113.5", "JUnit-Agent/1.0");

@@ -3,6 +3,7 @@ package com.sentio.user_service.auth.token;
 import com.sentio.user_service.refresh_token.RefreshToken;
 import com.sentio.user_service.refresh_token.RefreshTokenConstants;
 import com.sentio.user_service.refresh_token.RefreshTokenRepository;
+import com.sentio.user_service.refresh_token.finder.RefreshTokenFinder;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ActiveSessionLimiter {
 
     private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenFinder refreshTokenFinder;
 
     // Caps unbounded growth of refresh_tokens per user: revoking (not deleting) the
     // oldest active sessions once the new one would push the count past the limit -
@@ -22,7 +24,7 @@ public class ActiveSessionLimiter {
     @Transactional
     public void enforceActiveSessionLimit(long userId) {
         List<RefreshToken> activeSessions =
-                refreshTokenRepository.findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtAsc(userId);
+                refreshTokenFinder.findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtAsc(userId);
 
         int overLimitBy = activeSessions.size() - RefreshTokenConstants.MAX_ACTIVE_SESSIONS + 1;
         if (overLimitBy <= 0) {

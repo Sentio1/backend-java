@@ -21,9 +21,11 @@ import com.sentio.user_service.organization.service.OrganizationCreationService;
 import com.sentio.user_service.organization.service.OrganizationService;
 import com.sentio.user_service.refresh_token.RefreshToken;
 import com.sentio.user_service.refresh_token.RefreshTokenRepository;
+import com.sentio.user_service.refresh_token.finder.RefreshTokenFinder;
 import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.mapper.UserMapper;
 import com.sentio.user_service.user.repository.UserRepository;
+import com.sentio.user_service.user.service.finder.UserFinder;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +50,9 @@ public class AuthService {
     public static final String INVALID_ERROR_MSG = "Invalid email or password";
 
     private final UserRepository userRepository;
+    private final UserFinder userFinder;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenFinder refreshTokenFinder;
 
     private final JwtService jwtService;
     private final OpaqueTokenService opaqueTokenService;
@@ -66,7 +70,7 @@ public class AuthService {
     @Transactional
     public AuthResult register(RegistrationRequest request, String ip, String userAgent) {
         log.debug("Attempting to register user with email: {}", request.email());
-        if (userRepository.existsByEmail(request.email())) {
+        if (userFinder.existsByEmail(request.email())) {
             log.warn("Registration failed: user with email {} already exists", request.email());
             throw new ResourceAlreadyExistsException("User with email: " + request.email() + " already exists");
         }
@@ -97,7 +101,7 @@ public class AuthService {
     @Transactional
     public AuthResult login(LoginRequest request, String ip, String userAgent) {
         log.debug("Attempting to login user with email: {}", request.email());
-        User user = userRepository.findByEmail(request.email()).orElseThrow(() -> {
+        User user = userFinder.findByEmailOptional(request.email()).orElseThrow(() -> {
             log.warn("Login failed: user with email {} not found", request.email());
             return new UnauthorizedException(INVALID_ERROR_MSG);
         });
@@ -158,8 +162,8 @@ public class AuthService {
     public AuthTokens refresh(String rawToken, String ip, String userAgent) {
         log.debug("Attempting to refresh tokens");
         String hashedToken = opaqueTokenService.hash(rawToken);
-        RefreshToken refreshToken = refreshTokenRepository
-                .findByTokenHash(hashedToken)
+        RefreshToken refreshToken = refreshTokenFinder
+                .findByTokenHashOptional(hashedToken)
                 .orElseThrow(() -> {
                     log.warn("Refresh failed: token not found");
                     return new UnauthorizedException("Invalid refresh token");
@@ -198,8 +202,8 @@ public class AuthService {
         if (refreshToken != null) {
             String hashedToken = opaqueTokenService.hash(refreshToken);
 
-            refreshTokenRepository
-                    .findByTokenHash(hashedToken)
+            refreshTokenFinder
+                    .findByTokenHashOptional(hashedToken)
                     .ifPresentOrElse(
                             rt -> {
                                 rt.setRevokedAt(Instant.now());

@@ -8,6 +8,7 @@ import com.sentio.user_service.user.entity.UserIdentity;
 import com.sentio.user_service.user.enums.AuthProvider;
 import com.sentio.user_service.user.repository.UserIdentityRepository;
 import com.sentio.user_service.user.repository.UserRepository;
+import com.sentio.user_service.user.service.finder.UserIdentityFinder;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -27,11 +28,12 @@ public class GoogleAccountResolver {
 
     private final UserRepository userRepository;
     private final UserIdentityRepository userIdentityRepository;
+    private final UserIdentityFinder userIdentityFinder;
     private final GoogleNewUserCreator newUserCreator;
 
     public User resolveOrCreate(GoogleIdentity identity) {
         Optional<UserIdentity> existingIdentity =
-                userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, identity.sub());
+                userIdentityFinder.findByProviderAndProviderUserId(AuthProvider.GOOGLE, identity.sub());
 
         if (existingIdentity.isPresent()) {
             User activeUser = existingIdentity.get().getUser();
@@ -62,7 +64,7 @@ public class GoogleAccountResolver {
     }
 
     private User resolveExistingAfterConflict(GoogleIdentity identity) {
-        return userIdentityRepository
+        return userIdentityFinder
                 .findByProviderAndProviderUserId(AuthProvider.GOOGLE, identity.sub())
                 .map(UserIdentity::getUser)
                 .or(() -> userRepository.findByEmail(identity.email()))

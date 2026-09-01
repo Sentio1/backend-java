@@ -14,6 +14,8 @@ import com.sentio.user_service.organization.enums.OrgRole;
 import com.sentio.user_service.organization.mapper.OrganizationMapper;
 import com.sentio.user_service.organization.mapper.OrganizationMemberMapper;
 import com.sentio.user_service.organization.repository.OrganizationMemberRepository;
+import com.sentio.user_service.organization.service.finder.OrganizationFinder;
+import com.sentio.user_service.organization.service.finder.OrganizationMemberFinder;
 import com.sentio.user_service.organization.repository.OrganizationRepository;
 import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.mapper.UserMapper;
@@ -32,6 +34,8 @@ public class OrganizationService {
 
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
+    private final OrganizationFinder organizationFinder;
+    private final OrganizationMemberFinder organizationMemberFinder;
     private final OrganizationCreationService organizationProvisioning;
 
     private final TokenIssuer tokenIssuer;
@@ -43,7 +47,7 @@ public class OrganizationService {
     @Transactional(readOnly = true)
     public PageResponse<OrganizationMemberResponse> getAllOrganizationMembers(long orgId, Pageable pageable) {
         log.debug("Fetching organization members for orgId: {}", orgId);
-        return PageResponse.of(organizationMemberRepository
+        return PageResponse.of(organizationMemberFinder
                 .findAllByOrganizationIdAndUserDeletedAtIsNull(orgId, pageable)
                 .map(organizationMemberMapper::toResponse));
     }
@@ -51,7 +55,7 @@ public class OrganizationService {
     @Transactional
     public OrganizationResponse updateOrganization(long id, UpdateOrganizationRequest updateRequest) {
         log.debug("Attempting to update organization id: {}", id);
-        Organization organization = organizationRepository
+        Organization organization = organizationFinder
                 .findByIdLocked(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization", "id", id));
 
@@ -88,7 +92,7 @@ public class OrganizationService {
     @Transactional
     public AuthResult switchDefaultOrganization(long userId, long targetOrgId, String ip, String userAgent) {
         log.debug("User: {} attempting to switch default organization to targetOrgId: {}", userId, targetOrgId);
-        OrganizationMember target = organizationMemberRepository
+        OrganizationMember target = organizationMemberFinder
                 .findByUserIdAndOrganizationId(userId, targetOrgId)
                 .orElseThrow(() -> new ResourceNotFoundException("OrganizationMember", "userId", userId));
 
@@ -110,17 +114,17 @@ public class OrganizationService {
     @Transactional
     public OrganizationMemberResponse patchRoleForMember(long orgId, long userId, OrgRole newRole) {
         log.debug("Attempting to patch role to {} for userId: {} in orgId: {}", newRole, userId, orgId);
-        organizationRepository
+        organizationFinder
                 .findByIdLocked(orgId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization", "id", orgId));
 
-        OrganizationMember organizationMember = organizationMemberRepository
+        OrganizationMember organizationMember = organizationMemberFinder
                 .findByUserIdAndOrganizationId(userId, orgId)
                 .orElseThrow(() -> new ResourceNotFoundException("OrganizationMember", "userId", userId));
 
         if (organizationMember.getRole() == OrgRole.OWNER
                 && newRole != OrgRole.OWNER
-                && organizationMemberRepository.countByOrganizationIdAndRole(orgId, OrgRole.OWNER) <= 1) {
+                && organizationMemberFinder.countByOrganizationIdAndRole(orgId, OrgRole.OWNER) <= 1) {
             log.warn("Cannot change role for userId: {} in orgId: {}: they are the last OWNER", userId, orgId);
             throw new IllegalArgumentException(
                     "Cannot change the last owner's role. Promote someone else to OWNER first.");
@@ -136,16 +140,16 @@ public class OrganizationService {
     @Transactional
     public void deleteOrganizationMember(long orgId, long userId) {
         log.debug("Attempting to delete userId: {} from orgId: {}", userId, orgId);
-        organizationRepository
+        organizationFinder
                 .findByIdLocked(orgId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization", "id", orgId));
 
-        OrganizationMember organizationMember = organizationMemberRepository
+        OrganizationMember organizationMember = organizationMemberFinder
                 .findByUserIdAndOrganizationId(userId, orgId)
                 .orElseThrow(() -> new ResourceNotFoundException("OrganizationMember", "userId", userId));
 
         if (organizationMember.getRole() == OrgRole.OWNER) {
-            long ownerCount = organizationMemberRepository.countByOrganizationIdAndRole(orgId, OrgRole.OWNER);
+            long ownerCount = organizationMemberFinder.countByOrganizationIdAndRole(orgId, OrgRole.OWNER);
             if (ownerCount <= 1) {
                 log.warn("Cannot delete userId: {} from orgId: {}: they are the last OWNER", userId, orgId);
                 throw new IllegalArgumentException(
@@ -161,6 +165,6 @@ public class OrganizationService {
     // Google sign-up - registration is always org-less (see AuthService.register),
     // so login/refresh have to tolerate it too, not just Google's fallback path.
     public Optional<OrganizationMember> findDefaultMembership(long userId) {
-        return organizationMemberRepository.findByUserIdAndIsDefaultTrue(userId);
+        return organizationMemberFinder.findByUserIdAndIsDefaultTrue(userId);
     }
 }

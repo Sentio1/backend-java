@@ -3,11 +3,12 @@ package com.lisovskyi.core_service.client;
 import static com.sentio.shared.persistence.ConstraintViolations.isUniqueConstraintViolation;
 
 import com.lisovskyi.core_service.case_.enums.CaseStatus;
-import com.lisovskyi.core_service.case_party.CasePartyRepository;
+import com.lisovskyi.core_service.case_party.service.finder.CasePartyFinder;
 import com.lisovskyi.core_service.client.dto.request.ClientCreateRequest;
 import com.lisovskyi.core_service.client.dto.request.ClientUpdateRequest;
 import com.lisovskyi.core_service.client.dto.response.ClientResponse;
 import com.lisovskyi.core_service.client.exception.ClientHasActiveCasesException;
+import com.lisovskyi.core_service.client.finder.ClientFinder;
 import com.lisovskyi.core_service.client.mapper.ClientMapper;
 import com.lisovskyi.core_service.entity.SoftDeleteManager;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsException;
@@ -34,7 +35,8 @@ import org.springframework.util.StringUtils;
 public class ClientService {
 
     private final ClientRepository clientRepository;
-    private final CasePartyRepository casePartyRepository;
+    private final ClientFinder clientFinder;
+    private final CasePartyFinder casePartyFinder;
     private final ClientMapper clientMapper;
 
     private final SoftDeleteManager softDeleteManager;
@@ -45,7 +47,7 @@ public class ClientService {
     @Transactional(readOnly = true)
     public PageResponse<ClientResponse> getAllClients(OrganizationId organizationId, Pageable pageable) {
         log.debug("Fetching all clients for orgId: {}", organizationId);
-        return PageResponse.of(clientRepository
+        return PageResponse.of(clientFinder
                 .findAllByOrganizationId(organizationId.id(), pageable)
                 .map(clientMapper::toResponse));
     }
@@ -53,7 +55,7 @@ public class ClientService {
     @Transactional(readOnly = true)
     public PageResponse<ClientResponse> getAllDeletedClients(OrganizationId organizationId, Pageable pageable) {
         log.debug("Fetching all deleted clients for orgId: {}", organizationId);
-        return PageResponse.of(clientRepository
+        return PageResponse.of(clientFinder
                 .findAllDeletedByOrganizationId(organizationId.id(), pageable)
                 .map(clientMapper::toResponse));
     }
@@ -61,17 +63,15 @@ public class ClientService {
     @Transactional(readOnly = true)
     public ClientResponse getClientById(ClientId clientId, OrganizationId organizationId) {
         log.debug("Fetching client clientId: {} for orgId: {}", clientId, organizationId);
-        return clientRepository
-                .findByIdAndOrganizationId(clientId.id(), organizationId.id())
-                .map(clientMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Client", "id", clientId));
+        return clientMapper.toResponse(
+                clientFinder.findByIdAndOrganizationId(clientId.id(), organizationId.id()));
     }
 
     @Transactional(readOnly = true)
     public PageResponse<ClientResponse> searchClient(OrganizationId organizationId, String query, Pageable pageable) {
         // Сирий query не логуємо, оскільки пошук може виконуватись за чутливими даними (РНОКПП, паспорт)
         log.debug("Searching clients in orgId: {}", organizationId);
-        return PageResponse.of(clientRepository
+        return PageResponse.of(clientFinder
                 .searchClient(organizationId.id(), query, pageable)
                 .map(clientMapper::toResponse));
     }
@@ -120,9 +120,7 @@ public class ClientService {
     public ClientResponse updateClient(ClientId clientId, OrganizationId organizationId, ClientUpdateRequest request) {
         log.debug("Attempting to update client id: {} for orgId: {}", clientId, organizationId);
 
-        Client client = clientRepository
-                .findByIdAndOrganizationId(clientId.id(), organizationId.id())
-                .orElseThrow(() -> new ResourceNotFoundException("Client", "id", clientId));
+        Client client = clientFinder.findByIdAndOrganizationId(clientId.id(), organizationId.id());
 
         if (request.activities().isPresent() && client.getType() != ClientType.SOLE_TRADER) {
             throw new IllegalArgumentException("Activities can only be modified for SOLE_TRADER clients");
@@ -160,11 +158,9 @@ public class ClientService {
     public void deleteClient(
             ClientId clientId, OrganizationId organizationId, UserId deletedById, String deleteReason) {
         log.debug("Attempting to delete client clientId: {} for orgId: {}", clientId, organizationId);
-        Client client = clientRepository
-                .findByIdAndOrganizationId(clientId.id(), organizationId.id())
-                .orElseThrow(() -> new ResourceNotFoundException("Client", "id", clientId));
+        Client client = clientFinder.findByIdAndOrganizationId(clientId.id(), organizationId.id());
 
-        if (casePartyRepository.existsActiveCaseForClient(clientId.id(), organizationId.id(), TERMINAL_CASE_STATUSES)) {
+        if (casePartyFinder.existsActiveCaseForClient(clientId.id(), organizationId.id(), TERMINAL_CASE_STATUSES)) {
             throw new ClientHasActiveCasesException(clientId);
         }
 
@@ -176,7 +172,7 @@ public class ClientService {
     @Transactional
     public void restoreClient(ClientId clientId, OrganizationId organizationId, UserId restoredById) {
         log.debug("Attempting to restore client clientId: {} for orgId: {}", clientId, organizationId);
-        Client client = clientRepository
+        Client client = clientFinder
                 .findDeletedByIdAndOrganizationId(clientId.id(), organizationId.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Client", "id", clientId));
 
@@ -231,13 +227,13 @@ public class ClientService {
     // узгоджено з частковими unique-індексами в V11__clients_unique_tax_ids.sql.
     private void assertUniqueTaxIds(Long organizationId, String rnokpp, String edrpou, Long excludeId) {
         if (StringUtils.hasText(rnokpp)
-                && clientRepository.existsActiveByOrganizationIdAndRnokpp(organizationId, rnokpp, excludeId)) {
+                && clientFinder.existsActiveByOrganizationIdAndRnokpp(organizationId, rnokpp, excludeId)) {
             log.warn("Validation failed: Client with duplicate RNOKPP already exists in orgId: {}", organizationId);
             throw new ResourceAlreadyExistsException("Client", "rnokpp", "DUPLICATE_VALUE");
         }
 
         if (StringUtils.hasText(edrpou)
-                && clientRepository.existsActiveByOrganizationIdAndEdrpou(organizationId, edrpou, excludeId)) {
+                && clientFinder.existsActiveByOrganizationIdAndEdrpou(organizationId, edrpou, excludeId)) {
             log.warn("Validation failed: Client with duplicate EDRPOU already exists in orgId: {}", organizationId);
             throw new ResourceAlreadyExistsException("Client", "edrpou", "DUPLICATE_VALUE");
         }

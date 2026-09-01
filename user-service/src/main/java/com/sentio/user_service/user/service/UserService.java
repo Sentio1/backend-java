@@ -9,10 +9,11 @@ import com.sentio.user_service.organization.entity.OrganizationMember;
 import com.sentio.user_service.organization.enums.OrgRole;
 import com.sentio.user_service.organization.mapper.OrganizationInviteMapper;
 import com.sentio.user_service.organization.mapper.OrganizationMemberMapper;
-import com.sentio.user_service.organization.repository.OrganizationInviteRepository;
 import com.sentio.user_service.organization.repository.OrganizationMemberRepository;
-import com.sentio.user_service.organization.repository.OrganizationRepository;
-import com.sentio.user_service.refresh_token.RefreshTokenRepository;
+import com.sentio.user_service.organization.service.finder.OrganizationFinder;
+import com.sentio.user_service.organization.service.finder.OrganizationInviteFinder;
+import com.sentio.user_service.organization.service.finder.OrganizationMemberFinder;
+import com.sentio.user_service.refresh_token.finder.RefreshTokenFinder;
 import com.sentio.user_service.user.dto.UserContextResponse;
 import com.sentio.user_service.user.dto.UserUpdateRequest;
 import com.sentio.user_service.user.entity.User;
@@ -34,9 +35,10 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
-    private final OrganizationRepository organizationRepository;
-    private final OrganizationInviteRepository organizationInviteRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final OrganizationFinder organizationFinder;
+    private final OrganizationMemberFinder organizationMemberFinder;
+    private final OrganizationInviteFinder organizationInviteFinder;
+    private final RefreshTokenFinder refreshTokenFinder;
 
     private final UserMapper userMapper;
     private final OrganizationMemberMapper organizationMemberMapper;
@@ -52,7 +54,7 @@ public class UserService {
         log.debug("Fetching user context for userId: {}", userId);
         User user = userFinder.findById(userId);
 
-        OrganizationMember membership = organizationMemberRepository
+        OrganizationMember membership = organizationMemberFinder
                 .findByUserIdAndIsDefaultTrue(userId)
                 .orElse(null);
 
@@ -62,12 +64,12 @@ public class UserService {
     @Transactional(readOnly = true)
     public List<OrganizationMemberResponse> getOrganizations(long userId) {
         log.debug("Fetching organizations for userId: {}", userId);
-        if (!userRepository.existsById(userId)) {
+        if (!userFinder.existsById(userId)) {
             log.warn("Failed to fetch organizations: userId {} not found", userId);
             throw new ResourceNotFoundException("User", "id", userId);
         }
 
-        return organizationMemberRepository.findAllByUserId(userId).stream()
+        return organizationMemberFinder.findAllByUserId(userId).stream()
                 .map(organizationMemberMapper::toResponse)
                 .toList();
     }
@@ -75,12 +77,12 @@ public class UserService {
     @Transactional(readOnly = true)
     public List<OrganizationInviteResponse> getInvites(String email) {
         log.debug("Fetching invites for email: {}", email);
-        if (!userRepository.existsByEmail(email)) {
+        if (!userFinder.existsByEmail(email)) {
             log.warn("Failed to fetch invites: user with email {} not found", email);
             throw new ResourceNotFoundException("User", "email", email);
         }
 
-        return organizationInviteRepository.findAllByEmail(email).stream()
+        return organizationInviteFinder.findAllByEmail(email).stream()
                 .map(organizationInviteMapper::toResponse)
                 .toList();
     }
@@ -106,7 +108,7 @@ public class UserService {
         User savedUser = userRepository.save(user);
         log.info("Successfully updated profile for userId: {}", userId);
 
-        OrganizationMember member = organizationMemberRepository
+        OrganizationMember member = organizationMemberFinder
                 .findByUserIdAndIsDefaultTrue(userId)
                 .orElse(null);
 
@@ -118,14 +120,14 @@ public class UserService {
         log.debug("Attempting to delete userId: {}", userId);
         User user = userFinder.findById(userId);
 
-        organizationMemberRepository.findAllByUserId(userId).stream()
+        organizationMemberFinder.findAllByUserId(userId).stream()
                 .filter(m -> m.getRole() == OrgRole.OWNER)
                 .forEach(m -> {
                     long orgId = m.getOrganization().getId();
 
-                    organizationRepository.findByIdLocked(orgId);
+                    organizationFinder.findByIdLocked(orgId);
 
-                    if (organizationMemberRepository.countByOrganizationIdAndRole(orgId, OrgRole.OWNER) <= 1) {
+                    if (organizationMemberFinder.countByOrganizationIdAndRole(orgId, OrgRole.OWNER) <= 1) {
                         log.warn("Cannot delete userId {}: they are the last OWNER of orgId {}", userId, orgId);
                         throw new IllegalArgumentException("Cannot delete account: you are the last owner of \""
                                 + m.getOrganization().getName()
@@ -147,7 +149,7 @@ public class UserService {
 
         organizationMemberRepository.deleteAllByUserId(userId);
 
-        refreshTokenRepository.findAllByUserIdAndRevokedAtIsNull(userId).forEach(rt -> rt.setRevokedAt(Instant.now()));
+        refreshTokenFinder.findAllByUserIdAndRevokedAtIsNull(userId).forEach(rt -> rt.setRevokedAt(Instant.now()));
         log.info("Successfully deleted userId: {}", userId);
     }
 }

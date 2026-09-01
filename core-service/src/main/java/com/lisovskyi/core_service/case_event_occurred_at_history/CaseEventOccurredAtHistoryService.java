@@ -3,6 +3,7 @@ package com.lisovskyi.core_service.case_event_occurred_at_history;
 import com.lisovskyi.core_service.case_.service.finder.CaseFinder;
 import com.lisovskyi.core_service.case_event.dto.response.CaseEventOccurredAtHistoryResponse;
 import com.lisovskyi.core_service.case_event.mapper.CaseEventMapper;
+import com.lisovskyi.core_service.case_event_occurred_at_history.finder.CaseEventOccurredAtHistoryFinder;
 import com.sentio.shared.dto.PageResponse;
 import com.sentio.shared.entity.id.case_.CaseId;
 import com.sentio.shared.entity.id.case_event.CaseEventId;
@@ -18,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CaseEventOccurredAtHistoryService {
 
-    private final CaseEventOccurredAtHistoryRepository caseEventOccurredAtHistoryRepository;
+    private final CaseEventOccurredAtHistoryFinder caseEventOccurredAtHistoryFinder;
     private final CaseEventMapper caseEventMapper;
     private final CaseFinder caseFinder;
 
@@ -32,7 +33,7 @@ public class CaseEventOccurredAtHistoryService {
                 organizationId);
         caseFinder.findByIdAndOrganizationId(caseId.id(), organizationId.id());
 
-        return PageResponse.of(caseEventOccurredAtHistoryRepository
+        return PageResponse.of(caseEventOccurredAtHistoryFinder
                 .findAllByCaseEventIdAndCaseIdAndOrganizationId(
                         caseEventId.id(), caseId.id(), organizationId.id(), pageable)
                 .map(caseEventMapper::toResponse));

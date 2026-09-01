@@ -14,8 +14,10 @@ import com.lisovskyi.core_service.case_event.enums.Source;
 import com.lisovskyi.core_service.case_event.mapper.CaseEventMapper;
 import com.lisovskyi.core_service.case_event_occurred_at_history.CaseEventOccurredAtHistory;
 import com.lisovskyi.core_service.case_event_occurred_at_history.CaseEventOccurredAtHistoryRepository;
+import com.lisovskyi.core_service.case_event.finder.CaseEventFinder;
 import com.lisovskyi.core_service.deadline.Deadline;
 import com.lisovskyi.core_service.deadline.DeadlineRepository;
+import com.lisovskyi.core_service.deadline.finder.DeadlineFinder;
 import com.lisovskyi.core_service.deadline_engine.DeadlineEngine;
 import com.lisovskyi.core_service.deadline_rule.DeadlineRuleRepository;
 import com.lisovskyi.core_service.entity.SoftDeleteManager;
@@ -45,7 +47,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class CaseEventService {
 
     private final CaseEventRepository caseEventRepository;
+    private final CaseEventFinder caseEventFinder;
     private final DeadlineRepository deadlineRepository;
+    private final DeadlineFinder deadlineFinder;
     private final DeadlineRuleRepository deadlineRuleRepository;
     private final HolidayRepository holidayRepository;
     private final CaseEventOccurredAtHistoryRepository caseEventOccurredAtHistoryRepository;
@@ -62,11 +66,11 @@ public class CaseEventService {
         log.debug("Fetching case events for caseId: {}, orgId: {}, eventCode: {}", caseId, organizationId, eventCode);
         caseFinder.findByIdAndOrganizationId(caseId.id(), organizationId.id());
 
-        Page<CaseEvent> caseEvents = caseEventRepository.findAllByCaseIdAndOrganizationId(
+        Page<CaseEvent> caseEvents = caseEventFinder.findAllByCaseIdAndOrganizationId(
                 caseId.id(), organizationId.id(), eventCode, pageable);
         List<Long> caseEventIds = caseEvents.map(CaseEvent::getId).toList();
 
-        Map<Long, Long> deadlineIdByCaseEventId = deadlineRepository.findAllByTriggeringEventIdIn(caseEventIds).stream()
+        Map<Long, Long> deadlineIdByCaseEventId = deadlineFinder.findAllByTriggeringEventIdIn(caseEventIds).stream()
                 .collect(Collectors.toMap(
                         deadline -> deadline.getTriggeringEvent().getId(), Deadline::getId));
 
@@ -77,9 +81,8 @@ public class CaseEventService {
     @Transactional(readOnly = true)
     public CaseEventResponse getCaseEventById(CaseId caseId, CaseEventId eventId, OrganizationId organizationId) {
         log.debug("Fetching case event id: {} for caseId: {}, orgId: {}", eventId, caseId, organizationId);
-        CaseEvent caseEvent = caseEventRepository
-                .findByIdAndCaseIdAndOrganizationId(eventId.id(), caseId.id(), organizationId.id())
-                .orElseThrow(() -> new ResourceNotFoundException("CaseEvent", "id", eventId));
+        CaseEvent caseEvent = caseEventFinder
+                .findByIdAndCaseIdAndOrganizationId(eventId.id(), caseId.id(), organizationId.id());
 
         Long deadlineId = findDeadlineId(caseEvent);
         return caseEventMapper.toResponse(caseEvent, deadlineId);
@@ -141,9 +144,8 @@ public class CaseEventService {
             UserId changedById,
             CaseEventOccurredAtChangeRequest request) {
         log.debug("Changing occurredAt for eventId: {}, caseId: {}", eventId, caseId);
-        CaseEvent caseEvent = caseEventRepository
-                .findByIdAndCaseIdAndOrganizationId(eventId.id(), caseId.id(), organizationId.id())
-                .orElseThrow(() -> new ResourceNotFoundException("CaseEvent", "id", eventId));
+        CaseEvent caseEvent = caseEventFinder
+                .findByIdAndCaseIdAndOrganizationId(eventId.id(), caseId.id(), organizationId.id());
 
         Instant oldOccurredAt = caseEvent.getOccurredAt();
         if (oldOccurredAt.equals(request.newOccurredAt())) {
@@ -180,9 +182,8 @@ public class CaseEventService {
     public CaseEventResponse updateCaseEvent(
             CaseId caseId, CaseEventId eventId, OrganizationId organizationId, CaseEventUpdateRequest request) {
         log.debug("Updating case eventId: {} for caseId: {}", eventId, caseId);
-        CaseEvent caseEvent = caseEventRepository
-                .findByIdAndCaseIdAndOrganizationId(eventId.id(), caseId.id(), organizationId.id())
-                .orElseThrow(() -> new ResourceNotFoundException("CaseEvent", "id", eventId));
+        CaseEvent caseEvent = caseEventFinder
+                .findByIdAndCaseIdAndOrganizationId(eventId.id(), caseId.id(), organizationId.id());
 
         if (request.title().isPresent()) {
             caseEvent.setTitle(request.title().get());
@@ -206,13 +207,12 @@ public class CaseEventService {
             UserId deletedById,
             String deleteReason) {
         log.debug("Deleting eventId: {} for caseId: {}", eventId, caseId);
-        CaseEvent caseEvent = caseEventRepository
-                .findByIdAndCaseIdAndOrganizationId(eventId.id(), caseId.id(), organizationId.id())
-                .orElseThrow(() -> new ResourceNotFoundException("CaseEvent", "id", eventId));
+        CaseEvent caseEvent = caseEventFinder
+                .findByIdAndCaseIdAndOrganizationId(eventId.id(), caseId.id(), organizationId.id());
 
         softDeleteManager.deleteEntity(caseEvent, deletedById.id(), deleteReason);
 
-        deadlineRepository.findByTriggeringEvent(caseEvent).ifPresent(deadline -> {
+        deadlineFinder.findByTriggeringEvent(caseEvent).ifPresent(deadline -> {
             softDeleteManager.deleteEntity(deadline, deletedById.id(), deleteReason);
             deadlineRepository.save(deadline);
         });
@@ -225,7 +225,7 @@ public class CaseEventService {
     public void restoreCaseEvent(
             CaseId caseId, CaseEventId eventId, OrganizationId organizationId, UserId restoredById) {
         log.debug("Restoring eventId: {} for caseId: {}", eventId, caseId);
-        CaseEvent caseEvent = caseEventRepository
+        CaseEvent caseEvent = caseEventFinder
                 .findDeletedByIdAndCaseIdAndOrganizationId(eventId.id(), caseId.id(), organizationId.id())
                 .orElseThrow(() -> new ResourceNotFoundException("CaseEvent", "id", eventId));
 
@@ -235,6 +235,6 @@ public class CaseEventService {
     }
 
     private Long findDeadlineId(CaseEvent caseEvent) {
-        return deadlineRepository.findIdByTriggeringEventId(caseEvent.getId()).orElse(null);
+        return deadlineFinder.findIdByTriggeringEventId(caseEvent.getId()).orElse(null);
     }
 }

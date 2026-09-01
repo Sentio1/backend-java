@@ -9,11 +9,12 @@ import com.lisovskyi.core_service.deadline.Deadline;
 import com.lisovskyi.core_service.deadline.DeadlineRepository;
 import com.lisovskyi.core_service.deadline.WorkingDayCalculator;
 import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
-import com.lisovskyi.core_service.deadline_rule.DeadlineRuleRepository;
+import com.lisovskyi.core_service.deadline_rule.finder.DeadlineRuleFinder;
 import com.lisovskyi.core_service.deadline_rule.enums.CountFrom;
 import com.lisovskyi.core_service.deadline_rule.enums.DurationUnit;
 import com.lisovskyi.core_service.holiday.Holiday;
-import com.lisovskyi.core_service.holiday.HolidayRepository;
+import com.lisovskyi.core_service.holiday.finder.HolidayFinder;
+import com.lisovskyi.core_service.deadline.finder.DeadlineFinder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,8 +31,9 @@ import java.util.Optional;
 public class DeadlineEngine {
 
     private final DeadlineRepository deadlineRepository;
-    private final DeadlineRuleRepository deadlineRuleRepository;
-    private final HolidayRepository holidayRepository;
+    private final DeadlineFinder deadlineFinder;
+    private final DeadlineRuleFinder deadlineRuleFinder;
+    private final HolidayFinder holidayFinder;
 
     public Long generateDeadline(CaseEvent caseEvent) {
         Court court = caseEvent.getCase_().getCourt();
@@ -41,7 +43,7 @@ public class DeadlineEngine {
         EventCode triggerEventCode = caseEvent.getEventCode();
 
         Optional<DeadlineRule> deadlineRuleOpt =
-                deadlineRuleRepository.findByActiveRule(procedure, triggerEventCode, occurredAt);
+                deadlineRuleFinder.findByActiveRule(procedure, triggerEventCode, occurredAt);
         if (deadlineRuleOpt.isEmpty()) {
             // не помилка, просто нема правила
             return null;
@@ -65,7 +67,7 @@ public class DeadlineEngine {
                                     LocalDate upperBoundDate = startsOn.plusDays(upperBound);
 
                                     List<Holiday> holidays =
-                                            holidayRepository.findAllByDateBetween(startsOn, upperBoundDate);
+                                            holidayFinder.findAllByDateBetween(startsOn, upperBoundDate);
                                     Map<LocalDate, Boolean> holidayOverrides = new HashMap<>();
                                     holidays.forEach(
                                             holiday -> holidayOverrides.put(holiday.getDate(), holiday.isWorking()));
@@ -81,7 +83,7 @@ public class DeadlineEngine {
         // справи (SEN-21) підбирається інше правило (інший рядок DeadlineRule), і пошук саме по
         // старому rule ніколи б не знайшов уже наявний дедлайн - замість оновлення на місці
         // з'являвся б другий, дублюючий рядок Deadline для тієї самої події.
-        Optional<Deadline> existingOpt = deadlineRepository.findByTriggeringEvent(caseEvent);
+        Optional<Deadline> existingOpt = deadlineFinder.findByTriggeringEvent(caseEvent);
 
         Deadline deadline = existingOpt
                 .map(existing -> {

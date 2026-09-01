@@ -1,6 +1,7 @@
 package com.sentio.user_service.util;
 
 import com.sentio.user_service.user.repository.UserRepository;
+import com.sentio.user_service.user.service.finder.UserFinder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -15,6 +16,7 @@ public class ServiceSecretReader implements CommandLineRunner {
 
     private static final String SERVICE_EMAIL = "registry-monitor@service.internal";
     private final UserRepository userRepository;
+    private final UserFinder userFinder;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -25,8 +27,8 @@ public class ServiceSecretReader implements CommandLineRunner {
             return;
         }
 
-        userRepository
-                .findByEmail(SERVICE_EMAIL)
+        userFinder
+                .findByEmailOptional(SERVICE_EMAIL)
                 .ifPresentOrElse(
                         user -> {
                             user.setPassword(passwordEncoder.encode(secret));

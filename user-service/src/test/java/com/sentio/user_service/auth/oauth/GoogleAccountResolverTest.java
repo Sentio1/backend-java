@@ -15,6 +15,7 @@ import com.sentio.user_service.user.entity.UserIdentity;
 import com.sentio.user_service.user.enums.AuthProvider;
 import com.sentio.user_service.user.repository.UserIdentityRepository;
 import com.sentio.user_service.user.repository.UserRepository;
+import com.sentio.user_service.user.service.finder.UserIdentityFinder;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +33,9 @@ class GoogleAccountResolverTest {
 
     @Mock
     private UserIdentityRepository userIdentityRepository;
+
+    @Mock
+    private UserIdentityFinder userIdentityFinder;
 
     @Mock
     private AuthGuards authGuards;
@@ -58,7 +62,7 @@ class GoogleAccountResolverTest {
                 .provider(AuthProvider.GOOGLE)
                 .providerUserId("google-sub-1")
                 .build();
-        when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
+        when(userIdentityFinder.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
                 .thenReturn(Optional.of(existing));
 
         User resolved = googleAccountResolver.resolveOrCreate(identity(true));
@@ -73,7 +77,7 @@ class GoogleAccountResolverTest {
         User existingLocalUser =
                 User.builder().email("user@sentio.dev").password("bcrypt-hash").build();
         existingLocalUser.setId(1L);
-        when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
+        when(userIdentityFinder.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
                 .thenReturn(Optional.empty());
         when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.of(existingLocalUser));
 
@@ -97,7 +101,7 @@ class GoogleAccountResolverTest {
     // to check verification.
     @Test
     void unverifiedEmail_isRejectedBeforeAnyAccountLookupOrCreation() {
-        when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
+        when(userIdentityFinder.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> googleAccountResolver.resolveOrCreate(identity(false)))
@@ -117,7 +121,7 @@ class GoogleAccountResolverTest {
                 .build();
         created.setId(5L);
 
-        when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
+        when(userIdentityFinder.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
                 .thenReturn(Optional.empty());
         when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.empty());
         when(newUserCreator.createAndLink(identity(true))).thenReturn(created);
@@ -141,7 +145,7 @@ class GoogleAccountResolverTest {
                 .providerUserId("google-sub-1")
                 .build();
 
-        when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
+        when(userIdentityFinder.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
                 .thenReturn(Optional.empty(), Optional.of(winnerIdentity));
         when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.empty());
         when(newUserCreator.createAndLink(identity(true))).thenThrow(new DataIntegrityViolationException("conflict"));
@@ -156,7 +160,7 @@ class GoogleAccountResolverTest {
         User winner = User.builder().email("user@sentio.dev").build();
         winner.setId(7L);
 
-        when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
+        when(userIdentityFinder.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
                 .thenReturn(Optional.empty());
         when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.empty(), Optional.of(winner));
         when(newUserCreator.createAndLink(identity(true))).thenThrow(new DataIntegrityViolationException("conflict"));

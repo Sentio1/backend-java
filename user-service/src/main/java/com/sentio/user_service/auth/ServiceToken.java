@@ -9,7 +9,7 @@ import com.sentio.user_service.auth.dto.response.ServiceTokenResult;
 import com.sentio.user_service.auth.token.TokenIssuer;
 import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.enums.PlatformRole;
-import com.sentio.user_service.user.repository.UserRepository;
+import com.sentio.user_service.user.service.finder.UserFinder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,15 +19,15 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ServiceToken {
 
-    private final UserRepository userRepository;
+    private final UserFinder userFinder;
     private final TokenIssuer tokenIssuer;
     private final JwtProperties jwtProperties;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public ServiceTokenResult serviceToken(ServiceTokenRequest request) {
-        User user = userRepository
-                .findByEmail(request.clientId())
+        User user = userFinder
+                .findByEmailOptional(request.clientId())
                 .orElseThrow(() -> new UnauthorizedException(INVALID_ERROR_MSG));
 
         if (user.getPassword() == null || !passwordEncoder.matches(request.secret(), user.getPassword())) {

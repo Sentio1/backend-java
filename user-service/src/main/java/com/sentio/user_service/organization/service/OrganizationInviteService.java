@@ -14,7 +14,9 @@ import com.sentio.user_service.organization.enums.OrgRole;
 import com.sentio.user_service.organization.mapper.OrganizationInviteMapper;
 import com.sentio.user_service.organization.repository.OrganizationInviteRepository;
 import com.sentio.user_service.organization.repository.OrganizationMemberRepository;
-import com.sentio.user_service.organization.repository.OrganizationRepository;
+import com.sentio.user_service.organization.service.finder.OrganizationFinder;
+import com.sentio.user_service.organization.service.finder.OrganizationInviteFinder;
+import com.sentio.user_service.organization.service.finder.OrganizationMemberFinder;
 import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.service.finder.UserFinder;
 import java.time.Duration;
@@ -33,7 +35,10 @@ public class OrganizationInviteService {
 
     private final OrganizationInviteRepository organizationInviteRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
-    private final OrganizationRepository organizationRepository;
+    
+    private final OrganizationFinder organizationFinder;
+    private final OrganizationInviteFinder organizationInviteFinder;
+    private final OrganizationMemberFinder organizationMemberFinder;
 
     private final OrganizationService organizationService;
     private final OpaqueTokenService opaqueTokenService;
@@ -45,7 +50,7 @@ public class OrganizationInviteService {
     @Transactional(readOnly = true)
     public PageResponse<OrganizationInviteResponse> getAllInvites(long orgId, Pageable pageable) {
         log.debug("Fetching invites for orgId: {}", orgId);
-        return PageResponse.of(organizationInviteRepository
+        return PageResponse.of(organizationInviteFinder
                 .findAllByOrganizationId(orgId, pageable)
                 .map(organizationInviteMapper::toResponse));
     }
@@ -58,7 +63,7 @@ public class OrganizationInviteService {
                 inviteRequest.email(),
                 orgId,
                 userId);
-        if (organizationInviteRepository.existsByOrganizationIdAndEmailAndAcceptedAtIsNullAndRevokedAtIsNull(
+        if (organizationInviteFinder.existsByOrganizationIdAndEmailAndAcceptedAtIsNullAndRevokedAtIsNull(
                 orgId, inviteRequest.email())) {
             log.warn("Invite failed: Active invite for {} already exists in orgId: {}", inviteRequest.email(), orgId);
             throw new ResourceAlreadyExistsException("Active invite for " + inviteRequest.email() + " already exists");
@@ -66,7 +71,7 @@ public class OrganizationInviteService {
 
         User owner = userFinder.findById(userId);
 
-        OrganizationMember organizationMember = organizationMemberRepository
+        OrganizationMember organizationMember = organizationMemberFinder
                 .findByUserIdAndOrganizationId(userId, orgId)
                 .orElseThrow(() -> new ResourceNotFoundException("OrganizationMember", "userId", userId));
 
@@ -75,9 +80,7 @@ public class OrganizationInviteService {
             throw new ForbiddenOperationException("Only owners can invite users to an organization");
         }
 
-        Organization organization = organizationRepository
-                .findById(orgId)
-                .orElseThrow(() -> new ResourceNotFoundException("Organization", "id", orgId));
+        Organization organization = organizationFinder.findById(orgId);
 
         String token = opaqueTokenService.generate();
         String tokenHash = opaqueTokenService.hash(token);
@@ -106,7 +109,7 @@ public class OrganizationInviteService {
         log.debug("Attempting to accept invite for userId: {}", userId);
         String hashedToken = opaqueTokenService.hash(token);
 
-        OrganizationInvite organizationInvite = organizationInviteRepository
+        OrganizationInvite organizationInvite = organizationInviteFinder
                 .findByTokenHash(hashedToken)
                 .orElseThrow(() -> new ResourceNotFoundException("OrganizationInvite", "tokenHash", hashedToken));
 
@@ -138,7 +141,7 @@ public class OrganizationInviteService {
 
         Organization organization = organizationInvite.getOrganization();
 
-        if (organizationMemberRepository.existsByUserIdAndOrganizationId(userId, organization.getId())) {
+        if (organizationMemberFinder.existsByUserIdAndOrganizationId(userId, organization.getId())) {
             log.warn("Accept invite failed: User {} is already a member of orgId: {}", userId, organization.getId());
             throw new ResourceAlreadyExistsException("User is already a member of this organization");
         }
@@ -172,7 +175,7 @@ public class OrganizationInviteService {
     @Transactional
     public OrganizationInviteResponse revokeInvite(long orgId, long inviteId) {
         log.debug("Attempting to revoke inviteId: {} in orgId: {}", inviteId, orgId);
-        OrganizationInvite organizationInvite = organizationInviteRepository
+        OrganizationInvite organizationInvite = organizationInviteFinder
                 .findByIdLocked(inviteId)
                 .filter(invite -> invite.getOrganization().getId() == orgId)
                 .orElseThrow(() -> new ResourceNotFoundException("OrganizationInvite", "id", inviteId));

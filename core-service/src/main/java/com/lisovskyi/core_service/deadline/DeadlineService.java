@@ -2,6 +2,7 @@ package com.lisovskyi.core_service.deadline;
 
 import com.lisovskyi.core_service.case_.service.finder.CaseFinder;
 import com.lisovskyi.core_service.deadline.dto.response.DeadlineResponse;
+import com.lisovskyi.core_service.deadline.finder.DeadlineFinder;
 import com.lisovskyi.core_service.deadline.mapper.DeadlineMapper;
 import com.sentio.shared.dto.PageResponse;
 import com.sentio.shared.entity.id.case_.CaseId;
@@ -19,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class DeadlineService {
 
-    private final DeadlineRepository deadlineRepository;
+    private final DeadlineFinder deadlineFinder;
     private final DeadlineMapper deadlineMapper;
     private final CaseFinder caseFinder;
 
@@ -35,11 +36,11 @@ public class DeadlineService {
 
         Page<DeadlineResponse> deadlines;
         if (triggeringEventId == null) {
-            deadlines = deadlineRepository
+            deadlines = deadlineFinder
                     .findAllByCaseIdAndOrganizationId(caseId.id(), organizationId.id(), pageable)
                     .map(deadlineMapper::toResponse);
         } else {
-            deadlines = deadlineRepository
+            deadlines = deadlineFinder
                     .findAllByTriggeringEventIdAndCaseIdAndOrganizationId(
                             triggeringEventId.id(), caseId.id(), organizationId.id(), pageable)
                     .map(deadlineMapper::toResponse);

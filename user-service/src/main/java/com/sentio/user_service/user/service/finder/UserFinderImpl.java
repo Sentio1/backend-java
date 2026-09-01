@@ -3,7 +3,9 @@ package com.sentio.user_service.user.service.finder;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.shared.entity.finder.AbstractEntityFinder;
 import com.sentio.user_service.user.entity.User;
+import com.sentio.user_service.user.enums.PlatformRole;
 import com.sentio.user_service.user.repository.UserRepository;
+import java.util.Optional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -42,6 +44,12 @@ public class UserFinderImpl extends AbstractEntityFinder<User, Long> implements 
     }
 
     @Override
+    public Optional<User> findByEmailOptional(String email) {
+        requireNonNull(email);
+        return userRepository.findByEmail(email);
+    }
+
+    @Override
     protected JpaRepository<User, Long> getRepository() {
         return userRepository;
     }
@@ -49,5 +57,15 @@ public class UserFinderImpl extends AbstractEntityFinder<User, Long> implements 
     @Override
     protected String getEntityName() {
         return "User";
+    }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    @Override
+    public long countByPlatformRole(PlatformRole platformRole) {
+        return userRepository.countByPlatformRole(platformRole);
     }
 }

@@ -3,7 +3,7 @@ package com.sentio.user_service.organization;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.user_service.organization.entity.OrganizationMember;
 import com.sentio.user_service.organization.enums.OrgRole;
-import com.sentio.user_service.organization.repository.OrganizationMemberRepository;
+import com.sentio.user_service.organization.service.finder.OrganizationMemberFinder;
 import com.sentio.user_service.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -20,14 +20,14 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class OrganizationSecurity {
 
-    private final OrganizationMemberRepository organizationMemberRepository;
+    private final OrganizationMemberFinder organizationMemberFinder;
 
     public OrganizationMember requireMembership(long organizationId, Authentication authentication) {
         if (!(authentication.getPrincipal() instanceof SecurityUser securityUser)) {
             throw new ResourceNotFoundException("Organization", "id", organizationId);
         }
 
-        return organizationMemberRepository
+        return organizationMemberFinder
                 .findByUserIdAndOrganizationId(securityUser.getId(), organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization", "id", organizationId));
     }

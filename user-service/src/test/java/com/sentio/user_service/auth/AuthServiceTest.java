@@ -30,11 +30,13 @@ import com.sentio.user_service.organization.service.OrganizationCreationService;
 import com.sentio.user_service.organization.service.OrganizationService;
 import com.sentio.user_service.refresh_token.RefreshToken;
 import com.sentio.user_service.refresh_token.RefreshTokenRepository;
+import com.sentio.user_service.refresh_token.finder.RefreshTokenFinder;
 import com.sentio.user_service.security.SecurityUser;
 import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.mapper.UserMapper;
 import com.sentio.user_service.user.mapper.UserMapperImpl;
 import com.sentio.user_service.user.repository.UserRepository;
+import com.sentio.user_service.user.service.finder.UserFinder;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
@@ -70,7 +72,13 @@ class AuthServiceTest {
     private UserRepository userRepository;
 
     @Mock
+    private UserFinder userFinder;
+
+    @Mock
     private RefreshTokenRepository refreshTokenRepository;
+
+    @Mock
+    private RefreshTokenFinder refreshTokenFinder;
 
     @Mock
     private JwtBlacklistService jwtBlacklistService;
@@ -108,7 +116,9 @@ class AuthServiceTest {
 
         authService = new AuthService(
                 userRepository,
+                userFinder,
                 refreshTokenRepository,
+                refreshTokenFinder,
                 jwtService,
                 opaqueTokenService,
                 jwtBlacklistService,
@@ -177,7 +187,7 @@ class AuthServiceTest {
 
         @Test
         void registration_createsUserWithoutMembershipAndOrglessTokens() {
-            when(userRepository.existsByEmail("newcomer@sentio.dev")).thenReturn(false);
+            when(userFinder.existsByEmail("newcomer@sentio.dev")).thenReturn(false);
             stubUserSaveAssignsId(3L);
             when(tokenIssuer.issue(any(User.class), isNull(), any(), any()))
                     .thenReturn(new AuthTokens("access-token", "refresh-token"));
@@ -201,7 +211,7 @@ class AuthServiceTest {
 
         @Test
         void duplicateEmail_throwsResourceAlreadyExists() {
-            when(userRepository.existsByEmail("owner@sentio.dev")).thenReturn(true);
+            when(userFinder.existsByEmail("owner@sentio.dev")).thenReturn(true);
 
             assertThatThrownBy(() ->
                             authService.register(registrationRequest("owner@sentio.dev"), "127.0.0.1", "test-agent"))
@@ -220,7 +230,7 @@ class AuthServiceTest {
         @Test
         void validCredentials_returnsAuthResultWithDefaultOrgContext() {
             User user = persistedUser(1L, "user@sentio.dev", "password123");
-            when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.of(user));
+            when(userFinder.findByEmailOptional("user@sentio.dev")).thenReturn(Optional.of(user));
             when(organizationService.findDefaultMembership(1L))
                     .thenReturn(Optional.of(membership(user, "Acme Legal", OrgRole.LAWYER)));
             stubTokenIssuer();
@@ -236,7 +246,7 @@ class AuthServiceTest {
 
         @Test
         void unknownEmail_throwsUnauthorizedWithGenericMessage() {
-            when(userRepository.findByEmail("ghost@sentio.dev")).thenReturn(Optional.empty());
+            when(userFinder.findByEmailOptional("ghost@sentio.dev")).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> authService.login(
                             new LoginRequest("ghost@sentio.dev", "whatever123"), "127.0.0.1", "test-agent"))
@@ -247,7 +257,7 @@ class AuthServiceTest {
         @Test
         void wrongPassword_throwsUnauthorizedWithSameGenericMessageAsUnknownEmail() {
             User user = persistedUser(1L, "user@sentio.dev", "correct-password");
-            when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.of(user));
+            when(userFinder.findByEmailOptional("user@sentio.dev")).thenReturn(Optional.of(user));
 
             // Same message as the "unknown email" case above is the point here -
             // an attacker must not be able to distinguish the two.
@@ -263,7 +273,7 @@ class AuthServiceTest {
         @Test
         void noDefaultOrganization_returnsOrglessAuthResult() {
             User user = persistedUser(1L, "user@sentio.dev", "password123");
-            when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.of(user));
+            when(userFinder.findByEmailOptional("user@sentio.dev")).thenReturn(Optional.of(user));
             when(organizationService.findDefaultMembership(1L)).thenReturn(Optional.empty());
             when(tokenIssuer.issue(any(User.class), isNull(), any(), any()))
                     .thenReturn(new AuthTokens("access-token", "refresh-token"));
@@ -364,7 +374,7 @@ class AuthServiceTest {
                     .tokenHash(hashedToken)
                     .expiresAt(Instant.now().plus(1, ChronoUnit.DAYS))
                     .build();
-            when(refreshTokenRepository.findByTokenHash(hashedToken)).thenReturn(Optional.of(existing));
+            when(refreshTokenFinder.findByTokenHashOptional(hashedToken)).thenReturn(Optional.of(existing));
             when(organizationService.findDefaultMembership(1L))
                     .thenReturn(Optional.of(membership(user, "Acme Legal", OrgRole.LAWYER)));
             stubTokenIssuer();
@@ -378,7 +388,7 @@ class AuthServiceTest {
 
         @Test
         void unknownToken_throwsUnauthorizedException() {
-            when(refreshTokenRepository.findByTokenHash(any())).thenReturn(Optional.empty());
+            when(refreshTokenFinder.findByTokenHashOptional(any())).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> authService.refresh("some-token", "127.0.0.1", "test-agent"))
                     .isInstanceOf(UnauthorizedException.class)
@@ -395,7 +405,7 @@ class AuthServiceTest {
                     .expiresAt(Instant.now().plus(1, ChronoUnit.DAYS))
                     .revokedAt(Instant.now().minus(1, ChronoUnit.HOURS))
                     .build();
-            when(refreshTokenRepository.findByTokenHash(hashedToken)).thenReturn(Optional.of(revoked));
+            when(refreshTokenFinder.findByTokenHashOptional(hashedToken)).thenReturn(Optional.of(revoked));
 
             assertThatThrownBy(() -> authService.refresh(rawToken, "127.0.0.1", "test-agent"))
                     .isInstanceOf(UnauthorizedException.class)
@@ -413,7 +423,7 @@ class AuthServiceTest {
                     .tokenHash(hashedToken)
                     .expiresAt(Instant.now().minus(1, ChronoUnit.HOURS))
                     .build();
-            when(refreshTokenRepository.findByTokenHash(hashedToken)).thenReturn(Optional.of(expired));
+            when(refreshTokenFinder.findByTokenHashOptional(hashedToken)).thenReturn(Optional.of(expired));
 
             assertThatThrownBy(() -> authService.refresh(rawToken, "127.0.0.1", "test-agent"))
                     .isInstanceOf(UnauthorizedException.class)
@@ -443,7 +453,7 @@ class AuthServiceTest {
                     .tokenHash(hashedToken)
                     .expiresAt(Instant.now().plus(1, ChronoUnit.DAYS))
                     .build();
-            when(refreshTokenRepository.findByTokenHash(hashedToken)).thenReturn(Optional.of(existing));
+            when(refreshTokenFinder.findByTokenHashOptional(hashedToken)).thenReturn(Optional.of(existing));
             String accessToken = issueAccessToken();
 
             authService.logout(accessToken, rawRefreshToken);
@@ -459,7 +469,7 @@ class AuthServiceTest {
 
             authService.logout(accessToken, null);
 
-            verify(refreshTokenRepository, never()).findByTokenHash(any());
+            verify(refreshTokenFinder, never()).findByTokenHashOptional(any());
             verify(refreshTokenRepository, never()).save(any());
             verify(jwtBlacklistService).addToBlacklist(eq(accessToken), anyLong());
         }
@@ -473,7 +483,7 @@ class AuthServiceTest {
                     .tokenHash(hashedToken)
                     .expiresAt(Instant.now().plus(1, ChronoUnit.DAYS))
                     .build();
-            when(refreshTokenRepository.findByTokenHash(hashedToken)).thenReturn(Optional.of(existing));
+            when(refreshTokenFinder.findByTokenHashOptional(hashedToken)).thenReturn(Optional.of(existing));
 
             authService.logout(null, rawRefreshToken);
 

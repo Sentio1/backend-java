@@ -9,7 +9,7 @@ import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.user_service.organization.entity.Organization;
 import com.sentio.user_service.organization.entity.OrganizationMember;
 import com.sentio.user_service.organization.enums.OrgRole;
-import com.sentio.user_service.organization.repository.OrganizationMemberRepository;
+import com.sentio.user_service.organization.service.finder.OrganizationMemberFinder;
 import com.sentio.user_service.security.SecurityUser;
 import com.sentio.user_service.user.entity.User;
 import java.util.Optional;
@@ -33,7 +33,7 @@ import org.springframework.security.core.Authentication;
 class OrganizationSecurityTest {
 
     @Mock
-    private OrganizationMemberRepository organizationMemberRepository;
+    private OrganizationMemberFinder organizationMemberFinder;
 
     @InjectMocks
     private OrganizationSecurity organizationSecurity;
@@ -65,7 +65,7 @@ class OrganizationSecurityTest {
             User user = user(1L);
             Authentication auth = new TestingAuthenticationToken(new SecurityUser(user), null);
             OrganizationMember membership = membership(user, OrgRole.LAWYER);
-            when(organizationMemberRepository.findByUserIdAndOrganizationId(1L, 10L))
+            when(organizationMemberFinder.findByUserIdAndOrganizationId(1L, 10L))
                     .thenReturn(Optional.of(membership));
 
             assertThat(organizationSecurity.requireMembership(10L, auth)).isEqualTo(membership);
@@ -75,7 +75,7 @@ class OrganizationSecurityTest {
         void notAMemberOfTheOrgAtAll_throwsResourceNotFoundException() {
             User user = user(1L);
             Authentication auth = new TestingAuthenticationToken(new SecurityUser(user), null);
-            when(organizationMemberRepository.findByUserIdAndOrganizationId(1L, 10L))
+            when(organizationMemberFinder.findByUserIdAndOrganizationId(1L, 10L))
                     .thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> organizationSecurity.requireMembership(10L, auth))
@@ -100,7 +100,7 @@ class OrganizationSecurityTest {
             User user = user(1L);
             Authentication auth = new TestingAuthenticationToken(new SecurityUser(user), null);
             OrganizationMember membership = membership(user, OrgRole.OWNER);
-            when(organizationMemberRepository.findByUserIdAndOrganizationId(1L, 10L))
+            when(organizationMemberFinder.findByUserIdAndOrganizationId(1L, 10L))
                     .thenReturn(Optional.of(membership));
 
             assertThatCode(() -> organizationSecurity.requireOwnership(10L, auth))
@@ -114,7 +114,7 @@ class OrganizationSecurityTest {
         void nonOwnerMemberOfTheOrg_throwsResourceNotFoundException() {
             User user = user(1L);
             Authentication auth = new TestingAuthenticationToken(new SecurityUser(user), null);
-            when(organizationMemberRepository.findByUserIdAndOrganizationId(1L, 10L))
+            when(organizationMemberFinder.findByUserIdAndOrganizationId(1L, 10L))
                     .thenReturn(Optional.of(membership(user, OrgRole.LAWYER)));
 
             assertThatThrownBy(() -> organizationSecurity.requireOwnership(10L, auth))
@@ -125,7 +125,7 @@ class OrganizationSecurityTest {
         void notAMemberOfTheOrgAtAll_throwsResourceNotFoundException() {
             User user = user(1L);
             Authentication auth = new TestingAuthenticationToken(new SecurityUser(user), null);
-            when(organizationMemberRepository.findByUserIdAndOrganizationId(1L, 10L))
+            when(organizationMemberFinder.findByUserIdAndOrganizationId(1L, 10L))
                     .thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> organizationSecurity.requireOwnership(10L, auth))

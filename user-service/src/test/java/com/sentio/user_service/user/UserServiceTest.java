@@ -8,7 +8,7 @@ import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.user_service.organization.entity.Organization;
 import com.sentio.user_service.organization.entity.OrganizationMember;
 import com.sentio.user_service.organization.enums.OrgRole;
-import com.sentio.user_service.organization.repository.OrganizationMemberRepository;
+import com.sentio.user_service.organization.service.finder.OrganizationMemberFinder;
 import com.sentio.user_service.user.dto.UserContextResponse;
 import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.mapper.UserMapper;
@@ -30,7 +30,7 @@ class UserServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private OrganizationMemberRepository organizationMemberRepository;
+    private OrganizationMemberFinder organizationMemberFinder;
 
     @Mock
     private UserMapper userMapper;
@@ -68,7 +68,7 @@ class UserServiceTest {
         User user = user(1L);
         OrganizationMember membership = membership(user);
         when(userFinder.findById(1L)).thenReturn(user);
-        when(organizationMemberRepository.findByUserIdAndIsDefaultTrue(1L)).thenReturn(Optional.of(membership));
+        when(organizationMemberFinder.findByUserIdAndIsDefaultTrue(1L)).thenReturn(Optional.of(membership));
 
         UserContextResponse expected = UserContextResponse.builder()
                 .id(1L)
@@ -97,7 +97,7 @@ class UserServiceTest {
         // findUserById must tolerate a missing default membership.
         User user = user(1L);
         when(userFinder.findById(1L)).thenReturn(user);
-        when(organizationMemberRepository.findByUserIdAndIsDefaultTrue(1L)).thenReturn(Optional.empty());
+        when(organizationMemberFinder.findByUserIdAndIsDefaultTrue(1L)).thenReturn(Optional.empty());
 
         UserContextResponse expected = UserContextResponse.builder()
                 .id(1L)

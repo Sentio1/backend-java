@@ -8,9 +8,9 @@ import com.lisovskyi.core_service.case_.dto.response.CaseResponse;
 import com.lisovskyi.core_service.case_.mapper.CaseMapper;
 import com.lisovskyi.core_service.case_.service.finder.CaseFinder;
 import com.lisovskyi.core_service.case_event.CaseEvent;
-import com.lisovskyi.core_service.case_event.CaseEventRepository;
+import com.lisovskyi.core_service.case_event.finder.CaseEventFinder;
 import com.lisovskyi.core_service.court.Court;
-import com.lisovskyi.core_service.court.CourtRepository;
+import com.lisovskyi.core_service.court.finder.CourtFinder;
 import com.lisovskyi.core_service.deadline_engine.DeadlineEngine;
 import com.lisovskyi.core_service.entity.SoftDeleteManager;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
@@ -33,8 +33,8 @@ import java.util.List;
 public class CaseService {
 
     private final CaseRepository caseRepository;
-    private final CourtRepository courtRepository;
-    private final CaseEventRepository caseEventRepository;
+    private final CourtFinder courtFinder;
+    private final CaseEventFinder caseEventFinder;
     private final CaseFinder caseFinder;
     private final CaseMapper caseMapper;
 
@@ -79,15 +79,14 @@ public class CaseService {
                 case_.setCourt(null);
                 return;
             }
-            Court court = courtRepository.findById(courtId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Court", "id", courtId));
+            Court court = courtFinder.findById(courtId);
             case_.setCourt(court);
         });
 
         Case savedCase = caseRepository.save(case_);
 
         if (procedureChanged || instanceChanged) {
-            List<CaseEvent> caseEvents = caseEventRepository.findAllByCaseIdAndOrganizationId(caseId.id(), organizationId.id());
+            List<CaseEvent> caseEvents = caseEventFinder.findAllByCaseIdAndOrganizationId(caseId.id(), organizationId.id());
             deadlineEngine.recalcAllDeadlines(caseEvents);
         }
 

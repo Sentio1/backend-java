@@ -3,7 +3,7 @@ package com.sentio.user_service.security;
 import com.lisovskyi.security.autoconfigure.security.SecurityPrincipal;
 import com.lisovskyi.security.autoconfigure.security.UserByIdDetailsService;
 import com.sentio.user_service.user.entity.User;
-import com.sentio.user_service.user.repository.UserRepository;
+import com.sentio.user_service.user.service.finder.UserFinder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -23,12 +23,12 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class UserByIdDetailsServiceImpl implements UserByIdDetailsService {
 
-    private final UserRepository userRepository;
+    private final UserFinder userFinder;
 
     @Override
     public SecurityPrincipal loadUserById(Long userId) {
         log.trace("Loading security details for userId: {}", userId);
-        User user = userRepository.findById(userId).orElseThrow(() -> {
+        User user = userFinder.findByIdOptional(userId).orElseThrow(() -> {
             log.warn("Security load failed: No user found with id {}", userId);
             return new UsernameNotFoundException("No user with id " + userId);
         });

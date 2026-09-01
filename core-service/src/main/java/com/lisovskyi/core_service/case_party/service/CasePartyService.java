@@ -12,7 +12,7 @@ import com.lisovskyi.core_service.case_party.dto.response.CasePartyResponse;
 import com.lisovskyi.core_service.case_party.mapper.CasePartyMapper;
 import com.lisovskyi.core_service.case_party.service.finder.CasePartyFinder;
 import com.lisovskyi.core_service.client.Client;
-import com.lisovskyi.core_service.client.ClientRepository;
+import com.lisovskyi.core_service.client.finder.ClientFinder;
 import com.lisovskyi.core_service.entity.SoftDeleteManager;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsException;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
@@ -37,7 +37,7 @@ public class CasePartyService {
 
     private final CasePartyRepository casePartyRepository;
     private final CasePartyFinder casePartyFinder;
-    private final ClientRepository clientRepository;
+    private final ClientFinder clientFinder;
 
     private final CasePartyMapper casePartyMapper;
     private final SoftDeleteManager softDeleteManager;
@@ -71,9 +71,7 @@ public class CasePartyService {
         // opponentName - падало на case_parties_client_xor_opponent_check замість чистого 404.
         Long clientId = request.clientId().orElse(null);
         if (clientId != null) {
-            Client client = clientRepository
-                    .findByIdAndOrganizationId(clientId, organizationId.id())
-                    .orElseThrow(() -> new ResourceNotFoundException("Client", "id", clientId));
+            Client client = clientFinder.findByIdAndOrganizationId(clientId, organizationId.id());
             caseParty.setClient(client);
         }
 
@@ -91,9 +89,7 @@ public class CasePartyService {
                 caseParty.setClient(null);
                 return;
             }
-            Client client = clientRepository
-                    .findByIdAndOrganizationId(clientId, organizationId.id())
-                    .orElseThrow(() -> new ResourceNotFoundException("Client", "id", clientId));
+            Client client = clientFinder.findByIdAndOrganizationId(clientId, organizationId.id());
             caseParty.setClient(client);
         });
 

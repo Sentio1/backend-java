@@ -3,8 +3,7 @@ package com.lisovskyi.core_service.case_event;
 import static com.sentio.shared.persistence.ConstraintViolations.isUniqueConstraintViolation;
 
 import com.lisovskyi.core_service.case_.Case;
-import com.lisovskyi.core_service.case_.enums.ProcedureType;
-import com.lisovskyi.core_service.case_.service.CaseFinder;
+import com.lisovskyi.core_service.case_.service.finder.CaseFinder;
 import com.lisovskyi.core_service.case_event.dto.request.CaseEventAutoRegisterRequest;
 import com.lisovskyi.core_service.case_event.dto.request.CaseEventManualRegisterRequest;
 import com.lisovskyi.core_service.case_event.dto.request.CaseEventOccurredAtChangeRequest;
@@ -15,17 +14,11 @@ import com.lisovskyi.core_service.case_event.enums.Source;
 import com.lisovskyi.core_service.case_event.mapper.CaseEventMapper;
 import com.lisovskyi.core_service.case_event_occurred_at_history.CaseEventOccurredAtHistory;
 import com.lisovskyi.core_service.case_event_occurred_at_history.CaseEventOccurredAtHistoryRepository;
-import com.lisovskyi.core_service.court.Court;
-import com.lisovskyi.core_service.court.EventDateResolver;
 import com.lisovskyi.core_service.deadline.Deadline;
 import com.lisovskyi.core_service.deadline.DeadlineRepository;
-import com.lisovskyi.core_service.deadline.WorkingDayCalculator;
-import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
+import com.lisovskyi.core_service.deadline_engine.DeadlineEngine;
 import com.lisovskyi.core_service.deadline_rule.DeadlineRuleRepository;
-import com.lisovskyi.core_service.deadline_rule.enums.CountFrom;
-import com.lisovskyi.core_service.deadline_rule.enums.DurationUnit;
-import com.lisovskyi.core_service.entity.SoftDeletable;
-import com.lisovskyi.core_service.holiday.Holiday;
+import com.lisovskyi.core_service.entity.SoftDeleteManager;
 import com.lisovskyi.core_service.holiday.HolidayRepository;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsException;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
@@ -35,11 +28,8 @@ import com.sentio.shared.entity.id.case_event.CaseEventId;
 import com.sentio.shared.entity.id.organization.OrganizationId;
 import com.sentio.shared.entity.id.user.UserId;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,7 +42,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CaseEventService implements SoftDeletable {
+public class CaseEventService {
 
     private final CaseEventRepository caseEventRepository;
     private final DeadlineRepository deadlineRepository;
@@ -62,6 +52,9 @@ public class CaseEventService implements SoftDeletable {
 
     private final CaseEventMapper caseEventMapper;
     private final CaseFinder caseFinder;
+    private final DeadlineEngine deadlineEngine;
+
+    private final SoftDeleteManager softDeleteManager;
 
     @Transactional(readOnly = true)
     public PageResponse<CaseEventResponse> getAllCaseEvents(
@@ -104,7 +97,7 @@ public class CaseEventService implements SoftDeletable {
         caseEvent.setRegisteredAt(Instant.now());
 
         CaseEvent savedCaseEvent = caseEventRepository.saveAndFlush(caseEvent);
-        Long deadlineId = deadlineEngine(savedCaseEvent);
+        Long deadlineId = deadlineEngine.generateDeadline(savedCaseEvent);
         log.info("Manually registered case event id: {} for caseId: {}", savedCaseEvent.getId(), caseId);
         return caseEventMapper.toResponse(savedCaseEvent, deadlineId);
     }
@@ -123,7 +116,7 @@ public class CaseEventService implements SoftDeletable {
 
         try {
             CaseEvent savedCaseEvent = caseEventRepository.saveAndFlush(caseEvent);
-            Long deadlineId = deadlineEngine(savedCaseEvent);
+            Long deadlineId = deadlineEngine.generateDeadline(savedCaseEvent);
             log.info("Successfully registered registry event id: {} for caseId: {}", savedCaseEvent.getId(), caseId);
             return caseEventMapper.toResponse(savedCaseEvent, deadlineId);
         } catch (DataIntegrityViolationException e) {
@@ -174,7 +167,7 @@ public class CaseEventService implements SoftDeletable {
         CaseEvent savedCaseEvent = caseEventRepository.save(caseEvent);
         caseEventOccurredAtHistoryRepository.save(caseEventOccurredAtHistory);
 
-        Long deadlineId = deadlineEngine(savedCaseEvent);
+        Long deadlineId = deadlineEngine.generateDeadline(savedCaseEvent);
         log.info(
                 "Changed occurredAt for eventId: {} (old: {}, new: {})",
                 eventId,
@@ -217,10 +210,10 @@ public class CaseEventService implements SoftDeletable {
                 .findByIdAndCaseIdAndOrganizationId(eventId.id(), caseId.id(), organizationId.id())
                 .orElseThrow(() -> new ResourceNotFoundException("CaseEvent", "id", eventId));
 
-        deleteEntity(caseEvent, deletedById.id(), deleteReason);
+        softDeleteManager.deleteEntity(caseEvent, deletedById.id(), deleteReason);
 
         deadlineRepository.findByTriggeringEvent(caseEvent).ifPresent(deadline -> {
-            deleteEntity(deadline, deletedById.id(), deleteReason);
+            softDeleteManager.deleteEntity(deadline, deletedById.id(), deleteReason);
             deadlineRepository.save(deadline);
         });
 
@@ -236,84 +229,9 @@ public class CaseEventService implements SoftDeletable {
                 .findDeletedByIdAndCaseIdAndOrganizationId(eventId.id(), caseId.id(), organizationId.id())
                 .orElseThrow(() -> new ResourceNotFoundException("CaseEvent", "id", eventId));
 
-        restoreEntity(caseEvent, restoredById.id());
+        softDeleteManager.restoreEntity(caseEvent, restoredById.id());
         caseEventRepository.save(caseEvent);
         log.info("Successfully restored eventId: {}", eventId);
-    }
-
-    Long deadlineEngine(CaseEvent caseEvent) {
-        Court court = caseEvent.getCase_().getCourt();
-        LocalDate occurredAt = EventDateResolver.toLocalDate(caseEvent.getOccurredAt(), court);
-
-        ProcedureType procedure = caseEvent.getCase_().getProcedure();
-        EventCode triggerEventCode = caseEvent.getEventCode();
-
-        Optional<DeadlineRule> deadlineRuleOpt =
-                deadlineRuleRepository.findByActiveRule(procedure, triggerEventCode, occurredAt);
-        if (deadlineRuleOpt.isEmpty()) {
-            // не помилка, просто нема правила
-            return null;
-        }
-
-        DeadlineRule rule = deadlineRuleOpt.get();
-
-        LocalDate startsOn =
-                switch (rule.getCountFrom()) {
-                    case CountFrom.NEXT_DAY -> occurredAt.plusDays(1);
-                    case CountFrom.SAME_DAY -> occurredAt;
-                };
-
-        LocalDate dueOn =
-                switch (rule.getDurationUnit()) {
-                    case DurationUnit.DAY ->
-                        switch (rule.getDayKind()) {
-                            case CALENDAR -> startsOn.plusDays(rule.getDurationValue());
-                            case WORKING -> {
-                                short upperBound = (short) (rule.getDurationValue() * 2 + 10);
-                                LocalDate upperBoundDate = startsOn.plusDays(upperBound);
-
-                                List<Holiday> holidays =
-                                        holidayRepository.findAllByDateBetween(startsOn, upperBoundDate);
-                                Map<LocalDate, Boolean> holidayOverrides = new HashMap<>();
-                                holidays.forEach(
-                                        holiday -> holidayOverrides.put(holiday.getDate(), holiday.isWorking()));
-
-                                yield WorkingDayCalculator.calculateDueOn(
-                                        startsOn, rule.getDurationValue(), upperBoundDate, holidayOverrides);
-                            }
-                        };
-                    case DurationUnit.MONTH -> startsOn.plusMonths(rule.getDurationValue());
-                };
-
-        Optional<Deadline> existingOpt = deadlineRepository.findByTriggeringEventAndRule(caseEvent, rule);
-
-        Deadline deadline = existingOpt
-                .map(existing -> {
-                    log.info(
-                            "Recalculating deadline id={} for event id={}: dueOn {} -> {}",
-                            existing.getId(),
-                            caseEvent.getId(),
-                            existing.getDueOn(),
-                            dueOn);
-
-                    existing.setTitle(rule.getTitle());
-                    existing.setLegalBasis(rule.getLegalBasis());
-                    existing.setStartsOn(startsOn);
-                    existing.setDueOn(dueOn);
-                    return existing;
-                })
-                .orElseGet(() -> Deadline.builder()
-                        .title(rule.getTitle())
-                        .legalBasis(rule.getLegalBasis())
-                        .organizationId(caseEvent.getOrganizationId())
-                        .case_(caseEvent.getCase_())
-                        .rule(rule)
-                        .triggeringEvent(caseEvent)
-                        .startsOn(startsOn)
-                        .dueOn(dueOn)
-                        .build());
-
-        return deadlineRepository.save(deadline).getId();
     }
 
     private Long findDeadlineId(CaseEvent caseEvent) {

@@ -1,7 +1,6 @@
 package com.lisovskyi.core_service.deadline;
 
 import com.lisovskyi.core_service.case_event.CaseEvent;
-import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -13,8 +12,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface DeadlineRepository extends JpaRepository<Deadline, Long> {
-
-    Optional<Deadline> findByTriggeringEventAndRule(CaseEvent triggeringEvent, DeadlineRule rule);
 
     Optional<Deadline> findByTriggeringEvent(CaseEvent triggeringEvent);
 

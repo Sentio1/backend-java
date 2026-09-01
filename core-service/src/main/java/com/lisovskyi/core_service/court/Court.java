@@ -4,11 +4,11 @@ import static com.lisovskyi.core_service.court.CourtConstants.*;
 
 import com.lisovskyi.jpa.autoconfigure.entity.BaseEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 // Глобальний довідник судів — БЕЗ organization_id: суди спільні для всіх орендарів,
 // це не дані організації, тому без TimestampedEntity/софт-делету.
@@ -30,8 +30,10 @@ public class Court extends BaseEntity {
     private String code;
 
     // 1 / 2 / 3
+    @Enumerated(EnumType.STRING)
     @Column(name = "instance", nullable = false)
-    private short instance;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private CourtInstance courtInstance;
 
     @Column(name = "region", length = REGION_LENGTH)
     private String region;

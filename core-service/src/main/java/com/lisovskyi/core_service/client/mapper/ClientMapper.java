@@ -1,5 +1,7 @@
 package com.lisovskyi.core_service.client.mapper;
 
+import static com.sentio.shared.util.JsonNullableSupport.setIfPresent;
+
 import com.lisovskyi.core_service.client.Client;
 import com.lisovskyi.core_service.client.dto.request.ClientCreateRequest;
 import com.lisovskyi.core_service.client.dto.request.ClientUpdateRequest;
@@ -7,12 +9,11 @@ import com.lisovskyi.core_service.client.dto.response.ClientMaskedResponse;
 import com.lisovskyi.core_service.client.dto.response.ClientResponse;
 import com.lisovskyi.core_service.client_activity.ClientActivity;
 import com.sentio.shared.util.DataMaskingUtils;
+import com.sentio.shared.util.JsonNullableSupport;
 import java.time.LocalDate;
-import java.util.function.Consumer;
 import org.mapstruct.*;
-import org.openapitools.jackson.nullable.JsonNullable;
 
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = JsonNullableSupport.class)
 public interface ClientMapper {
 
     // organizationId/createdById надходять не з тіла запиту (JWT/шлях), а не з ClientCreateRequest,
@@ -104,12 +105,6 @@ public interface ClientMapper {
         setIfPresent(request.notes(), client::setNotes);
     }
 
-    default <T> void setIfPresent(JsonNullable<T> value, Consumer<T> setter) {
-        if (value != null && value.isPresent()) {
-            setter.accept(value.get());
-        }
-    }
-
     @AfterMapping
     default void mapActivities(ClientCreateRequest request, @MappingTarget Client client) {
         if (request.activities() != null && request.activities().isPresent()) {
@@ -139,9 +134,5 @@ public interface ClientMapper {
 
     default String toActivityValue(ClientActivity activity) {
         return activity.getActivity();
-    }
-
-    default <T> T unwrap(JsonNullable<T> nullable) {
-        return nullable == null || !nullable.isPresent() ? null : nullable.get();
     }
 }

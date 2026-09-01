@@ -9,7 +9,7 @@ import com.lisovskyi.core_service.client.dto.request.ClientUpdateRequest;
 import com.lisovskyi.core_service.client.dto.response.ClientResponse;
 import com.lisovskyi.core_service.client.exception.ClientHasActiveCasesException;
 import com.lisovskyi.core_service.client.mapper.ClientMapper;
-import com.lisovskyi.core_service.entity.SoftDeletable;
+import com.lisovskyi.core_service.entity.SoftDeleteManager;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsException;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.shared.dto.PageResponse;
@@ -31,11 +31,13 @@ import org.springframework.util.StringUtils;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ClientService implements SoftDeletable {
+public class ClientService {
 
     private final ClientRepository clientRepository;
     private final CasePartyRepository casePartyRepository;
     private final ClientMapper clientMapper;
+
+    private final SoftDeleteManager softDeleteManager;
 
     private static final Set<CaseStatus> TERMINAL_CASE_STATUSES =
             Arrays.stream(CaseStatus.values()).filter(CaseStatus::isTerminal).collect(Collectors.toUnmodifiableSet());
@@ -166,7 +168,7 @@ public class ClientService implements SoftDeletable {
             throw new ClientHasActiveCasesException(clientId);
         }
 
-        deleteEntity(client, deletedById.id(), deleteReason);
+        softDeleteManager.deleteEntity(client, deletedById.id(), deleteReason);
         clientRepository.save(client);
         log.info("Successfully deleted client clientId: {} in orgId: {}", clientId, organizationId);
     }
@@ -180,7 +182,7 @@ public class ClientService implements SoftDeletable {
 
         assertUniqueTaxIds(organizationId.id(), client.getRnokpp(), client.getEdrpou(), clientId.id());
 
-        restoreEntity(client, restoredById.id());
+        softDeleteManager.restoreEntity(client, restoredById.id());
 
         try {
             clientRepository.saveAndFlush(client);

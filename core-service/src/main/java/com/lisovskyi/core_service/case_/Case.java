@@ -2,6 +2,7 @@ package com.lisovskyi.core_service.case_;
 
 import static com.lisovskyi.core_service.case_.CaseConstants.*;
 
+import com.lisovskyi.core_service.case_.enums.CaseInstance;
 import com.lisovskyi.core_service.case_.enums.CaseStatus;
 import com.lisovskyi.core_service.case_.enums.ProcedureType;
 import com.lisovskyi.core_service.court.Court;
@@ -36,6 +37,10 @@ public class Case extends CoreEntity {
     @Column(name = "responsible_user_id", nullable = false)
     private long responsibleUserId;
 
+    // soft-ref auth.users.id - хто завів справу (не обов'язково той самий, що responsibleUserId)
+    @Column(name = "created_by", nullable = false)
+    private long createdBy;
+
     // 761/4823/25 — null поки не відкрито провадження
     @Column(name = "case_number", length = CASE_NUMBER_LENGTH)
     private String caseNumber;
@@ -50,13 +55,19 @@ public class Case extends CoreEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "procedure", nullable = false)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    private ProcedureType procedure;
+    @Builder.Default
+    private ProcedureType procedure = ProcedureType.OTHER;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "instance", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private CaseInstance instance;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Builder.Default
-    private CaseStatus status = CaseStatus.DRAFT;
+    private CaseStatus status = CaseStatus.ACTIVE;
 
     // фізичний FK у межах core-service: core.courts(id)
     @ManyToOne(fetch = FetchType.LAZY)

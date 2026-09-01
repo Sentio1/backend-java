@@ -5,13 +5,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.lisovskyi.core_service.TestcontainersConfiguration;
 import com.lisovskyi.core_service.case_.Case;
 import com.lisovskyi.core_service.case_.CaseRepository;
+import com.lisovskyi.core_service.case_.enums.CaseInstance;
 import com.lisovskyi.core_service.case_.enums.ProcedureType;
 import com.lisovskyi.core_service.case_event.dto.request.CaseEventManualRegisterRequest;
 import com.lisovskyi.core_service.case_event.dto.response.CaseEventResponse;
 import com.lisovskyi.core_service.case_event.enums.EventCode;
 import com.lisovskyi.core_service.court.Court;
+import com.lisovskyi.core_service.court.CourtInstance;
 import com.lisovskyi.core_service.deadline.Deadline;
 import com.lisovskyi.core_service.deadline.DeadlineRepository;
+import com.lisovskyi.core_service.deadline_engine.DeadlineEngine;
 import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
 import com.lisovskyi.core_service.deadline_rule.DeadlineRuleRepository;
 import com.lisovskyi.core_service.deadline_rule.enums.CountFrom;
@@ -43,6 +46,9 @@ class CaseEventDeadlineEngineIT {
     private CaseEventService caseEventService;
 
     @Autowired
+    private DeadlineEngine deadlineEngine;
+
+    @Autowired
     private CaseEventRepository caseEventRepository;
 
     @Autowired
@@ -66,7 +72,7 @@ class CaseEventDeadlineEngineIT {
         Court court = Court.builder()
                 .name("Печерський районний суд м. Києва")
                 .code("757")
-                .instance((short) 1)
+                .courtInstance(CourtInstance.FIRST)
                 .timeZone("Europe/Kyiv")
                 .isActive(true)
                 .build();
@@ -80,6 +86,7 @@ class CaseEventDeadlineEngineIT {
                 .responsibleUserId(1L)
                 .title("Позов про стягнення заборгованості")
                 .procedure(ProcedureType.CIVIL)
+                .instance(CaseInstance.FIRST)
                 .court(court)
                 .build();
         return caseRepository.save(case_);
@@ -143,7 +150,7 @@ class CaseEventDeadlineEngineIT {
 
         CaseEvent reloadedCaseEvent =
                 caseEventRepository.findById(response.id()).orElseThrow();
-        Long secondDeadlineId = caseEventService.deadlineEngine(reloadedCaseEvent);
+        Long secondDeadlineId = deadlineEngine.generateDeadline(reloadedCaseEvent);
         flushAndDetach();
 
         // Нова startsOn = 06.06 (05.06 + 1), нова dueOn = 11.06 (06.06 + 5) - і той самий рядок.

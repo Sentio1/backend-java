@@ -17,6 +17,14 @@ public interface CaseEventRepository extends JpaRepository<CaseEvent, Long> {
         SELECT c FROM CaseEvent c
         WHERE c.case_.id = :caseId
           AND c.organizationId = :organizationId
+        """)
+    List<CaseEvent> findAllByCaseIdAndOrganizationId(
+            @Param("caseId") Long caseId, @Param("organizationId") Long organizationId);
+
+    @Query("""
+        SELECT c FROM CaseEvent c
+        WHERE c.case_.id = :caseId
+          AND c.organizationId = :organizationId
           AND (:eventCode IS NULL OR c.eventCode = :eventCode)
         ORDER BY c.occurredAt
         """)

@@ -1,16 +1,12 @@
 package com.lisovskyi.core_service.case_.enums;
 
 public enum CaseStatus {
-    DRAFT,
-    PRE_TRIAL,
-    FIRST_INSTANCE,
-    APPEAL,
-    CASSATION,
-    ENFORCEMENT,
-    CLOSED,
+    ACTIVE,
+    SUSPENDED,
+    COMPLETED,
     ARCHIVED;
 
     public boolean isTerminal() {
-        return this == CLOSED || this == ARCHIVED;
+        return this == COMPLETED || this == ARCHIVED;
     }
 }

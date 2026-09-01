@@ -37,6 +37,6 @@ public interface UserMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "user", source = "user")
     @Mapping(target = "provider", constant = "LOCAL")
-    @Mapping(target = "providerUserId", expression = "java(String.valueOf(user.getId()))")
+    @Mapping(target = "providerUserId", expression = "java(java.util.UUID.randomUUID().toString())")
     UserIdentity toLocalIdentity(User user);
 }

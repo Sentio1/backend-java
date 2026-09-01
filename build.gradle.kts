@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.spring.boot) apply false
     alias(libs.plugins.spring.dependency.management) apply false
     java
-    id("com.diffplug.spotless") version("8.9.0")
     id("org.graalvm.buildtools.native") version("0.10.2") apply false
 }
 
@@ -26,7 +25,6 @@ allprojects {
 subprojects {
     pluginManager.apply("java")
     pluginManager.apply("checkstyle")
-    pluginManager.apply("com.diffplug.spotless")
 
     extensions.configure<CheckstyleExtension> {
         toolVersion = "10.17.0"
@@ -41,16 +39,6 @@ subprojects {
     java {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(25))
-        }
-    }
-
-    spotless {
-        java {
-            target("src/main/java/**/*.java", "src/test/java/**/*.java")
-            palantirJavaFormat("2.97.0")
-            removeUnusedImports()
-            trimTrailingWhitespace()
-            endWithNewline()
         }
     }
 

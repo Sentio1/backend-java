@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.lisovskyi.core_service.TestcontainersConfiguration;
 import com.lisovskyi.core_service.case_.Case;
 import com.lisovskyi.core_service.case_.CaseRepository;
+import com.lisovskyi.core_service.case_.enums.CaseInstance;
 import com.lisovskyi.core_service.case_.enums.CaseStatus;
 import com.lisovskyi.core_service.case_.enums.ProcedureType;
 import com.lisovskyi.core_service.case_party.CaseParty;
@@ -13,6 +14,7 @@ import com.lisovskyi.core_service.case_party.CasePartyRepository;
 import com.lisovskyi.core_service.case_party.CasePartyRole;
 import com.lisovskyi.core_service.client.exception.ClientHasActiveCasesException;
 import com.lisovskyi.core_service.court.Court;
+import com.lisovskyi.core_service.court.CourtInstance;
 import com.sentio.shared.entity.id.client.ClientId;
 import com.sentio.shared.entity.id.organization.OrganizationId;
 import com.sentio.shared.entity.id.user.UserId;
@@ -56,7 +58,7 @@ class ClientActiveCasesRestrictionIT {
         Court court = Court.builder()
                 .name("Печерський районний суд м. Києва")
                 .code("757-active-cases-it")
-                .instance((short) 1)
+                .courtInstance(CourtInstance.FIRST)
                 .timeZone("Europe/Kyiv")
                 .isActive(true)
                 .build();
@@ -85,6 +87,7 @@ class ClientActiveCasesRestrictionIT {
                 .responsibleUserId(1L)
                 .title("Позов про стягнення заборгованості")
                 .procedure(ProcedureType.CIVIL)
+                .instance(CaseInstance.FIRST)
                 .court(court)
                 .status(status)
                 .build();
@@ -106,7 +109,7 @@ class ClientActiveCasesRestrictionIT {
         Long organizationId = 3_001L;
         Court court = persistCourt();
         Client client = persistClient(organizationId);
-        Case activeCase = persistCase(organizationId, court, CaseStatus.FIRST_INSTANCE);
+        Case activeCase = persistCase(organizationId, court, CaseStatus.ACTIVE);
         linkAsParty(organizationId, activeCase, client);
         flushAndDetach();
 
@@ -124,7 +127,7 @@ class ClientActiveCasesRestrictionIT {
         Long organizationId = 3_002L;
         Court court = persistCourt();
         Client client = persistClient(organizationId);
-        Case closedCase = persistCase(organizationId, court, CaseStatus.CLOSED);
+        Case closedCase = persistCase(organizationId, court, CaseStatus.COMPLETED);
         Case archivedCase = persistCase(organizationId, court, CaseStatus.ARCHIVED);
         linkAsParty(organizationId, closedCase, client);
         linkAsParty(organizationId, archivedCase, client);

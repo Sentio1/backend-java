@@ -196,7 +196,7 @@ class AuthServiceTest {
             verify(userRepository).saveAndFlush(userCaptor.capture());
             User savedUser = userCaptor.getValue();
             assertThat(savedUser.getIdentities()).hasSize(1);
-            assertThat(savedUser.getIdentities().get(0).getProviderUserId()).isEqualTo("3");
+            assertThat(savedUser.getIdentities().get(0).getProviderUserId()).isNotNull();
         }
 
         @Test
@@ -390,6 +390,7 @@ class AuthServiceTest {
             String rawToken = "raw-refresh-token";
             String hashedToken = opaqueTokenService.hash(rawToken);
             RefreshToken revoked = RefreshToken.builder()
+                    .user(persistedUser(1L, "user@sentio.dev", "password123"))
                     .tokenHash(hashedToken)
                     .expiresAt(Instant.now().plus(1, ChronoUnit.DAYS))
                     .revokedAt(Instant.now().minus(1, ChronoUnit.HOURS))
@@ -408,6 +409,7 @@ class AuthServiceTest {
             String rawToken = "raw-refresh-token";
             String hashedToken = opaqueTokenService.hash(rawToken);
             RefreshToken expired = RefreshToken.builder()
+                    .user(persistedUser(1L, "user@sentio.dev", "password123"))
                     .tokenHash(hashedToken)
                     .expiresAt(Instant.now().minus(1, ChronoUnit.HOURS))
                     .build();
@@ -437,6 +439,7 @@ class AuthServiceTest {
             String rawRefreshToken = "raw-refresh-token";
             String hashedToken = opaqueTokenService.hash(rawRefreshToken);
             RefreshToken existing = RefreshToken.builder()
+                    .user(persistedUser(1L, "user@sentio.dev", "password123"))
                     .tokenHash(hashedToken)
                     .expiresAt(Instant.now().plus(1, ChronoUnit.DAYS))
                     .build();
@@ -466,6 +469,7 @@ class AuthServiceTest {
             String rawRefreshToken = "raw-refresh-token";
             String hashedToken = opaqueTokenService.hash(rawRefreshToken);
             RefreshToken existing = RefreshToken.builder()
+                    .user(persistedUser(1L, "user@sentio.dev", "password123"))
                     .tokenHash(hashedToken)
                     .expiresAt(Instant.now().plus(1, ChronoUnit.DAYS))
                     .build();

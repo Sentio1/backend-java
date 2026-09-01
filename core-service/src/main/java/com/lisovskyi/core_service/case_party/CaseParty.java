@@ -32,8 +32,17 @@ public class CaseParty extends CoreEntity {
 
     // фізичний FK у межах core-service: core.clients(id)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id", nullable = false, referencedColumnName = "id")
+    @JoinColumn(name = "client_id", referencedColumnName = "id")
     private Client client;
+
+    @Column(name = "opponent_name", columnDefinition = "TEXT")
+    private String opponentName;
+
+    @Column(name = "opponent_contact", columnDefinition = "TEXT")
+    private String opponentContact;
+
+    @Column(name = "opponent_details", columnDefinition = "TEXT")
+    private String opponentDetails;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)

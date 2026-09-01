@@ -1,6 +1,6 @@
 package com.lisovskyi.core_service.deadline;
 
-import com.lisovskyi.core_service.case_.service.CaseFinder;
+import com.lisovskyi.core_service.case_.service.finder.CaseFinder;
 import com.lisovskyi.core_service.deadline.dto.response.DeadlineResponse;
 import com.lisovskyi.core_service.deadline.mapper.DeadlineMapper;
 import com.sentio.shared.dto.PageResponse;

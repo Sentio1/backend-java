@@ -22,9 +22,11 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
+import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.annotation.Autowired;
+
 @Component
 @Slf4j
-@RequiredArgsConstructor
 /** GoogleOAuth2SuccessHandler class. */
 public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
@@ -36,6 +38,12 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
     private final AuthService authService;
     private final CookieService cookieService;
+
+    @Autowired
+    public GoogleOAuth2SuccessHandler(@Lazy AuthService authService, CookieService cookieService) {
+        this.authService = authService;
+        this.cookieService = cookieService;
+    }
 
     @Override
     public void onAuthenticationSuccess(

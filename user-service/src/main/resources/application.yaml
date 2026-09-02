@@ -89,6 +89,11 @@ resilience4j:
         limit-refresh-period: 60s
         timeout-duration: 0s
 
+logging:
+  structured:
+    format:
+      console: logstash
+
 app:
   jwt:
     private-key: ${JWT_PRIVATE_KEY}

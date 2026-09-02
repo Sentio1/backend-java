@@ -29,6 +29,8 @@ public interface CasePartyRepository extends JpaRepository<CaseParty, Long> {
             Pageable pageable
     );
 
+    Page<CaseParty> findAllByClientIdAndOrganizationId(Long clientId, Long organizationId, Pageable pageable);
+
     // @SQLRestriction("deleted_at IS NULL") на CoreEntity фільтрує будь-який JPQL-запит до цієї
     // сутності, тому restoreCaseParty не може знайти вже видалений рядок через звичайний
     // findByIdAndCaseIdAndOrganizationId - потрібен нативний запит в обхід рестрикції (той самий

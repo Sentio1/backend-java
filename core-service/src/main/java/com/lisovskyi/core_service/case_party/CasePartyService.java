@@ -1,16 +1,14 @@
-package com.lisovskyi.core_service.case_party.service;
+package com.lisovskyi.core_service.case_party;
 
 import static com.sentio.shared.persistence.ConstraintViolations.isUniqueConstraintViolation;
 
 import com.lisovskyi.core_service.case_.Case;
-import com.lisovskyi.core_service.case_.service.finder.CaseFinder;
-import com.lisovskyi.core_service.case_party.CaseParty;
-import com.lisovskyi.core_service.case_party.CasePartyRepository;
+import com.lisovskyi.core_service.case_.finder.CaseFinder;
 import com.lisovskyi.core_service.case_party.dto.request.CasePartyCreateRequest;
 import com.lisovskyi.core_service.case_party.dto.request.CasePartyUpdateRequest;
 import com.lisovskyi.core_service.case_party.dto.response.CasePartyResponse;
 import com.lisovskyi.core_service.case_party.mapper.CasePartyMapper;
-import com.lisovskyi.core_service.case_party.service.finder.CasePartyFinder;
+import com.lisovskyi.core_service.case_party.finder.CasePartyFinder;
 import com.lisovskyi.core_service.client.Client;
 import com.lisovskyi.core_service.client.finder.ClientFinder;
 import com.lisovskyi.core_service.entity.SoftDeleteManager;

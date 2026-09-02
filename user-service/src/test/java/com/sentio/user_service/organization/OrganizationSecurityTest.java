@@ -9,7 +9,7 @@ import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.user_service.organization.entity.Organization;
 import com.sentio.user_service.organization.entity.OrganizationMember;
 import com.sentio.user_service.organization.enums.OrgRole;
-import com.sentio.user_service.organization.service.finder.OrganizationMemberFinder;
+import com.sentio.user_service.organization.finder.OrganizationMemberFinder;
 import com.sentio.user_service.security.SecurityUser;
 import com.sentio.user_service.user.entity.User;
 import java.util.Optional;

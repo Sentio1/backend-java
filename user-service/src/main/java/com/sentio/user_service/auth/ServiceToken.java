@@ -9,7 +9,7 @@ import com.sentio.user_service.auth.dto.response.ServiceTokenResult;
 import com.sentio.user_service.auth.token.TokenIssuer;
 import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.enums.PlatformRole;
-import com.sentio.user_service.user.service.finder.UserFinder;
+import com.sentio.user_service.user.finder.UserFinder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

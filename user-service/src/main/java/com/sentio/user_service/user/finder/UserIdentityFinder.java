@@ -1,4 +1,4 @@
-package com.sentio.user_service.user.service.finder;
+package com.sentio.user_service.user.finder;
 
 import com.sentio.shared.entity.finder.EntityFinder;
 import com.sentio.user_service.user.entity.UserIdentity;

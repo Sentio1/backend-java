@@ -4,14 +4,14 @@ import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsExcep
 import com.sentio.shared.dto.PageResponse;
 import com.sentio.user_service.organization.dto.organization_member.OrganizationMemberResponse;
 import com.sentio.user_service.organization.mapper.OrganizationMemberMapper;
-import com.sentio.user_service.organization.service.finder.OrganizationMemberFinder;
+import com.sentio.user_service.organization.finder.OrganizationMemberFinder;
 import com.sentio.user_service.user.dto.UserAdminDetailResponse;
 import com.sentio.user_service.user.dto.UserAdminSummaryResponse;
 import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.enums.PlatformRole;
 import com.sentio.user_service.user.mapper.UserMapper;
 import com.sentio.user_service.user.repository.UserRepository;
-import com.sentio.user_service.user.service.finder.UserFinder;
+import com.sentio.user_service.user.finder.UserFinder;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

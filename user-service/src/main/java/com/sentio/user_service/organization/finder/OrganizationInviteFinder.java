@@ -1,4 +1,4 @@
-package com.sentio.user_service.organization.service.finder;
+package com.sentio.user_service.organization.finder;
 
 import com.sentio.shared.entity.finder.EntityFinder;
 import com.sentio.user_service.organization.entity.OrganizationInvite;

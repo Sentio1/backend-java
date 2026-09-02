@@ -76,6 +76,11 @@ management:
     readinessstate:
       enabled: true
 
+logging:
+  structured:
+    format:
+      console: logstash
+
 app:
   jwt:
     # jwks-uri, не статичний public-key/previous-public-key: JWKS сам віддає

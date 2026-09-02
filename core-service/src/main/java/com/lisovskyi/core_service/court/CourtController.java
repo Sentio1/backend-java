@@ -1,7 +1,7 @@
 package com.lisovskyi.core_service.court;
 
 import com.lisovskyi.core_service.court.dto.response.CourtResponse;
-import com.lisovskyi.core_service.court.service.CourtService;
+
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

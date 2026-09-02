@@ -15,7 +15,11 @@ public interface ClientFinder extends EntityFinder<Client, Long> {
 
     Page<Client> searchClient(Long organizationId, String query, Pageable pageable);
 
-    java.util.Optional<Client> findDeletedByIdAndOrganizationId(Long id, Long organizationId);
+    Client findDeletedByIdAndOrganizationId(Long id, Long organizationId);
+
+    Client findByOrganizationIdAndRnokpp(Long organizationId, String rnokpp);
+
+    Client findByOrganizationIdAndEdrpou(Long organizationId, String edrpou);
 
     boolean existsActiveByOrganizationIdAndRnokpp(Long organizationId, String rnokpp, Long excludeId);
 

@@ -36,7 +36,7 @@ import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.mapper.UserMapper;
 import com.sentio.user_service.user.mapper.UserMapperImpl;
 import com.sentio.user_service.user.repository.UserRepository;
-import com.sentio.user_service.user.service.finder.UserFinder;
+import com.sentio.user_service.user.finder.UserFinder;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;

@@ -1,6 +1,8 @@
 package com.sentio.shared.entity.finder;
 
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -36,6 +38,13 @@ public abstract class AbstractEntityFinder<Entity, ID> implements EntityFinder<E
     @Override
     public boolean existsById(ID id) {
         return getRepository().existsById(id);
+    }
+
+    protected <Value, Value2> @NonNull List<Entity> findAll(Value value, Value2 value2, BiFunction<Value, Value2, List<Entity>> finder)
+            throws IllegalArgumentException, ResourceNotFoundException {
+        requireNonNull(value, value2);
+
+        return finder.apply(value, value2);
     }
 
     protected <Value> @NonNull Page<Entity> findAll(Value value, Pageable pageable, BiFunction<Value, Pageable, Page<Entity>> finder)

@@ -3,7 +3,7 @@ package com.lisovskyi.core_service.case_event;
 import static com.sentio.shared.persistence.ConstraintViolations.isUniqueConstraintViolation;
 
 import com.lisovskyi.core_service.case_.Case;
-import com.lisovskyi.core_service.case_.service.finder.CaseFinder;
+import com.lisovskyi.core_service.case_.finder.CaseFinder;
 import com.lisovskyi.core_service.case_event.dto.request.CaseEventAutoRegisterRequest;
 import com.lisovskyi.core_service.case_event.dto.request.CaseEventManualRegisterRequest;
 import com.lisovskyi.core_service.case_event.dto.request.CaseEventOccurredAtChangeRequest;

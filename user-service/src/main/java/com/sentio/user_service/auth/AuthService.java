@@ -25,7 +25,7 @@ import com.sentio.user_service.refresh_token.finder.RefreshTokenFinder;
 import com.sentio.user_service.user.entity.User;
 import com.sentio.user_service.user.mapper.UserMapper;
 import com.sentio.user_service.user.repository.UserRepository;
-import com.sentio.user_service.user.service.finder.UserFinder;
+import com.sentio.user_service.user.finder.UserFinder;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

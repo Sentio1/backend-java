@@ -55,6 +55,10 @@ public class EdrpouValidator implements ConstraintValidator<Edrpou, String> {
         return checkDigit == digits[7];
     }
 
+    public static boolean isValid(String value) {
+        return new EdrpouValidator().isValid(value, null);
+    }
+
     private static int weightedMod11(int[] digits, int[] weights) {
         int sum = 0;
         for (int i = 0; i < weights.length; i++) {

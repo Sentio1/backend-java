@@ -1,12 +1,10 @@
-package com.lisovskyi.core_service.case_.service;
+package com.lisovskyi.core_service.case_;
 
-import com.lisovskyi.core_service.case_.Case;
-import com.lisovskyi.core_service.case_.CaseRepository;
 import com.lisovskyi.core_service.case_.dto.request.CaseCreateRequest;
 import com.lisovskyi.core_service.case_.dto.request.CaseUpdateRequest;
 import com.lisovskyi.core_service.case_.dto.response.CaseResponse;
 import com.lisovskyi.core_service.case_.mapper.CaseMapper;
-import com.lisovskyi.core_service.case_.service.finder.CaseFinder;
+import com.lisovskyi.core_service.case_.finder.CaseFinder;
 import com.lisovskyi.core_service.case_event.CaseEvent;
 import com.lisovskyi.core_service.case_event.finder.CaseEventFinder;
 import com.lisovskyi.core_service.court.Court;

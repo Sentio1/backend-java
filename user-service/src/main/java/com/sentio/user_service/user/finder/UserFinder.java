@@ -1,4 +1,4 @@
-package com.sentio.user_service.user.service.finder;
+package com.sentio.user_service.user.finder;
 
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.shared.entity.finder.EntityFinder;

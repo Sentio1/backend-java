@@ -10,3 +10,4 @@ gradle.properties
 *.per
 *.key
 private.*
+*.der

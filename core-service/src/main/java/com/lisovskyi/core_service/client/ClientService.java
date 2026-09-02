@@ -3,7 +3,7 @@ package com.lisovskyi.core_service.client;
 import static com.sentio.shared.persistence.ConstraintViolations.isUniqueConstraintViolation;
 
 import com.lisovskyi.core_service.case_.enums.CaseStatus;
-import com.lisovskyi.core_service.case_party.service.finder.CasePartyFinder;
+import com.lisovskyi.core_service.case_party.finder.CasePartyFinder;
 import com.lisovskyi.core_service.client.dto.request.ClientCreateRequest;
 import com.lisovskyi.core_service.client.dto.request.ClientUpdateRequest;
 import com.lisovskyi.core_service.client.dto.response.ClientResponse;
@@ -12,7 +12,6 @@ import com.lisovskyi.core_service.client.finder.ClientFinder;
 import com.lisovskyi.core_service.client.mapper.ClientMapper;
 import com.lisovskyi.core_service.entity.SoftDeleteManager;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsException;
-import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.shared.dto.PageResponse;
 import com.sentio.shared.entity.id.client.ClientId;
 import com.sentio.shared.entity.id.organization.OrganizationId;
@@ -172,9 +171,7 @@ public class ClientService {
     @Transactional
     public void restoreClient(ClientId clientId, OrganizationId organizationId, UserId restoredById) {
         log.debug("Attempting to restore client clientId: {} for orgId: {}", clientId, organizationId);
-        Client client = clientFinder
-                .findDeletedByIdAndOrganizationId(clientId.id(), organizationId.id())
-                .orElseThrow(() -> new ResourceNotFoundException("Client", "id", clientId));
+        Client client = clientFinder.findDeletedByIdAndOrganizationId(clientId.id(), organizationId.id());
 
         assertUniqueTaxIds(organizationId.id(), client.getRnokpp(), client.getEdrpou(), clientId.id());
 

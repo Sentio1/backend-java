@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.lisovskyi.core_service.TestcontainersConfiguration;
 import com.lisovskyi.core_service.case_.Case;
 import com.lisovskyi.core_service.case_.CaseRepository;
+import com.lisovskyi.core_service.case_.CaseService;
 import com.lisovskyi.core_service.case_.dto.request.CaseUpdateRequest;
 import com.lisovskyi.core_service.case_.enums.CaseInstance;
 import com.lisovskyi.core_service.case_.enums.ProcedureType;

@@ -15,7 +15,7 @@ import com.sentio.user_service.user.entity.UserIdentity;
 import com.sentio.user_service.user.enums.AuthProvider;
 import com.sentio.user_service.user.repository.UserIdentityRepository;
 import com.sentio.user_service.user.repository.UserRepository;
-import com.sentio.user_service.user.service.finder.UserIdentityFinder;
+import com.sentio.user_service.user.finder.UserIdentityFinder;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

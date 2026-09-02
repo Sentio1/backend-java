@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.lisovskyi.core_service.TestcontainersConfiguration;
 import com.lisovskyi.core_service.case_.Case;
 import com.lisovskyi.core_service.case_.CaseRepository;
+import com.lisovskyi.core_service.case_.CaseService;
 import com.lisovskyi.core_service.case_.enums.CaseInstance;
 import com.lisovskyi.core_service.case_.enums.ProcedureType;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;

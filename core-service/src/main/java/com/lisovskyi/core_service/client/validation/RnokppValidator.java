@@ -32,4 +32,8 @@ public class RnokppValidator implements ConstraintValidator<Rnokpp, String> {
 
         return checkDigit == (value.charAt(9) - '0');
     }
+
+    public static boolean isValid(String value) {
+        return new RnokppValidator().isValid(value, null);
+    }
 }

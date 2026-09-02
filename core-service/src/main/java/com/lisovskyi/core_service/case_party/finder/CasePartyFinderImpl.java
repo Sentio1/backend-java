@@ -1,4 +1,4 @@
-package com.lisovskyi.core_service.case_party.service.finder;
+package com.lisovskyi.core_service.case_party.finder;
 
 import com.lisovskyi.core_service.case_.enums.CaseStatus;
 import com.lisovskyi.core_service.case_party.CaseParty;
@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Set;
 
 @Component
@@ -31,6 +32,12 @@ public class CasePartyFinderImpl extends AbstractEntityFinder<CaseParty, Long> i
     @Override
     public CaseParty findByIdAndCaseIdAndOrganizationId(Long id, Long caseId, Long organizationId) {
         return findBy(id, caseId, organizationId, casePartyRepository::findByIdAndCaseIdAndOrganizationId);
+    }
+
+    @Override
+    public List<CaseParty> findAllByClientIdAndOrganizationId(Long clientId, Long organizationId) {
+        return findAll(clientId, organizationId, Pageable.unpaged(), casePartyRepository::findAllByClientIdAndOrganizationId)
+                .stream().toList();
     }
 
     @Override

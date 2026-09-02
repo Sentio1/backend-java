@@ -37,6 +37,10 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
             nativeQuery = true)
     Optional<Client> findDeletedByIdAndOrganizationId(Long id, Long organizationId);
 
+    Optional<Client> findByOrganizationIdAndRnokpp(Long organizationId, String rnokpp);
+
+    Optional<Client> findByOrganizationIdAndEdrpou(Long organizationId, String edrpou);
+
     @Query("""
     SELECT COUNT(c) > 0 FROM Client c
     WHERE c.organizationId = :organizationId

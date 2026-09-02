@@ -9,8 +9,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
-
 @Component
 @RequiredArgsConstructor
 public class ClientFinderImpl extends AbstractEntityFinder<Client, Long> implements ClientFinder {
@@ -48,9 +46,18 @@ public class ClientFinderImpl extends AbstractEntityFinder<Client, Long> impleme
     }
 
     @Override
-    public Optional<Client> findDeletedByIdAndOrganizationId(Long id, Long organizationId) {
-        requireNonNull(id, organizationId);
-        return clientRepository.findDeletedByIdAndOrganizationId(id, organizationId);
+    public Client findDeletedByIdAndOrganizationId(Long id, Long organizationId) {
+        return findBy(id, organizationId, clientRepository::findDeletedByIdAndOrganizationId);
+    }
+
+    @Override
+    public Client findByOrganizationIdAndRnokpp(Long organizationId, String rnokpp) {
+        return findBy(organizationId, rnokpp, clientRepository::findByOrganizationIdAndRnokpp);
+    }
+
+    @Override
+    public Client findByOrganizationIdAndEdrpou(Long organizationId, String edrpou) {
+        return findBy(organizationId, edrpou, clientRepository::findByOrganizationIdAndEdrpou);
     }
 
     @Override

@@ -3,7 +3,7 @@ package com.sentio.user_service.security;
 import com.lisovskyi.security.autoconfigure.security.SecurityPrincipal;
 import com.lisovskyi.security.autoconfigure.security.UserByIdDetailsService;
 import com.sentio.user_service.user.entity.User;
-import com.sentio.user_service.user.service.finder.UserFinder;
+import com.sentio.user_service.user.finder.UserFinder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

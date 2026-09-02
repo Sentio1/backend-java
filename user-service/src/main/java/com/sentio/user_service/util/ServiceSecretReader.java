@@ -1,7 +1,7 @@
 package com.sentio.user_service.util;
 
 import com.sentio.user_service.user.repository.UserRepository;
-import com.sentio.user_service.user.service.finder.UserFinder;
+import com.sentio.user_service.user.finder.UserFinder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;

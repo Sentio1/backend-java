@@ -48,21 +48,13 @@ public interface ClientMapper {
     @Mapping(target = "restoredBy", ignore = true)
     @Mapping(target = "type", ignore = true)
     @Mapping(target = "activities", ignore = true)
-    @Mapping(target = "lastName", ignore = true)
-    @Mapping(target = "firstName", ignore = true)
-    @Mapping(target = "middleName", ignore = true)
-    @Mapping(target = "birthDate", ignore = true)
-    @Mapping(target = "rnokpp", ignore = true)
-    @Mapping(target = "passport", ignore = true)
-    @Mapping(target = "companyName", ignore = true)
-    @Mapping(target = "edrpou", ignore = true)
-    @Mapping(target = "directorName", ignore = true)
-    @Mapping(target = "contactPersonName", ignore = true)
-    @Mapping(target = "email", ignore = true)
-    @Mapping(target = "phoneNumber", ignore = true)
-    @Mapping(target = "address", ignore = true)
-    @Mapping(target = "notes", ignore = true)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void updateEntityFromRequest(ClientUpdateRequest request, @MappingTarget Client client);
+
+    @Condition
+    default <T> boolean isPresent(org.openapitools.jackson.nullable.JsonNullable<T> value) {
+        return value != null && value.isPresent();
+    }
 
     ClientResponse toResponse(Client client);
 
@@ -87,23 +79,6 @@ public interface ClientMapper {
         return DataMaskingUtils.maskBirthDate(birthDate);
     }
 
-    @AfterMapping
-    default void applyPresentFields(ClientUpdateRequest request, @MappingTarget Client client) {
-        setIfPresent(request.lastName(), client::setLastName);
-        setIfPresent(request.firstName(), client::setFirstName);
-        setIfPresent(request.middleName(), client::setMiddleName);
-        setIfPresent(request.birthDate(), client::setBirthDate);
-        setIfPresent(request.rnokpp(), client::setRnokpp);
-        setIfPresent(request.passport(), client::setPassport);
-        setIfPresent(request.companyName(), client::setCompanyName);
-        setIfPresent(request.edrpou(), client::setEdrpou);
-        setIfPresent(request.directorName(), client::setDirectorName);
-        setIfPresent(request.contactPersonName(), client::setContactPersonName);
-        setIfPresent(request.email(), client::setEmail);
-        setIfPresent(request.phoneNumber(), client::setPhoneNumber);
-        setIfPresent(request.address(), client::setAddress);
-        setIfPresent(request.notes(), client::setNotes);
-    }
 
     @AfterMapping
     default void mapActivities(ClientCreateRequest request, @MappingTarget Client client) {

@@ -11,6 +11,7 @@ import com.lisovskyi.core_service.case_.enums.ProcedureType;
 import com.lisovskyi.core_service.case_party.CaseParty;
 import com.lisovskyi.core_service.case_party.CasePartyRepository;
 import com.lisovskyi.core_service.case_party.CasePartyRole;
+import com.lisovskyi.core_service.case_party.CasePartyService;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.shared.entity.id.case_.CaseId;
 import com.sentio.shared.entity.id.case_party.CasePartyId;

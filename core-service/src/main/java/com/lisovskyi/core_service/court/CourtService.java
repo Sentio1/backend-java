@@ -1,6 +1,5 @@
-package com.lisovskyi.core_service.court.service;
+package com.lisovskyi.core_service.court;
 
-import com.lisovskyi.core_service.court.CourtRepository;
 import com.lisovskyi.core_service.court.dto.response.CourtResponse;
 import com.lisovskyi.core_service.court.mapper.CourtMapper;
 import java.util.List;

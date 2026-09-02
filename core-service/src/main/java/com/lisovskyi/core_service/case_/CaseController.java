@@ -5,7 +5,6 @@ import static com.lisovskyi.core_service.entity.CoreEntityConstants.DELETE_REASO
 import com.lisovskyi.core_service.case_.dto.request.CaseCreateRequest;
 import com.lisovskyi.core_service.case_.dto.request.CaseUpdateRequest;
 import com.lisovskyi.core_service.case_.dto.response.CaseResponse;
-import com.lisovskyi.core_service.case_.service.CaseService;
 import com.sentio.shared.dto.PageResponse;
 import com.sentio.shared.entity.id.case_.CaseId;
 import com.sentio.shared.entity.id.organization.OrganizationId;

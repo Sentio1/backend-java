@@ -59,9 +59,10 @@ public class CaseController {
     public ResponseEntity<CaseResponse> updateCase(
             @PathVariable CaseId caseId,
             @CurrentOrganizationId OrganizationId organizationId,
+            @CurrentUserId UserId changedById,
             @RequestBody @Valid CaseUpdateRequest request
     ) {
-        return ResponseEntity.ok(caseService.updateCase(caseId, organizationId, request));
+        return ResponseEntity.ok(caseService.updateCase(caseId, organizationId, changedById, request));
     }
 
     @DeleteMapping("/{caseId}")

@@ -31,28 +31,27 @@ public class RateLimitingService {
     }
 
     private void checkLimits(String action, String email, String ip) {
+        RateLimiter ipRateLimiter = null;
+        if (ip != null && !ip.isBlank()) {
+            String ipConfig = action + "-by-ip";
+            String ipKey = String.format("%s-ip:%s", action, ip);
+            ipRateLimiter = limitersCache.get(ipKey, key -> RateLimiter.of(key, resolveConfig(ipConfig)));
+            
+            if (!ipRateLimiter.acquirePermission()) {
+                log.warn("Rate limit exceeded for action: {} by IP: {}", action, ip);
+                throw RequestNotPermitted.createRequestNotPermitted(ipRateLimiter);
+            }
+        }
+
+        RateLimiter emailRateLimiter = null;
         if (email != null && !email.isBlank()) {
             String emailConfig = action + "-by-email";
             String emailKey = String.format("%s-email:%s", action, email.toLowerCase(Locale.ROOT));
-
-            RateLimiter emailRateLimiter =
-                    limitersCache.get(emailKey, key -> RateLimiter.of(key, resolveConfig(emailConfig)));
+            emailRateLimiter = limitersCache.get(emailKey, key -> RateLimiter.of(key, resolveConfig(emailConfig)));
 
             if (!emailRateLimiter.acquirePermission()) {
                 log.warn("Rate limit exceeded for action: {} by email: {}", action, email);
                 throw RequestNotPermitted.createRequestNotPermitted(emailRateLimiter);
-            }
-        }
-
-        if (ip != null && !ip.isBlank()) {
-            String ipConfig = action + "-by-ip";
-            String ipKey = String.format("%s-ip:%s", action, ip);
-
-            RateLimiter ipRateLimiter = limitersCache.get(ipKey, key -> RateLimiter.of(key, resolveConfig(ipConfig)));
-
-            if (!ipRateLimiter.acquirePermission()) {
-                log.warn("Rate limit exceeded for action: {} by IP: {}", action, ip);
-                throw RequestNotPermitted.createRequestNotPermitted(ipRateLimiter);
             }
         }
     }

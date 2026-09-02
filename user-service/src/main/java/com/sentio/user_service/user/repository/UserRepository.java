@@ -22,6 +22,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // soft-deleted admin не рахується як "запасний" при демоуті останнього.
     long countByPlatformRole(PlatformRole platformRole);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.platformRole = :platformRole")
+    java.util.List<User> findActiveByPlatformRoleWithLock(@Param("platformRole") PlatformRole platformRole);
+
     @Query(value = """
         SELECT * FROM users u
         WHERE (:email IS NULL OR u.email ILIKE CONCAT('%', :email, '%'))

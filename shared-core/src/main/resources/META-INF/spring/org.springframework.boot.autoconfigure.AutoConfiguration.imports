@@ -1,2 +1,3 @@
 com.sentio.shared.config.GlobalAsyncConfig
 com.sentio.shared.config.SharedWebAutoConfiguration
+com.sentio.shared.config.AopConfig

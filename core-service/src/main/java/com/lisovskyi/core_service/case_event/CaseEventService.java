@@ -2,6 +2,8 @@ package com.lisovskyi.core_service.case_event;
 
 import static com.sentio.shared.persistence.ConstraintViolations.isUniqueConstraintViolation;
 
+import com.lisovskyi.core_service.audit_log.AuditLogService;
+import com.lisovskyi.core_service.audit_log.EntityType;
 import com.lisovskyi.core_service.case_.Case;
 import com.lisovskyi.core_service.case_.finder.CaseFinder;
 import com.lisovskyi.core_service.case_event.dto.request.CaseEventAutoRegisterRequest;
@@ -18,7 +20,7 @@ import com.lisovskyi.core_service.case_event.finder.CaseEventFinder;
 import com.lisovskyi.core_service.deadline.Deadline;
 import com.lisovskyi.core_service.deadline.DeadlineRepository;
 import com.lisovskyi.core_service.deadline.finder.DeadlineFinder;
-import com.lisovskyi.core_service.deadline_engine.DeadlineEngine;
+import com.lisovskyi.core_service.deadline_processor.DeadlineEngine;
 import com.lisovskyi.core_service.deadline_rule.DeadlineRuleRepository;
 import com.lisovskyi.core_service.entity.SoftDeleteManager;
 import com.lisovskyi.core_service.holiday.HolidayRepository;
@@ -32,6 +34,7 @@ import com.sentio.shared.entity.id.user.UserId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +60,7 @@ public class CaseEventService {
     private final CaseEventMapper caseEventMapper;
     private final CaseFinder caseFinder;
     private final DeadlineEngine deadlineEngine;
+    private final AuditLogService auditLogService;
 
     private final SoftDeleteManager softDeleteManager;
 
@@ -100,7 +104,7 @@ public class CaseEventService {
         caseEvent.setRegisteredAt(Instant.now());
 
         CaseEvent savedCaseEvent = caseEventRepository.saveAndFlush(caseEvent);
-        Long deadlineId = deadlineEngine.generateDeadline(savedCaseEvent);
+        Long deadlineId = deadlineEngine.generateDeadline(savedCaseEvent, createdBy.id());
         log.info("Manually registered case event id: {} for caseId: {}", savedCaseEvent.getId(), caseId);
         return caseEventMapper.toResponse(savedCaseEvent, deadlineId);
     }
@@ -119,7 +123,10 @@ public class CaseEventService {
 
         try {
             CaseEvent savedCaseEvent = caseEventRepository.saveAndFlush(caseEvent);
-            Long deadlineId = deadlineEngine.generateDeadline(savedCaseEvent);
+            // changedBy = null: автоматична реєстрація з Go-сервісу, немає людини-автора
+            // (SERVICE-роль з власною ідентичністю ще не реалізована - README/SEN-33), тож
+            // dueOn тут просто не потрапляє в audit_log замість вигаданого системного actor'а.
+            Long deadlineId = deadlineEngine.generateDeadline(savedCaseEvent, null);
             log.info("Successfully registered registry event id: {} for caseId: {}", savedCaseEvent.getId(), caseId);
             return caseEventMapper.toResponse(savedCaseEvent, deadlineId);
         } catch (DataIntegrityViolationException e) {
@@ -169,7 +176,19 @@ public class CaseEventService {
         CaseEvent savedCaseEvent = caseEventRepository.save(caseEvent);
         caseEventOccurredAtHistoryRepository.save(caseEventOccurredAtHistory);
 
-        Long deadlineId = deadlineEngine.generateDeadline(savedCaseEvent);
+        // Окремо від caseEventOccurredAtHistory (детальніша - з причиною): SEN-23 AC вимагає
+        // запису в загальний audit_log на КОЖНУ зміну case_events-поля, а occurredAt - саме те
+        // поле, заради якого й писався сам тікет ("клієнт каже, що адвокат пропустив строк").
+        auditLogService.log(
+                organizationId,
+                EntityType.CASE_EVENT,
+                eventId,
+                changedById,
+                "occurredAt",
+                oldOccurredAt.toString(),
+                request.newOccurredAt().toString());
+
+        Long deadlineId = deadlineEngine.generateDeadline(savedCaseEvent, changedById.id());
         log.info(
                 "Changed occurredAt for eventId: {} (old: {}, new: {})",
                 eventId,
@@ -180,17 +199,32 @@ public class CaseEventService {
 
     @Transactional
     public CaseEventResponse updateCaseEvent(
-            CaseId caseId, CaseEventId eventId, OrganizationId organizationId, CaseEventUpdateRequest request) {
+            CaseId caseId,
+            CaseEventId eventId,
+            OrganizationId organizationId,
+            UserId changedById,
+            CaseEventUpdateRequest request) {
         log.debug("Updating case eventId: {} for caseId: {}", eventId, caseId);
         CaseEvent caseEvent = caseEventFinder
                 .findByIdAndCaseIdAndOrganizationId(eventId.id(), caseId.id(), organizationId.id());
 
         if (request.title().isPresent()) {
-            caseEvent.setTitle(request.title().get());
+            String oldTitle = caseEvent.getTitle();
+            String newTitle = request.title().get();
+            caseEvent.setTitle(newTitle);
+            if (!Objects.equals(oldTitle, newTitle)) {
+                auditLogService.log(organizationId, EntityType.CASE_EVENT, eventId, changedById, "title", oldTitle, newTitle);
+            }
         }
 
         if (request.description().isPresent()) {
-            caseEvent.setDescription(request.description().get());
+            String oldDescription = caseEvent.getDescription();
+            String newDescription = request.description().get();
+            caseEvent.setDescription(newDescription);
+            if (!Objects.equals(oldDescription, newDescription)) {
+                auditLogService.log(
+                        organizationId, EntityType.CASE_EVENT, eventId, changedById, "description", oldDescription, newDescription);
+            }
         }
 
         CaseEvent savedCaseEvent = caseEventRepository.save(caseEvent);

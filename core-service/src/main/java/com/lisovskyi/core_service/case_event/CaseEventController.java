@@ -90,8 +90,9 @@ public class CaseEventController {
             @PathVariable CaseId caseId,
             @PathVariable CaseEventId eventId,
             @CurrentOrganizationId OrganizationId organizationId,
+            @CurrentUserId UserId changedById,
             @RequestBody @Valid CaseEventUpdateRequest request) {
-        return ResponseEntity.ok(caseEventService.updateCaseEvent(caseId, eventId, organizationId, request));
+        return ResponseEntity.ok(caseEventService.updateCaseEvent(caseId, eventId, organizationId, changedById, request));
     }
 
     @DeleteMapping("/{eventId}")

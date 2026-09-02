@@ -90,4 +90,19 @@ class RateLimitingServiceTest {
         assertThatThrownBy(() -> rateLimitingService.checkRegisterLimits("new@sentio.dev", "8.8.8.8"))
                 .isInstanceOf(RequestNotPermitted.class);
     }
+
+    @Test
+    void blockedIpDoesNotConsumeEmailToken() {
+        // 1. Exhaust IP limit for 9.9.9.9
+        rateLimitingService.checkLoginLimits("user1@sentio.dev", "9.9.9.9");
+
+        // 2. Attempt login with same exhausted IP but new email. Should fail due to IP limit.
+        assertThatThrownBy(() -> rateLimitingService.checkLoginLimits("user2@sentio.dev", "9.9.9.9"))
+                .isInstanceOf(RequestNotPermitted.class);
+
+        // 3. The email user2@sentio.dev should NOT have been consumed. 
+        // A request from a clean IP should succeed.
+        assertThatCode(() -> rateLimitingService.checkLoginLimits("user2@sentio.dev", "10.10.10.10"))
+                .doesNotThrowAnyException();
+    }
 }

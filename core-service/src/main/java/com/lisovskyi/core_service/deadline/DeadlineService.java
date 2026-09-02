@@ -8,6 +8,7 @@ import com.sentio.shared.dto.PageResponse;
 import com.sentio.shared.entity.id.case_.CaseId;
 import com.sentio.shared.entity.id.case_event.CaseEventId;
 import com.sentio.shared.entity.id.organization.OrganizationId;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -25,6 +26,7 @@ public class DeadlineService {
     private final CaseFinder caseFinder;
 
     @Transactional(readOnly = true)
+    @Timed(value = "core-service.deadline.duration", description = "Time taken for deadline")
     public PageResponse<DeadlineResponse> getAllDeadlines(
             CaseId caseId, OrganizationId organizationId, CaseEventId triggeringEventId, Pageable pageable) {
         log.debug(

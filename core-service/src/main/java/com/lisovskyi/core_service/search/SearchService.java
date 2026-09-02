@@ -12,6 +12,7 @@ import com.lisovskyi.core_service.client.validation.EdrpouValidator;
 import com.lisovskyi.core_service.client.validation.RnokppValidator;
 import com.lisovskyi.core_service.search.dto.response.SearchResponse;
 import com.sentio.shared.entity.id.organization.OrganizationId;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -39,6 +40,7 @@ public class SearchService {
     private final ClientMapper clientMapper;
 
     @Transactional(readOnly = true)
+    @Timed(value = "core-service.search.duration", description = "Time taken for search")
     public SearchResponse search(@NonNull OrganizationId organizationId, String query) {
         if (!StringUtils.hasText(query)) {
             return buildEmptyResult();

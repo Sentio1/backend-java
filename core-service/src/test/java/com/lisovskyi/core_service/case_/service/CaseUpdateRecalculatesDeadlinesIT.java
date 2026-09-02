@@ -150,7 +150,7 @@ class CaseUpdateRecalculatesDeadlinesIT {
                 JsonNullable.undefined(),
                 JsonNullable.undefined());
 
-        caseService.updateCase(CaseId.of(case_.getId()), OrganizationId.of(organizationId), procedureChangeRequest);
+        caseService.updateCase(CaseId.of(case_.getId()), OrganizationId.of(organizationId), UserId.of(1L), procedureChangeRequest);
         flushAndDetach();
 
         // Той самий рядок Deadline, тепер під COMMERCIAL-правилом (dueOn = 04.06 + 10 = 14.06) -

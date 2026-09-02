@@ -42,6 +42,7 @@ mapstruct-processor = { group = "org.mapstruct", name = "mapstruct-processor", v
 jackson-databind-nullable = { module = "org.openapitools:jackson-databind-nullable", version.ref = "jackson-databind-nullable" }
 
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+aspectjweaver = { module = "org.aspectj:aspectjweaver", version = "1.9.22.1" }
 spring-boot-starter-cache = { module = "org.springframework.boot:spring-boot-starter-cache" }
 spring-webmvc = { module = "org.springframework.boot:spring-boot-starter-webmvc" }
 
@@ -124,6 +125,7 @@ grpc-client = { module = "org.springframework.grpc:spring-grpc-spring-boot-start
 # Observability
 # =========================
 
+micrometer-core = { module = "io.micrometer:micrometer-core" }
 micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 
 zipkin-reporter = { module = "io.zipkin.reporter2:zipkin-reporter-brave" }
@@ -177,6 +179,8 @@ caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "c
 
 spring-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 
+junit-bom = { module = "org.junit:junit-bom", version = "6.0.0" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 
 testcontainers = { module = "org.testcontainers:testcontainers" }

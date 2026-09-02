@@ -76,13 +76,17 @@ public class AuthService {
         }
 
         User user = buildLocalUser(request);
-        user.getIdentities().add(userMapper.toLocalIdentity(user));
 
         try {
             User savedUser = userRepository.saveAndFlush(user);
+            
+            // Add the local identity now that the user has an ID, and save again
+            savedUser.getIdentities().add(userMapper.toLocalIdentity(savedUser));
+            savedUser = userRepository.saveAndFlush(savedUser);
+            
             log.info("Successfully registered user with email: {}", request.email());
             return new AuthResult(
-                    tokenIssuer.issue(user, null, ip, userAgent), userMapper.toUserContextResponse(savedUser, null));
+                    tokenIssuer.issue(savedUser, null, ip, userAgent), userMapper.toUserContextResponse(savedUser, null));
         } catch (DataIntegrityViolationException e) {
             // Real index name from V6__make_users_email_unique.sql - a plain
             // "uq_users_email" here would never match, so this catch would always

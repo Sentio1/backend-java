@@ -9,5 +9,3 @@
 -- users стане достатньо великою, щоб лок був відчутний, CONCURRENTLY можна
 -- повернути окремою міграцією, коли self-deadlock з Hibernate-пробою буде усунено.
 CREATE UNIQUE INDEX users_email_active_idx ON users(email) WHERE deleted_at IS NULL;
-
-alter table users drop constraint users_email_key;

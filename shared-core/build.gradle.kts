@@ -19,15 +19,16 @@ dependencies {
     api(libs.lisovskyi.security)
     api(libs.caffeine)
     api(libs.jackson.databind.nullable)
+    api(libs.aspectjweaver)
 
-    // Лише типи для компіляції (MVC-контракти) - самі MVC-біни піднімає consumer-сервіс,
-    // тут просто пишемо проти інтерфейсів; @ConditionalOnClass не дасть автоконфігу
-    // спрацювати там, де spring-webmvc взагалі немає.
+    api(libs.micrometer.core)
+    api(libs.micrometer.prometheus)
+
     compileOnly(libs.spring.webmvc)
 
-    testImplementation(platform("org.junit:junit-bom:6.0.0"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 tasks.bootJar {
@@ -36,13 +37,4 @@ tasks.bootJar {
 
 tasks.jar {
     enabled = true
-}
-
-// Вимикаємо AOT (Ahead-of-Time) компіляцію, на якій падає збірка
-tasks.withType<org.springframework.boot.gradle.tasks.aot.ProcessAot> {
-    enabled = false
-}
-
-tasks.withType<org.springframework.boot.gradle.tasks.aot.ProcessTestAot> {
-    enabled = false
 }

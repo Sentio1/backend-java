@@ -11,6 +11,8 @@ import com.sentio.user_service.user.entity.User;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
+
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -18,12 +20,12 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-/** OrganizationCreationService class. */
 public class OrganizationCreationService {
 
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
 
+    @Timed(value = "user-service.organization.create", description = "Time spent creating an organization")
     public OrganizationMember createOwnerMembership(User user, String orgName, String edrpou, PlanTier plan) {
         log.debug("Creating owner membership for user: {} with orgName: {}", user.getId(), orgName);
         if (orgName == null || orgName.isBlank()) {

@@ -203,8 +203,8 @@ class AuthServiceTest {
             verifyNoInteractions(organizationProvisioning);
 
             ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-            verify(userRepository).saveAndFlush(userCaptor.capture());
-            User savedUser = userCaptor.getValue();
+            org.mockito.Mockito.verify(userRepository, org.mockito.Mockito.times(2)).saveAndFlush(userCaptor.capture());
+            User savedUser = userCaptor.getAllValues().get(1); // get the second invocation
             assertThat(savedUser.getIdentities()).hasSize(1);
             assertThat(savedUser.getIdentities().get(0).getProviderUserId()).isNotNull();
         }

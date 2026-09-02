@@ -36,5 +36,8 @@ app:
 
 
 logging:
+  structured:
+    format:
+      console: logstash
   level:
     root: WARN

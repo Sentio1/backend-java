@@ -71,7 +71,7 @@ public class UserAdminService {
         User user = userFinder.findById(userId);
 
         if (user.getPlatformRole() == PlatformRole.ADMIN
-                && userFinder.countByPlatformRole(PlatformRole.ADMIN) <= 1) {
+                && userRepository.findActiveByPlatformRoleWithLock(PlatformRole.ADMIN).size() <= 1) {
             log.warn("Cannot demote userId {}: they are the last platform admin", userId);
             throw new IllegalStateException("Cannot demote: " + user.getEmail() + " is the last platform admin.");
         }

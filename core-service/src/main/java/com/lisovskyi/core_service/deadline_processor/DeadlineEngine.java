@@ -1,5 +1,7 @@
-package com.lisovskyi.core_service.deadline_engine;
+package com.lisovskyi.core_service.deadline_processor;
 
+import com.lisovskyi.core_service.audit_log.AuditLogService;
+import com.lisovskyi.core_service.audit_log.EntityType;
 import com.lisovskyi.core_service.case_.enums.ProcedureType;
 import com.lisovskyi.core_service.case_event.CaseEvent;
 import com.lisovskyi.core_service.case_event.enums.EventCode;
@@ -15,14 +17,19 @@ import com.lisovskyi.core_service.deadline_rule.enums.DurationUnit;
 import com.lisovskyi.core_service.holiday.Holiday;
 import com.lisovskyi.core_service.holiday.finder.HolidayFinder;
 import com.lisovskyi.core_service.deadline.finder.DeadlineFinder;
+import com.sentio.shared.entity.id.deadline.DeadlineId;
+import com.sentio.shared.entity.id.organization.OrganizationId;
+import com.sentio.shared.entity.id.user.UserId;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -34,9 +41,22 @@ public class DeadlineEngine {
     private final DeadlineFinder deadlineFinder;
     private final DeadlineRuleFinder deadlineRuleFinder;
     private final HolidayFinder holidayFinder;
+    private final AuditLogService auditLogService;
 
-    public Long generateDeadline(CaseEvent caseEvent) {
+
+    // changedBy: null означає "немає людини-автора" (напр. автоматична реєстрація події з
+    // Registry Monitor через registerRegistryCaseEvent - там ще нема SERVICE-токена з
+    // ідентичністю виклику, див. README/SEN-33) - у цьому випадку зміну dueOn просто не
+    // аудитуємо, а не вигадуємо фіктивного "системного" користувача, якого AuditLog.changedBy
+    // (NOT NULL, soft-ref на реального auth.users.id) не мав би сенсу представляти.
+    @Transactional
+    public Long generateDeadline(CaseEvent caseEvent, Long changedBy) {
         Court court = caseEvent.getCase_().getCourt();
+        if (court == null) {
+            log.info("Skipping deadline calculation for event id={}: case has no court", caseEvent.getId());
+            return null;
+        }
+
         LocalDate occurredAt = EventDateResolver.toLocalDate(caseEvent.getOccurredAt(), court);
 
         ProcedureType procedure = caseEvent.getCase_().getProcedure();
@@ -84,6 +104,7 @@ public class DeadlineEngine {
         // старому rule ніколи б не знайшов уже наявний дедлайн - замість оновлення на місці
         // з'являвся б другий, дублюючий рядок Deadline для тієї самої події.
         Optional<Deadline> existingOpt = deadlineFinder.findByTriggeringEvent(caseEvent);
+        LocalDate oldDueOn = existingOpt.map(Deadline::getDueOn).orElse(null);
 
         Deadline deadline = existingOpt
                 .map(existing -> {
@@ -112,16 +133,22 @@ public class DeadlineEngine {
                         .dueOn(dueOn)
                         .build());
 
-        return deadlineRepository.save(deadline).getId();
-    }
+        Deadline savedDeadline = deadlineRepository.save(deadline);
 
-    public void recalcAllDeadlines(List<CaseEvent> caseEvents) {
-        if (caseEvents.isEmpty()) {
-            log.info("No case events to recalculate");
-            return;
+        // Лише перерахунок УЖЕ наявного дедлайна (не первинне створення - там нема з чим
+        // порівнювати "стару" дату, як і CaseService.updateCase не пише аудит на createCase),
+        // і лише коли dueOn реально змінився, і лише коли є хто в цьому винний (changedBy != null).
+        if (changedBy != null && oldDueOn != null && !Objects.equals(oldDueOn, dueOn)) {
+            auditLogService.log(
+                    OrganizationId.of(caseEvent.getOrganizationId()),
+                    EntityType.DEADLINE,
+                    DeadlineId.of(savedDeadline.getId()),
+                    UserId.of(changedBy),
+                    "dueOn",
+                    oldDueOn.toString(),
+                    dueOn.toString());
         }
 
-        log.info("Recalculating {} deadlines", caseEvents.size());
-        caseEvents.forEach(this::generateDeadline);
+        return savedDeadline.getId();
     }
 }

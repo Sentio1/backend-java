@@ -127,11 +127,17 @@ public class UserService {
 
                     organizationFinder.findByIdLocked(orgId);
 
-                    if (organizationMemberFinder.countByOrganizationIdAndRole(orgId, OrgRole.OWNER) <= 1) {
-                        log.warn("Cannot delete userId {}: they are the last OWNER of orgId {}", userId, orgId);
-                        throw new IllegalArgumentException("Cannot delete account: you are the last owner of \""
-                                + m.getOrganization().getName()
-                                + "\". Promote someone else to OWNER or delete the organization first.");
+                    OrganizationMember freshMember = organizationMemberFinder
+                            .findByUserIdAndOrganizationId(userId, orgId)
+                            .orElse(null);
+
+                    if (freshMember != null && freshMember.getRole() == OrgRole.OWNER) {
+                        if (organizationMemberFinder.countByOrganizationIdAndRole(orgId, OrgRole.OWNER) <= 1) {
+                            log.warn("Cannot delete userId {}: they are the last OWNER of orgId {}", userId, orgId);
+                            throw new IllegalArgumentException("Cannot delete account: you are the last owner of \""
+                                    + m.getOrganization().getName()
+                                    + "\". Promote someone else to OWNER or delete the organization first.");
+                        }
                     }
                 });
 

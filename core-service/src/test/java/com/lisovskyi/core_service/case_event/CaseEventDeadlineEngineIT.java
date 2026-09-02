@@ -14,7 +14,7 @@ import com.lisovskyi.core_service.court.Court;
 import com.lisovskyi.core_service.court.CourtInstance;
 import com.lisovskyi.core_service.deadline.Deadline;
 import com.lisovskyi.core_service.deadline.DeadlineRepository;
-import com.lisovskyi.core_service.deadline_engine.DeadlineEngine;
+import com.lisovskyi.core_service.deadline_processor.DeadlineEngine;
 import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
 import com.lisovskyi.core_service.deadline_rule.DeadlineRuleRepository;
 import com.lisovskyi.core_service.deadline_rule.enums.CountFrom;
@@ -150,7 +150,7 @@ class CaseEventDeadlineEngineIT {
 
         CaseEvent reloadedCaseEvent =
                 caseEventRepository.findById(response.id()).orElseThrow();
-        Long secondDeadlineId = deadlineEngine.generateDeadline(reloadedCaseEvent);
+        Long secondDeadlineId = deadlineEngine.generateDeadline(reloadedCaseEvent, 1L);
         flushAndDetach();
 
         // Нова startsOn = 06.06 (05.06 + 1), нова dueOn = 11.06 (06.06 + 5) - і той самий рядок.

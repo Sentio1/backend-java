@@ -129,12 +129,13 @@ class CaseUpdateRecalculatesDeadlinesIT {
                 CaseId.of(case_.getId()), OrganizationId.of(organizationId), UserId.of(1L), eventRequest);
         flushAndDetach();
 
-        // startsOn = 04.06 (occurredAt + 1 NEXT_DAY), dueOn (CIVIL, 5 календарних) = 09.06.
+        // startsOn = 04.06 (occurredAt + 1 NEXT_DAY), dueOn (CIVIL, 5 календарних) = 09.06
+        // (неділя) → перенесення на робочий день (SEN-27), тобто на понеділок 10.06.
         assertThat(eventResponse.deadlineId()).isNotNull();
         Long deadlineId = eventResponse.deadlineId();
         Deadline firstDeadline = deadlineRepository.findById(deadlineId).orElseThrow();
         assertThat(firstDeadline.getRule().getId()).isEqualTo(civilRule.getId());
-        assertThat(firstDeadline.getDueOn()).isEqualTo(LocalDate.of(2024, 6, 9));
+        assertThat(firstDeadline.getDueOn()).isEqualTo(LocalDate.of(2024, 6, 10));
         assertThat(deadlineRepository.count()).isEqualTo(1);
 
         CaseUpdateRequest procedureChangeRequest = new CaseUpdateRequest(

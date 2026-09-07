@@ -9,19 +9,14 @@ import com.lisovskyi.core_service.court.Court;
 import com.lisovskyi.core_service.court.EventDateResolver;
 import com.lisovskyi.core_service.deadline.Deadline;
 import com.lisovskyi.core_service.deadline.DeadlineRepository;
-import com.lisovskyi.core_service.deadline.WorkingDayCalculator;
 import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
-import com.lisovskyi.core_service.deadline_rule.enums.DayKind;
 import com.lisovskyi.core_service.deadline_rule.finder.DeadlineRuleFinder;
-import com.lisovskyi.core_service.deadline_rule.enums.CountFrom;
-import com.lisovskyi.core_service.deadline_rule.enums.DurationUnit;
 import com.lisovskyi.core_service.holiday.Holiday;
 import com.lisovskyi.core_service.holiday.finder.HolidayFinder;
 import com.lisovskyi.core_service.deadline.finder.DeadlineFinder;
 import com.sentio.shared.entity.id.deadline.DeadlineId;
 import com.sentio.shared.entity.id.organization.OrganizationId;
 import com.sentio.shared.entity.id.user.UserId;
-import io.vavr.Tuple;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,8 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static io.vavr.API.*;
-import static io.vavr.Patterns.$Tuple2;
+import static com.lisovskyi.core_service.deadline_processor.DeadlineCalculator.calculateStartsOn;
 
 @Service
 @Slf4j
@@ -73,22 +67,12 @@ public class DeadlineEngine {
 
         DeadlineRule rule = deadlineRuleOpt.get();
 
-        LocalDate startsOn =
-                switch (rule.getCountFrom()) {
-                    case CountFrom.NEXT_DAY -> occurredAt.plusDays(1);
-                    case CountFrom.SAME_DAY -> occurredAt;
-                };
-
-        LocalDate dueOn = Match(Tuple.of(rule.getDurationUnit(), rule.getDayKind())).of(
-                Case($Tuple2($(DurationUnit.DAY), $(DayKind.CALENDAR)),
-                        () -> startsOn.plusDays(rule.getDurationValue())),
-
-                Case($Tuple2($(DurationUnit.DAY), $(DayKind.WORKING)),
-                        () -> calculateWorkingDaysDueOn(startsOn, rule.getDurationValue())),
-
-                Case($Tuple2($(DurationUnit.MONTH), $()),
-                        () -> startsOn.plusMonths(rule.getDurationValue()))
-        );
+        // Уся арифметика (з наступного дня чи з того самого, календарні/робочі дні,
+        // перенесення закінчення з вихідного на робочий) - у DeadlineCalculator (SEN-27),
+        // чистій функції без Spring і без репозиторіїв. DeadlineEngine лише дістає з БД те,
+        // чого сама функція дістати не може (свята), і передає аргументами.
+        LocalDate startsOn = calculateStartsOn(occurredAt, rule.getCountFrom());
+        LocalDate dueOn = calculateDueOn(startsOn, rule);
 
         // За triggeringEvent, а не за парою (triggeringEvent, rule): при зміні procedure/instance
         // справи (SEN-21) підбирається інше правило (інший рядок DeadlineRule), і пошук саме по
@@ -143,16 +127,27 @@ public class DeadlineEngine {
         return savedDeadline.getId();
     }
 
-    private LocalDate calculateWorkingDaysDueOn(LocalDate startsOn, short durationValue) {
-        short upperBound = (short) (durationValue * 2 + 10);
-        LocalDate upperBoundDate = startsOn.plusDays(upperBound);
-
+    private LocalDate calculateDueOn(LocalDate startsOn, DeadlineRule rule) {
         Map<LocalDate, Boolean> holidayOverrides =
-                io.vavr.collection.List.ofAll(holidayFinder.findAllByDateBetween(startsOn, upperBoundDate))
+                io.vavr.collection.List.ofAll(
+                                holidayFinder.findAllByDateBetween(startsOn, holidayWindowEnd(startsOn, rule)))
                         .toMap(Holiday::getDate, Holiday::isWorking)
                         .toJavaMap();
 
-        return WorkingDayCalculator.calculateDueOn(
-                startsOn, durationValue, upperBoundDate, holidayOverrides);
+        // Періоди зупинення строку (SEN-27 AC) ще нізвідки брати - для їх зберігання й
+        // редагування нема ні сутності, ні таблиці (окрема задача); тут завжди порожній
+        // список, DeadlineCalculator у цьому випадку поводиться так само, як і без нього.
+        return DeadlineCalculator.calculateDueOn(
+                startsOn, rule.getDurationUnit(), rule.getDayKind(), rule.getDurationValue(), holidayOverrides);
+    }
+
+    // Запас під вибірку свят з БД: щедрий, бо це лише межа SELECT-у, а не результат
+    // розрахунку - помилка тут означала б або зайвий рядок з БД (нешкідливо), або
+    // IllegalStateException з DeadlineCalculator (видно одразу, не тиха хиба).
+    private LocalDate holidayWindowEnd(LocalDate startsOn, DeadlineRule rule) {
+        return switch (rule.getDurationUnit()) {
+            case MONTH -> startsOn.plusMonths(rule.getDurationValue()).plusDays(10);
+            case DAY -> startsOn.plusDays(rule.getDurationValue() * 7L + 60);
+        };
     }
 }

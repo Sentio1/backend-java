@@ -34,9 +34,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.Transactional;
 
 // Наскрізний тест deadlineEngine (SEN-19): від CaseEventService.registerCaseEvent через
-// DeadlineRuleRepository.findByActiveRule і WorkingDayCalculator/CALENDAR-арифметику до
-// реального рядка core.deadlines у БД — саме той рівень, що ловить помилки склейки шматків,
-// а не кожен шматок окремо (юніт-тести на це вже є в WorkingDayCalculatorTest).
+// DeadlineRuleRepository.findByActiveRule і DeadlineCalculator-арифметику до реального рядка
+// core.deadlines у БД — саме той рівень, що ловить помилки склейки шматків, а не кожен шматок
+// окремо (юніт-тести на арифметику саму по собі вже є в DeadlineCalculatorTest).
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @Transactional
@@ -132,12 +132,13 @@ class CaseEventDeadlineEngineIT {
         flushAndDetach();
 
         // startsOn = occurredAt (03.06, пн) + 1 день (NEXT_DAY) = 04.06
-        // dueOn = startsOn + 5 календарних днів (CALENDAR) = 09.06
+        // dueOn = startsOn + 5 календарних днів (CALENDAR) = 09.06 (неділя) → переноситься
+        // на найближчий робочий день (SEN-27), тобто на понеділок 10.06.
         assertThat(response.deadlineId()).isNotNull();
         Deadline firstDeadline =
                 deadlineRepository.findById(response.deadlineId()).orElseThrow();
         assertThat(firstDeadline.getStartsOn()).isEqualTo(LocalDate.of(2024, 6, 4));
-        assertThat(firstDeadline.getDueOn()).isEqualTo(LocalDate.of(2024, 6, 9));
+        assertThat(firstDeadline.getDueOn()).isEqualTo(LocalDate.of(2024, 6, 10));
         assertThat(firstDeadline.getTitle()).isEqualTo(rule.getTitle());
         assertThat(deadlineRepository.count()).isEqualTo(1);
 

@@ -108,6 +108,9 @@ app:
       - http://localhost:3000
     bcrypt-strength: 12
     public-paths:
+      - /auth/register
+      - /auth/login
+      - /auth/refresh
       - /oauth2/**
       - /login/oauth2/**
       - /actuator/health/**

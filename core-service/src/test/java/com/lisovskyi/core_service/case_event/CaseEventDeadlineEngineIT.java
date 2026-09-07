@@ -96,6 +96,7 @@ class CaseEventDeadlineEngineIT {
         DeadlineRule rule = DeadlineRule.builder()
                 .code("TEST_CLAIM_FILED_CALENDAR")
                 .procedure(ProcedureType.CIVIL)
+                .courtInstance(CourtInstance.FIRST)
                 .triggerEventCode(EventCode.CLAIM_FILED)
                 .title("Подати відзив на позов")
                 .legalBasis("ст. 178 ЦПК України")

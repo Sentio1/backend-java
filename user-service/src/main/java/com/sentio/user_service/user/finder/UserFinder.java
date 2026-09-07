@@ -28,5 +28,7 @@ public interface UserFinder extends EntityFinder<User, Long> {
 
     boolean existsByEmail(String email);
 
+    boolean existsByPhoneNumber(String phoneNumber);
+
     long countByPlatformRole(PlatformRole platformRole);
 }

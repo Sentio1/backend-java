@@ -11,7 +11,6 @@ import com.lisovskyi.core_service.case_event.CaseEvent;
 import com.lisovskyi.core_service.case_event.finder.CaseEventFinder;
 import com.lisovskyi.core_service.court.Court;
 import com.lisovskyi.core_service.court.finder.CourtFinder;
-import com.lisovskyi.core_service.deadline_processor.DeadlineEngine;
 import com.lisovskyi.core_service.deadline_processor.DeadlineGenerator;
 import com.lisovskyi.core_service.entity.SoftDeleteManager;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
@@ -41,7 +40,6 @@ public class CaseService {
     private final CaseFinder caseFinder;
     private final CaseMapper caseMapper;
 
-    private final DeadlineEngine deadlineEngine;
     private final DeadlineGenerator deadlineGenerator;
     private final SoftDeleteManager softDeleteManager;
     private final AuditLogService auditLogService;

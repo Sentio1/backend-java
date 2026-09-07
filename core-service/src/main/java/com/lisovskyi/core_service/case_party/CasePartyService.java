@@ -87,6 +87,7 @@ public class CasePartyService {
                 caseParty.setClient(null);
                 return;
             }
+
             Client client = clientFinder.findByIdAndOrganizationId(clientId, organizationId.id());
             caseParty.setClient(client);
         });

@@ -10,6 +10,15 @@ spring:
     password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
+  # Spring Data Redis дефолтиться на localhost:6379 без цього оверрайду - для солового
+  # bootRun на хості це саме user-redis (той самий 6379), тож дефолт тут виглядав робочим
+  # для solo bootRun і мовчав аж поки user-service не почав запускатись деінде (minikube-под),
+  # де localhost - це сам под, не хост. Той самий підхід, що вже є в core-service.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
   jpa:
     hibernate:
       ddl-auto: validate

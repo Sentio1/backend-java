@@ -7,8 +7,8 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import com.sentio.shared.annotations.TriFunction;
-import jakarta.validation.Valid;
+import io.vavr.Function3;
+import io.vavr.Function4;
 import org.jspecify.annotations.NonNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,17 +27,27 @@ public abstract class AbstractEntityFinder<Entity, ID> implements EntityFinder<E
 
     @Override
     public Entity findById(ID id) throws ResourceNotFoundException {
+        requireNonNull(id);
         return getRepository().findById(id).orElseThrow(() -> new ResourceNotFoundException(getEntityName(), "id", id));
     }
 
     @Override
     public Optional<Entity> findByIdOptional(ID id) {
+        requireNonNull(id);
         return getRepository().findById(id);
     }
 
     @Override
     public boolean existsById(ID id) {
+        requireNonNull(id);
         return getRepository().existsById(id);
+    }
+
+    protected <Value> @NonNull List<Entity> findAll(Value value, Function<Value, List<Entity>> finder)
+            throws IllegalArgumentException, ResourceNotFoundException {
+        requireNonNull(value);
+
+        return finder.apply(value);
     }
 
     protected <Value, Value2> @NonNull List<Entity> findAll(Value value, Value2 value2, BiFunction<Value, Value2, List<Entity>> finder)
@@ -54,7 +64,7 @@ public abstract class AbstractEntityFinder<Entity, ID> implements EntityFinder<E
         return finder.apply(value, pageable);
     }
 
-    protected <Value, Value2> @NonNull Page<Entity> findAll(Value value, Value2 value2, Pageable pageable, TriFunction<Value, Value2, Pageable, Page<Entity>> finder)
+    protected <Value, Value2> @NonNull Page<Entity> findAll(Value value, Value2 value2, Pageable pageable, Function3<Value, Value2, Pageable, Page<Entity>> finder)
             throws IllegalArgumentException, ResourceNotFoundException {
         requireNonNull(value, value2);
 
@@ -86,19 +96,39 @@ public abstract class AbstractEntityFinder<Entity, ID> implements EntityFinder<E
     }
 
     protected <Value, Value2, Value3> @NonNull Entity findBy(
-            Value value, Value2 value2, Value3 value3, TriFunction<Value, Value2, Value3, Optional<Entity>> finder)
+            Value value, Value2 value2, Value3 value3, Function3<Value, Value2, Value3, Optional<Entity>> finder)
             throws IllegalArgumentException, ResourceNotFoundException {
         requireNonNull(value, value2, value3);
 
         return finder.apply(value, value2, value3)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        getEntityName() + " instance not found: " + value + ", " + value2));
+                        String.format("%s instance not found: %s, %s, %s", getEntityName(), value, value2, value3)
+                ));
+    }
+
+    protected <Value, Value2, Value3, Value4> @NonNull Entity findBy(
+            Value value, Value2 value2, Value3 value3, Value4 value4, Function4<Value, Value2, Value3, Value4, Optional<Entity>> finder)
+            throws IllegalArgumentException, ResourceNotFoundException {
+        requireNonNull(value, value2, value3, value4);
+
+        return finder.apply(value, value2, value3, value4)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        String.format("%s instance not found: %s, %s, %s, %s", getEntityName(), value, value2, value3, value4)
+                ));
     }
 
     protected void requireNonNull(Object... values) {
         for (Object v : values) {
             if (v == null) {
                 throw new IllegalArgumentException("Parameter for " + getEntityName() + "Finder cannot be null");
+            }
+        }
+    }
+
+    protected void requireNotBlank(String... values) {
+        for (String value : values) {
+            if (value == null || value.isBlank()) {
+                throw new IllegalArgumentException("Parameter for " + getEntityName() + "Finder cannot be blank or null");
             }
         }
     }

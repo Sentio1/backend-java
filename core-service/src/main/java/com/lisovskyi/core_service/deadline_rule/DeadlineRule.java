@@ -4,6 +4,7 @@ import static com.lisovskyi.core_service.deadline_rule.DeadlineRuleConstants.*;
 
 import com.lisovskyi.core_service.case_.enums.ProcedureType;
 import com.lisovskyi.core_service.case_event.enums.EventCode;
+import com.lisovskyi.core_service.court.CourtInstance;
 import com.lisovskyi.core_service.deadline_rule.enums.CountFrom;
 import com.lisovskyi.core_service.deadline_rule.enums.DayKind;
 import com.lisovskyi.core_service.deadline_rule.enums.DurationUnit;
@@ -38,9 +39,14 @@ public class DeadlineRule extends BaseEntity {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private ProcedureType procedure;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "instance", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private CourtInstance courtInstance;
+
     // яка подія запускає відлік
     @Enumerated(EnumType.STRING)
-    @Column(name = "trigger_event_code", nullable = false, length = TRIGGER_EVENT_CODE_LENGTH)
+    @Column(name = "trigger_event_code", nullable = false)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private EventCode triggerEventCode;
 
@@ -56,7 +62,7 @@ public class DeadlineRule extends BaseEntity {
 
     // DAY | MONTH
     @Enumerated(EnumType.STRING)
-    @Column(name = "duration_unit", nullable = false, length = DURATION_UNIT_LENGTH)
+    @Column(name = "duration_unit", nullable = false)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Builder.Default
     private DurationUnit durationUnit = DurationUnit.DAY;
@@ -69,7 +75,7 @@ public class DeadlineRule extends BaseEntity {
 
     // строк тече з наступного дня
     @Enumerated(EnumType.STRING)
-    @Column(name = "count_from", nullable = false, length = COUNT_FROM_LENGTH)
+    @Column(name = "count_from", nullable = false)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Builder.Default
     private CountFrom countFrom = CountFrom.NEXT_DAY;
@@ -84,4 +90,8 @@ public class DeadlineRule extends BaseEntity {
     // null = чинне
     @Column(name = "valid_to")
     private LocalDate validTo;
+
+    @Column(name = "version", nullable = false)
+    @Builder.Default
+    private short version = 1;
 }

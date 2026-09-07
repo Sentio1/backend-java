@@ -34,4 +34,6 @@ public interface DeadlineRepository extends JpaRepository<Deadline, Long> {
             @Param("caseId") Long caseId,
             @Param("organizationId") Long organizationId,
             Pageable pageable);
+
+    boolean existsByRuleId(Long ruleId);
 }

@@ -74,6 +74,16 @@ public class AuthService {
             log.warn("Registration failed: user with email {} already exists", request.email());
             throw new ResourceAlreadyExistsException("User with email: " + request.email() + " already exists");
         }
+        // phoneNumber - опційне поле (RegistrationRequest не має @NotBlank на ньому), а колонка
+        // nullable/UNIQUE - existsByPhoneNumber(null) не варто викликати: похідний запит зрівняв
+        // би з IS NULL і повернув би true, щойно з'явився б хоч один інший юзер без телефону.
+        if (request.phoneNumber() != null
+                && !request.phoneNumber().isBlank()
+                && userFinder.existsByPhoneNumber(request.phoneNumber())) {
+            log.warn("Registration failed: user with phone number {} already exists", request.phoneNumber());
+            throw new ResourceAlreadyExistsException(
+                    "User with phone number: " + request.phoneNumber() + " already exists");
+        }
 
         User user = buildLocalUser(request);
 
@@ -96,6 +106,16 @@ public class AuthService {
                         "Registration failed (constraint violation): user with email {} already exists",
                         request.email());
                 throw new ResourceAlreadyExistsException("User with email: " + request.email() + " already exists");
+            }
+            // Race-safety net for the phoneNumber pre-check above, same reasoning as the email
+            // branch: default Postgres naming for a column-level UNIQUE constraint ("users_phone_
+            // number_key" here, see V3__auth_schema.sql), so this is the one actually thrown.
+            if (isUniqueConstraintViolation(e, "users_phone_number_key")) {
+                log.warn(
+                        "Registration failed (constraint violation): user with phone number {} already exists",
+                        request.phoneNumber());
+                throw new ResourceAlreadyExistsException(
+                        "User with phone number: " + request.phoneNumber() + " already exists");
             }
             log.error("DataIntegrityViolationException during registration for email: {}", request.email(), e);
             throw e;

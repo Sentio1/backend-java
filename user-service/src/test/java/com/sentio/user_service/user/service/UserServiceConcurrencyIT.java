@@ -53,6 +53,8 @@ class UserServiceConcurrencyIT {
     private User owner1;
     private User owner2;
     private Organization org;
+    private OrganizationMember member1;
+    private OrganizationMember member2;
 
     private ExecutorService executorService;
 
@@ -73,13 +75,13 @@ class UserServiceConcurrencyIT {
         org.setSlug("concurrency-test-org");
         organizationRepository.saveAndFlush(org);
 
-        OrganizationMember member1 = OrganizationMember.builder()
+        member1 = OrganizationMember.builder()
                 .user(owner1)
                 .organization(org)
                 .role(OrgRole.OWNER)
                 .isDefault(true)
                 .build();
-        OrganizationMember member2 = OrganizationMember.builder()
+        member2 = OrganizationMember.builder()
                 .user(owner2)
                 .organization(org)
                 .role(OrgRole.OWNER)
@@ -92,9 +94,9 @@ class UserServiceConcurrencyIT {
 
     @AfterEach
     void tearDown() {
-        organizationMemberRepository.deleteAll();
-        organizationRepository.deleteAll();
-        userRepository.deleteAll();
+        organizationMemberRepository.deleteAll(List.of(member1, member2));
+        organizationRepository.delete(org);
+        userRepository.deleteAll(List.of(owner1, owner2));
         if (executorService != null) {
             executorService.shutdownNow();
         }

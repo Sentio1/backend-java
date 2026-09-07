@@ -21,7 +21,7 @@ dependencies {
 	implementation(libs.spring.data.redis)
 	implementation(libs.spring.flyway)
 	implementation(libs.spring.validation)
-	implementation(libs.spring.webmvc)
+	implementation(libs.spring.boot.starter.web)
 	implementation(libs.flyway.postgresql)
 //	implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j")
 	implementation(libs.mapstruct.core)

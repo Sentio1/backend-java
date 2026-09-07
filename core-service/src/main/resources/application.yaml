@@ -91,5 +91,9 @@ app:
     issuer: sentio-startup
 
   security:
+    allow-credentials: true
+    allowed-origins:
+      - http://localhost:5173
+      - http://localhost:3000
     public-paths:
       - /actuator/health/**

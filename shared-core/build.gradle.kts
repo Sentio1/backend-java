@@ -20,6 +20,7 @@ dependencies {
     api(libs.caffeine)
     api(libs.jackson.databind.nullable)
     api(libs.aspectjweaver)
+    api(libs.vavr)
 
     api(libs.micrometer.core)
     api(libs.micrometer.prometheus)
@@ -37,4 +38,8 @@ tasks.bootJar {
 
 tasks.jar {
     enabled = true
+}
+
+tasks.withType<org.springframework.boot.gradle.tasks.aot.ProcessAot> {
+    enabled = false
 }

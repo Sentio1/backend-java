@@ -20,7 +20,7 @@ dependencies {
 	implementation(libs.spring.flyway)
 	implementation(libs.spring.jdbc)
 	implementation(libs.spring.validation)
-	implementation(libs.spring.webmvc)
+	implementation(libs.spring.boot.starter.web)
 	implementation(libs.flyway.postgresql)
 	implementation(libs.mapstruct.core)
 	implementation(libs.resilience4j.spring.boot)

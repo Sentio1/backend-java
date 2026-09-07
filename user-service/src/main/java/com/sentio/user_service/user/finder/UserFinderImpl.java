@@ -65,6 +65,11 @@ public class UserFinderImpl extends AbstractEntityFinder<User, Long> implements 
     }
 
     @Override
+    public boolean existsByPhoneNumber(String phoneNumber) {
+        return userRepository.existsByPhoneNumber(phoneNumber);
+    }
+
+    @Override
     public long countByPlatformRole(PlatformRole platformRole) {
         return userRepository.countByPlatformRole(platformRole);
     }

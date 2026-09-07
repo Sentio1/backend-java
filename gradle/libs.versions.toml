@@ -1,5 +1,5 @@
 [versions]
-spring-boot = "4.1.0"
+spring-boot = "4.1.1"
 spring-dependency-management = "1.1.7"
 
 flyway = "13.2.0"
@@ -20,6 +20,7 @@ lisovskyi-web-error = "0.1.6"
 mapstruct = "1.6.3"
 lombok-mapstruct-binding = "0.2.0"
 caffeine = "3.2.4"
+vavr = "0.11.0"
 
 jackson-databind-nullable = "0.2.11"
 
@@ -171,7 +172,18 @@ lombok = { module = "org.projectlombok:lombok" }
 # silently leaves unmapped fields null instead of failing loudly.
 lombok-mapstruct-binding = { module = "org.projectlombok:lombok-mapstruct-binding", version.ref = "lombok-mapstruct-binding" }
 
+
+# =========================
+# Caching
+# =========================
+
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
+
+
+# =========================
+# Functional Programming
+# =========================
+vavr = { module = "io.vavr:vavr", version.ref = "vavr"}
 
 # =========================
 # Testing

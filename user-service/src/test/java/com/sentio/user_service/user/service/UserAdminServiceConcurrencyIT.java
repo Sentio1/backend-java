@@ -62,7 +62,7 @@ class UserAdminServiceConcurrencyIT {
 
     @AfterEach
     void tearDown() {
-        userRepository.deleteAll();
+        userRepository.deleteAll(List.of(admin1, admin2));
     }
 
     @Test

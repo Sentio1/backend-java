@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.spring.boot) apply false
     alias(libs.plugins.spring.dependency.management) apply false
     java
-    id("org.graalvm.buildtools.native") version("0.10.2") apply false
+    id("org.graalvm.buildtools.native") version("0.10.5") apply false
 }
 
 allprojects {
@@ -62,8 +62,12 @@ subprojects {
                 }
             }
         }
+        
+        tasks.matching { it.name == "collectReachabilityMetadata" }.configureEach {
+            enabled = false
+        }
 
-        // doppler run
+        // Doppler run
         tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
             doFirst {
                 val output = providers.exec {

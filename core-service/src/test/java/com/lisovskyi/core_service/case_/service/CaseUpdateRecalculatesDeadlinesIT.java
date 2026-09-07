@@ -96,6 +96,7 @@ class CaseUpdateRecalculatesDeadlinesIT {
         DeadlineRule rule = DeadlineRule.builder()
                 .code("TEST_" + procedure + "_CLAIM_FILED")
                 .procedure(procedure)
+                .courtInstance(CourtInstance.FIRST)
                 .triggerEventCode(EventCode.CLAIM_FILED)
                 .title("Подати відзив на позов")
                 .legalBasis("ст. 178")

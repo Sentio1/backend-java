@@ -11,6 +11,7 @@ import com.lisovskyi.core_service.deadline.Deadline;
 import com.lisovskyi.core_service.deadline.DeadlineRepository;
 import com.lisovskyi.core_service.deadline.WorkingDayCalculator;
 import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
+import com.lisovskyi.core_service.deadline_rule.enums.DayKind;
 import com.lisovskyi.core_service.deadline_rule.finder.DeadlineRuleFinder;
 import com.lisovskyi.core_service.deadline_rule.enums.CountFrom;
 import com.lisovskyi.core_service.deadline_rule.enums.DurationUnit;
@@ -20,17 +21,19 @@ import com.lisovskyi.core_service.deadline.finder.DeadlineFinder;
 import com.sentio.shared.entity.id.deadline.DeadlineId;
 import com.sentio.shared.entity.id.organization.OrganizationId;
 import com.sentio.shared.entity.id.user.UserId;
+import io.vavr.Tuple;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+
+import static io.vavr.API.*;
+import static io.vavr.Patterns.$Tuple2;
 
 @Service
 @Slf4j
@@ -58,12 +61,11 @@ public class DeadlineEngine {
         }
 
         LocalDate occurredAt = EventDateResolver.toLocalDate(caseEvent.getOccurredAt(), court);
-
         ProcedureType procedure = caseEvent.getCase_().getProcedure();
         EventCode triggerEventCode = caseEvent.getEventCode();
 
         Optional<DeadlineRule> deadlineRuleOpt =
-                deadlineRuleFinder.findByActiveRule(procedure, triggerEventCode, occurredAt);
+                deadlineRuleFinder.findByActiveRule(procedure, triggerEventCode, court.getCourtInstance(), occurredAt);
         if (deadlineRuleOpt.isEmpty()) {
             // не помилка, просто нема правила
             return null;
@@ -77,32 +79,21 @@ public class DeadlineEngine {
                     case CountFrom.SAME_DAY -> occurredAt;
                 };
 
-        LocalDate dueOn =
-                switch (rule.getDurationUnit()) {
-                    case DurationUnit.DAY ->
-                            switch (rule.getDayKind()) {
-                                case CALENDAR -> startsOn.plusDays(rule.getDurationValue());
-                                case WORKING -> {
-                                    short upperBound = (short) (rule.getDurationValue() * 2 + 10);
-                                    LocalDate upperBoundDate = startsOn.plusDays(upperBound);
+        LocalDate dueOn = Match(Tuple.of(rule.getDurationUnit(), rule.getDayKind())).of(
+                Case($Tuple2($(DurationUnit.DAY), $(DayKind.CALENDAR)),
+                        () -> startsOn.plusDays(rule.getDurationValue())),
 
-                                    List<Holiday> holidays =
-                                            holidayFinder.findAllByDateBetween(startsOn, upperBoundDate);
-                                    Map<LocalDate, Boolean> holidayOverrides = new HashMap<>();
-                                    holidays.forEach(
-                                            holiday -> holidayOverrides.put(holiday.getDate(), holiday.isWorking()));
+                Case($Tuple2($(DurationUnit.DAY), $(DayKind.WORKING)),
+                        () -> calculateWorkingDaysDueOn(startsOn, rule.getDurationValue())),
 
-                                    yield WorkingDayCalculator.calculateDueOn(
-                                            startsOn, rule.getDurationValue(), upperBoundDate, holidayOverrides);
-                                }
-                            };
-                    case DurationUnit.MONTH -> startsOn.plusMonths(rule.getDurationValue());
-                };
+                Case($Tuple2($(DurationUnit.MONTH), $()),
+                        () -> startsOn.plusMonths(rule.getDurationValue()))
+        );
 
         // За triggeringEvent, а не за парою (triggeringEvent, rule): при зміні procedure/instance
         // справи (SEN-21) підбирається інше правило (інший рядок DeadlineRule), і пошук саме по
         // старому rule ніколи б не знайшов уже наявний дедлайн - замість оновлення на місці
-        // з'являвся б другий, дублюючий рядок Deadline для тієї самої події.
+        // з'являвся б другий, що дублює рядок Deadline для тієї самої події.
         Optional<Deadline> existingOpt = deadlineFinder.findByTriggeringEvent(caseEvent);
         LocalDate oldDueOn = existingOpt.map(Deadline::getDueOn).orElse(null);
 
@@ -150,5 +141,18 @@ public class DeadlineEngine {
         }
 
         return savedDeadline.getId();
+    }
+
+    private LocalDate calculateWorkingDaysDueOn(LocalDate startsOn, short durationValue) {
+        short upperBound = (short) (durationValue * 2 + 10);
+        LocalDate upperBoundDate = startsOn.plusDays(upperBound);
+
+        Map<LocalDate, Boolean> holidayOverrides =
+                io.vavr.collection.List.ofAll(holidayFinder.findAllByDateBetween(startsOn, upperBoundDate))
+                        .toMap(Holiday::getDate, Holiday::isWorking)
+                        .toJavaMap();
+
+        return WorkingDayCalculator.calculateDueOn(
+                startsOn, durationValue, upperBoundDate, holidayOverrides);
     }
 }

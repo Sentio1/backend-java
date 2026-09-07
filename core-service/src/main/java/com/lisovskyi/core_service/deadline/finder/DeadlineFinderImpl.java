@@ -3,6 +3,7 @@ package com.lisovskyi.core_service.deadline.finder;
 import com.lisovskyi.core_service.case_event.CaseEvent;
 import com.lisovskyi.core_service.deadline.Deadline;
 import com.lisovskyi.core_service.deadline.DeadlineRepository;
+import com.lisovskyi.core_service.deadline.DeadlineStatus;
 import com.sentio.shared.entity.finder.AbstractEntityFinder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,5 +58,11 @@ public class DeadlineFinderImpl extends AbstractEntityFinder<Deadline, Long> imp
     public Page<Deadline> findAllByTriggeringEventIdAndCaseIdAndOrganizationId(Long triggeringEventId, Long caseId, Long organizationId, Pageable pageable) {
         requireNonNull(triggeringEventId, caseId, organizationId);
         return deadlineRepository.findAllByTriggeringEventIdAndCaseIdAndOrganizationId(triggeringEventId, caseId, organizationId, pageable);
+    }
+
+    @Override
+    public List<CaseEvent> findTriggeringEventsOfPendingDeadlinesCovering(LocalDate date) {
+        requireNonNull(date);
+        return deadlineRepository.findTriggeringEventsByStatusAndWindowCovering(DeadlineStatus.PENDING, date);
     }
 }

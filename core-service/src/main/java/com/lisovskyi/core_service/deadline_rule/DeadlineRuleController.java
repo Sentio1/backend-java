@@ -8,6 +8,7 @@ import com.lisovskyi.core_service.deadline_rule.dto.request.DeadlineRuleUpdateRe
 import com.lisovskyi.core_service.deadline_rule.dto.response.DeadlineRuleResponse;
 import com.sentio.shared.dto.PageResponse;
 import com.sentio.shared.entity.id.deadline_rule.DeadlineRuleId;
+import com.sentio.shared.web.LocationUtility;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+
+import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -76,7 +79,8 @@ public class DeadlineRuleController {
     public ResponseEntity<DeadlineRuleResponse> createDeadlineRule(
             @RequestBody @Valid DeadlineRuleCreateRequest request
     ) {
-        return ResponseEntity.ok(deadlineRuleService.createDeadlineRule(request));
+        DeadlineRuleResponse response = deadlineRuleService.createDeadlineRule(request);
+        return LocationUtility.createdWithLocation(response.id(), response);
     }
 
     @PatchMapping

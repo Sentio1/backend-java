@@ -1,6 +1,8 @@
 package com.lisovskyi.core_service.deadline;
 
 import com.lisovskyi.core_service.case_event.CaseEvent;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -36,4 +38,15 @@ public interface DeadlineRepository extends JpaRepository<Deadline, Long> {
             Pageable pageable);
 
     boolean existsByRuleId(Long ruleId);
+
+    // SEN-26: календар змінився на конкретну дату - потрібні CaseEvent-и всіх ще НЕ
+    // вирішених (PENDING) дедлайнів, чиє вікно [startsOn, dueOn] цю дату накриває, щоб
+    // прогнати їх через DeadlineGenerator.recalcAllDeadlines. DONE/MISSED навмисно
+    // виключені - це вже зафіксовані факти, зміна календаря заднім числом їх не чіпає.
+    @Query("SELECT ce FROM Deadline d JOIN d.triggeringEvent ce "
+            + "WHERE d.status = :status "
+            + "AND d.startsOn <= :date "
+            + "AND d.dueOn >= :date")
+    List<CaseEvent> findTriggeringEventsByStatusAndWindowCovering(
+            @Param("status") DeadlineStatus status, @Param("date") LocalDate date);
 }

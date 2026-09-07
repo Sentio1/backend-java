@@ -11,7 +11,6 @@ import com.lisovskyi.core_service.deadline.Deadline;
 import com.lisovskyi.core_service.deadline.DeadlineRepository;
 import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
 import com.lisovskyi.core_service.deadline_rule.finder.DeadlineRuleFinder;
-import com.lisovskyi.core_service.holiday.Holiday;
 import com.lisovskyi.core_service.holiday.finder.HolidayFinder;
 import com.lisovskyi.core_service.deadline.finder.DeadlineFinder;
 import com.sentio.shared.entity.id.deadline.DeadlineId;
@@ -72,7 +71,7 @@ public class DeadlineEngine {
         // чистій функції без Spring і без репозиторіїв. DeadlineEngine лише дістає з БД те,
         // чого сама функція дістати не може (свята), і передає аргументами.
         LocalDate startsOn = calculateStartsOn(occurredAt, rule.getCountFrom());
-        LocalDate dueOn = calculateDueOn(startsOn, rule);
+        LocalDate dueOn = calculateDueOn(startsOn, rule, court);
 
         // За triggeringEvent, а не за парою (triggeringEvent, rule): при зміні procedure/instance
         // справи (SEN-21) підбирається інше правило (інший рядок DeadlineRule), і пошук саме по
@@ -127,16 +126,18 @@ public class DeadlineEngine {
         return savedDeadline.getId();
     }
 
-    private LocalDate calculateDueOn(LocalDate startsOn, DeadlineRule rule) {
+    private LocalDate calculateDueOn(LocalDate startsOn, DeadlineRule rule, Court court) {
+        // asOf = "сьогодні" в часовому поясі суду - календар таким, яким він відомий зараз;
+        // рядки з effectiveFrom у майбутньому (оголошене, але ще не чинне перенесення) до
+        // вибірки не потраплять. Матеріалізацію Map<дата, чи робочий> з core.holidays робить
+        // HolidayFinder (SEN-26) - DeadlineEngine лише каже, за яке вікно і на яку дату.
+        LocalDate asOf = LocalDate.now(EventDateResolver.toZoneId(court));
         Map<LocalDate, Boolean> holidayOverrides =
-                io.vavr.collection.List.ofAll(
-                                holidayFinder.findAllByDateBetween(startsOn, holidayWindowEnd(startsOn, rule)))
-                        .toMap(Holiday::getDate, Holiday::isWorking)
-                        .toJavaMap();
+                holidayFinder.findWorkingDayOverrides(startsOn, holidayWindowEnd(startsOn, rule), asOf);
 
         // Періоди зупинення строку (SEN-27 AC) ще нізвідки брати - для їх зберігання й
         // редагування нема ні сутності, ні таблиці (окрема задача); тут завжди порожній
-        // список, DeadlineCalculator у цьому випадку поводиться так само, як і без нього.
+        // список, DeadlineCalculator у цьому випадку поводиться, так само як і без нього.
         return DeadlineCalculator.calculateDueOn(
                 startsOn, rule.getDurationUnit(), rule.getDayKind(), rule.getDurationValue(), holidayOverrides);
     }

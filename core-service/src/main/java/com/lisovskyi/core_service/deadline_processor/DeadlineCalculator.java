@@ -3,9 +3,9 @@ package com.lisovskyi.core_service.deadline_processor;
 import com.lisovskyi.core_service.deadline_rule.enums.CountFrom;
 import com.lisovskyi.core_service.deadline_rule.enums.DayKind;
 import com.lisovskyi.core_service.deadline_rule.enums.DurationUnit;
+import com.lisovskyi.core_service.holiday.WorkingDayCalendar;
 import org.jspecify.annotations.NonNull;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -58,7 +58,7 @@ public final class DeadlineCalculator {
                 : startsOn.plusDays(durationValue);
 
         LocalDate extendedDueOn = extendForSuspensions(startsOn, naiveDueOn, suspensions);
-        return postponeIfNonWorking(extendedDueOn, holidayOverrides);
+        return WorkingDayCalendar.nextWorkingDayOnOrAfter(extendedDueOn, holidayOverrides);
     }
 
     private static LocalDate advanceByWorkingDays(
@@ -73,7 +73,7 @@ public final class DeadlineCalculator {
             if (isSuspended(date, suspensions)) {
                 continue;
             }
-            if (isWorkingDay(date, holidayOverrides)) {
+            if (WorkingDayCalendar.isWorkingDay(date, holidayOverrides)) {
                 found++;
                 if (found == workingDaysCount) {
                     return date;
@@ -132,26 +132,8 @@ public final class DeadlineCalculator {
         return overlapTo.isBefore(overlapFrom) ? 0 : ChronoUnit.DAYS.between(overlapFrom, overlapTo) + 1;
     }
 
-    private static LocalDate postponeIfNonWorking(@NonNull LocalDate date, Map<LocalDate, Boolean> holidayOverrides) {
-        LocalDate result = date;
-        while (!isWorkingDay(result, holidayOverrides)) {
-            result = result.plusDays(1);
-        }
-        return result;
-    }
-
     private static boolean isSuspended(@NonNull LocalDate date, List<SuspensionPeriod> suspensions) {
         return suspensions.stream().anyMatch(period -> period.contains(date));
-    }
-
-    private static boolean isWorkingDay(@NonNull LocalDate date, Map<LocalDate, Boolean> holidayOverrides) {
-        Boolean override = holidayOverrides.get(date);
-        if (override != null) {
-            return override;
-        }
-
-        DayOfWeek dayOfWeek = date.getDayOfWeek();
-        return dayOfWeek != DayOfWeek.SATURDAY && dayOfWeek != DayOfWeek.SUNDAY;
     }
 
     private static LocalDate max(@NonNull LocalDate a, @NonNull LocalDate b) {

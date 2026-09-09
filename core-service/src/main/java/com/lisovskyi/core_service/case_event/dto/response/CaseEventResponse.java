@@ -1,8 +1,10 @@
 package com.lisovskyi.core_service.case_event.dto.response;
 
+import com.lisovskyi.core_service.case_event.enums.DeadlineResolution;
 import com.lisovskyi.core_service.case_event.enums.EventCode;
 import com.lisovskyi.core_service.case_event.enums.Source;
 import java.time.Instant;
+import java.util.List;
 
 public record CaseEventResponse(
         Long id,
@@ -18,6 +20,11 @@ public record CaseEventResponse(
         String registryDocumentTextRef,
         Long createdBy,
         Instant createdAt,
-        // Заповнене лише якщо для eventCode/procedure/дати знайшлось активне DeadlineRule
-        // (SEN-19 Deadline Engine) — null означає "подія не породила строк", а не помилку.
-        Long deadlineId) {}
+        // Список, а не одне значення (SEN-29 AC1) — подія може одночасно підпадати під кілька
+        // застосовних DeadlineRule (SEN-19 Deadline Engine) і породжувати дедлайн на кожне.
+        // Порожній список означає "подія не породила жодного строку" — той самий факт, що явно
+        // піднятий у deadlineResolution нижче, а не помилку.
+        List<Long> deadlineIds,
+        // SEN-29 AC2: явний стан для картки справи — не змушує фронт здогадуватись по
+        // порожньому/непорожньому deadlineIds, і розрізняє "нема правила" від "юрист відхилив".
+        DeadlineResolution deadlineResolution) {}

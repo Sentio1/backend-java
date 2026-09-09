@@ -47,4 +47,10 @@ public class DeadlineRuleFinderImpl extends AbstractEntityFinder<DeadlineRule, L
         requireNonNull(procedure, triggerEventCode, date);
         return deadlineRuleRepository.findByActiveRule(procedure, triggerEventCode, instance, date);
     }
+
+    @Override
+    public List<DeadlineRule> findAllActiveRules(ProcedureType procedure, EventCode triggerEventCode, CourtInstance instance, LocalDate date) {
+        requireNonNull(procedure, triggerEventCode, date);
+        return deadlineRuleRepository.findAllActiveRules(procedure, triggerEventCode, instance, date);
+    }
 }

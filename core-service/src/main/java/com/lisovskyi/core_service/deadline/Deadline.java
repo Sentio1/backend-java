@@ -1,10 +1,11 @@
 package com.lisovskyi.core_service.deadline;
 
-import static com.lisovskyi.core_service.deadline.DeadlineConstants.LEGAL_BASIS_LENGTH;
-import static com.lisovskyi.core_service.deadline.DeadlineConstants.TITLE_LENGTH;
+import static com.lisovskyi.core_service.deadline.DeadlineConstants.*;
 
 import com.lisovskyi.core_service.case_.Case;
 import com.lisovskyi.core_service.case_event.CaseEvent;
+import com.lisovskyi.core_service.deadline.enums.DeadlineSource;
+import com.lisovskyi.core_service.deadline.enums.DeadlineStatus;
 import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
 import com.lisovskyi.core_service.deadline_rule.enums.DayKind;
 import com.lisovskyi.core_service.deadline_rule.enums.DurationUnit;
@@ -55,6 +56,12 @@ public class Deadline extends CoreEntity {
     @Column(name = "legal_basis", length = LEGAL_BASIS_LENGTH)
     private String legalBasis;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Builder.Default
+    private DeadlineSource source = DeadlineSource.RULE;
+
     @Column(name = "starts_on", nullable = false)
     private LocalDate startsOn;
 
@@ -91,8 +98,8 @@ public class Deadline extends CoreEntity {
     @Builder.Default
     private DeadlineStatus status = DeadlineStatus.PENDING;
 
-    @Column(name = "rule_version", nullable = false)
-    private short ruleVersion;
+    @Column(name = "rule_version")
+    private Short ruleVersion;
 
     @Column(name = "completed_at")
     private Instant completedAt;
@@ -109,4 +116,25 @@ public class Deadline extends CoreEntity {
 
     @Column(name = "note", columnDefinition = "text")
     private String note;
+
+    // Заповнені лише коли status = REJECTED (SEN-29 AC4) - юрист вирішив, що автоматично
+    // порахований строк не застосовний, і лишив причину. triggeringEvent і сама подія при
+    // цьому нікуди не діваються, тож "чому нема дедлайна" завжди можна відновити з цих полів,
+    // а не лише мовчазним null-ом deadlineId в CaseEventResponse.
+    @Column(name = "rejected_at")
+    private Instant rejectedAt;
+
+    // soft-ref auth.users.id
+    @Column(name = "rejected_by")
+    private Long rejectedBy;
+
+    @Column(name = "rejection_reason", length = REJECTION_REASON_LENGTH)
+    private String rejectionReason;
+
+    // soft-ref auth.users.id. Заповнене лише для source = MANUAL (DeadlineService.createManualDeadline) -
+    // RULE-дедлайни не мають "автора" в цьому сенсі, їх ніколи не "створює" людина безпосередньо,
+    // лише подія/DeadlineEngine, тож лишається null (той самий принцип, що й ruleVersion == null
+    // для MANUAL: поле застосовне лише для одного з двох source).
+    @Column(name = "created_by")
+    private Long createdBy;
 }

@@ -18,4 +18,6 @@ public interface DeadlineRuleFinder extends EntityFinder<DeadlineRule, Long> {
     DeadlineRule findById(DeadlineRuleId deadlineRuleId);
 
     Optional<DeadlineRule> findByActiveRule(ProcedureType procedure, EventCode triggerEventCode, CourtInstance instance, LocalDate date);
+
+    List<DeadlineRule> findAllActiveRules(ProcedureType procedure, EventCode triggerEventCode, CourtInstance instance, LocalDate date);
 }

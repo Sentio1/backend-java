@@ -70,12 +70,11 @@ public class CaseEventService {
                 caseId.id(), organizationId.id(), eventCode, pageable);
         List<Long> caseEventIds = caseEvents.map(CaseEvent::getId).toList();
 
-        Map<Long, Long> deadlineIdByCaseEventId = deadlineFinder.findAllByTriggeringEventIdIn(caseEventIds).stream()
-                .collect(Collectors.toMap(
-                        deadline -> deadline.getTriggeringEvent().getId(), Deadline::getId));
+        Map<Long, List<Deadline>> deadlinesByCaseEventId = deadlineFinder.findAllByTriggeringEventIdIn(caseEventIds).stream()
+                .collect(Collectors.groupingBy(deadline -> deadline.getTriggeringEvent().getId()));
 
-        return PageResponse.of(caseEvents.map(
-                caseEvent -> caseEventMapper.toResponse(caseEvent, deadlineIdByCaseEventId.get(caseEvent.getId()))));
+        return PageResponse.of(caseEvents.map(caseEvent -> caseEventMapper.toResponse(
+                caseEvent, deadlinesByCaseEventId.getOrDefault(caseEvent.getId(), List.of()))));
     }
 
     @Transactional(readOnly = true)
@@ -84,8 +83,8 @@ public class CaseEventService {
         CaseEvent caseEvent = caseEventFinder
                 .findByIdAndCaseIdAndOrganizationId(eventId.id(), caseId.id(), organizationId.id());
 
-        Long deadlineId = findDeadlineId(caseEvent);
-        return caseEventMapper.toResponse(caseEvent, deadlineId);
+        List<Deadline> deadlines = findDeadlines(caseEvent);
+        return caseEventMapper.toResponse(caseEvent, deadlines);
     }
 
     // Самостійно юрист створює case event
@@ -100,9 +99,9 @@ public class CaseEventService {
         caseEvent.setRegisteredAt(Instant.now());
 
         CaseEvent savedCaseEvent = caseEventRepository.saveAndFlush(caseEvent);
-        Long deadlineId = deadlineEngine.generateDeadline(savedCaseEvent, createdBy.id());
+        List<Deadline> deadlines = deadlineEngine.generateDeadline(savedCaseEvent, createdBy.id());
         log.info("Manually registered case event id: {} for caseId: {}", savedCaseEvent.getId(), caseId);
-        return caseEventMapper.toResponse(savedCaseEvent, deadlineId);
+        return caseEventMapper.toResponse(savedCaseEvent, deadlines);
     }
 
     // Приходить з Go сервісу
@@ -123,9 +122,9 @@ public class CaseEventService {
             // (SERVICE-роль з власною ідентичністю ще не реалізована - README/SEN-33), тож зміна
             // dueOn (якщо була) потрапить в audit_log з ChangedByType.SYSTEM, а не з вигаданим
             // системним юзером (див. DeadlineEngine.generateDeadline).
-            Long deadlineId = deadlineEngine.generateDeadline(savedCaseEvent, null);
+            List<Deadline> deadlines = deadlineEngine.generateDeadline(savedCaseEvent, null);
             log.info("Successfully registered registry event id: {} for caseId: {}", savedCaseEvent.getId(), caseId);
-            return caseEventMapper.toResponse(savedCaseEvent, deadlineId);
+            return caseEventMapper.toResponse(savedCaseEvent, deadlines);
         } catch (DataIntegrityViolationException e) {
             if (isUniqueConstraintViolation(e, "uq_case_events_case_registry_document")) {
                 log.warn(
@@ -154,8 +153,8 @@ public class CaseEventService {
         Instant oldOccurredAt = caseEvent.getOccurredAt();
         if (oldOccurredAt.equals(request.newOccurredAt())) {
             log.info("changeOccurredAt called with unchanged date for event id={}, skipping", caseEvent.getId());
-            Long deadlineId = findDeadlineId(caseEvent);
-            return caseEventMapper.toResponse(caseEvent, deadlineId);
+            List<Deadline> deadlines = findDeadlines(caseEvent);
+            return caseEventMapper.toResponse(caseEvent, deadlines);
         }
 
         caseEvent.setOccurredAt(request.newOccurredAt());
@@ -185,13 +184,13 @@ public class CaseEventService {
                 oldOccurredAt.toString(),
                 request.newOccurredAt().toString());
 
-        Long deadlineId = deadlineEngine.generateDeadline(savedCaseEvent, changedById.id());
+        List<Deadline> deadlines = deadlineEngine.generateDeadline(savedCaseEvent, changedById.id());
         log.info(
                 "Changed occurredAt for eventId: {} (old: {}, new: {})",
                 eventId,
                 oldOccurredAt,
                 request.newOccurredAt());
-        return caseEventMapper.toResponse(savedCaseEvent, deadlineId);
+        return caseEventMapper.toResponse(savedCaseEvent, deadlines);
     }
 
     @Transactional
@@ -225,9 +224,9 @@ public class CaseEventService {
         }
 
         CaseEvent savedCaseEvent = caseEventRepository.save(caseEvent);
-        Long deadlineId = findDeadlineId(caseEvent);
+        List<Deadline> deadlines = findDeadlines(caseEvent);
         log.info("Successfully updated eventId: {}", eventId);
-        return caseEventMapper.toResponse(savedCaseEvent, deadlineId);
+        return caseEventMapper.toResponse(savedCaseEvent, deadlines);
     }
 
     @Transactional
@@ -243,7 +242,9 @@ public class CaseEventService {
 
         softDeleteManager.deleteEntity(caseEvent, deletedById.id(), deleteReason);
 
-        deadlineFinder.findByTriggeringEvent(caseEvent).ifPresent(deadline -> {
+        // SEN-29 AC1: подія може мати кілька дедлайнів (по одному на кожне застосовне
+        // правило) - видаляється (софт) кожен з них, а не лише "перший знайдений".
+        deadlineFinder.findAllByTriggeringEvent(caseEvent).forEach(deadline -> {
             softDeleteManager.deleteEntity(deadline, deletedById.id(), deleteReason);
             deadlineRepository.save(deadline);
         });
@@ -265,7 +266,7 @@ public class CaseEventService {
         log.info("Successfully restored eventId: {}", eventId);
     }
 
-    private Long findDeadlineId(CaseEvent caseEvent) {
-        return deadlineFinder.findIdByTriggeringEventId(caseEvent.getId()).orElse(null);
+    private List<Deadline> findDeadlines(CaseEvent caseEvent) {
+        return deadlineFinder.findAllByTriggeringEvent(caseEvent);
     }
 }

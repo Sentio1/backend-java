@@ -3,7 +3,8 @@ package com.lisovskyi.core_service.deadline.finder;
 import com.lisovskyi.core_service.case_event.CaseEvent;
 import com.lisovskyi.core_service.deadline.Deadline;
 import com.lisovskyi.core_service.deadline.DeadlineRepository;
-import com.lisovskyi.core_service.deadline.DeadlineStatus;
+import com.lisovskyi.core_service.deadline.enums.DeadlineStatus;
+import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
 import com.sentio.shared.entity.finder.AbstractEntityFinder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -38,15 +39,20 @@ public class DeadlineFinderImpl extends AbstractEntityFinder<Deadline, Long> imp
     }
 
     @Override
-    public Optional<Deadline> findByTriggeringEvent(CaseEvent triggeringEvent) {
+    public List<Deadline> findAllByTriggeringEvent(CaseEvent triggeringEvent) {
         requireNonNull(triggeringEvent);
-        return deadlineRepository.findByTriggeringEvent(triggeringEvent);
+        return deadlineRepository.findAllByTriggeringEvent(triggeringEvent);
     }
 
     @Override
-    public Optional<Long> findIdByTriggeringEventId(Long triggeringEventId) {
-        requireNonNull(triggeringEventId);
-        return deadlineRepository.findIdByTriggeringEventId(triggeringEventId);
+    public Optional<Deadline> findByTriggeringEventAndRule(CaseEvent triggeringEvent, DeadlineRule rule) {
+        requireNonNull(triggeringEvent, rule);
+        return deadlineRepository.findByTriggeringEventAndRule(triggeringEvent, rule);
+    }
+
+    @Override
+    public Deadline findByIdAndCaseIdAndOrganizationId(Long id, Long caseId, Long organizationId) {
+        return findBy(id, caseId, organizationId, deadlineRepository::findByIdAndCaseIdAndOrganizationId);
     }
 
     @Override

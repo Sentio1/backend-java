@@ -2,6 +2,7 @@ package com.lisovskyi.core_service.deadline.finder;
 
 import com.lisovskyi.core_service.case_event.CaseEvent;
 import com.lisovskyi.core_service.deadline.Deadline;
+import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
 import com.sentio.shared.entity.finder.EntityFinder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,9 +15,11 @@ public interface DeadlineFinder extends EntityFinder<Deadline, Long> {
 
     List<Deadline> findAllByTriggeringEventIdIn(List<Long> triggeringEventIds);
 
-    Optional<Deadline> findByTriggeringEvent(CaseEvent triggeringEvent);
+    List<Deadline> findAllByTriggeringEvent(CaseEvent triggeringEvent);
 
-    Optional<Long> findIdByTriggeringEventId(Long triggeringEventId);
+    Optional<Deadline> findByTriggeringEventAndRule(CaseEvent triggeringEvent, DeadlineRule rule);
+
+    Deadline findByIdAndCaseIdAndOrganizationId(Long id, Long caseId, Long organizationId);
 
     Page<Deadline> findAllByCaseIdAndOrganizationId(Long caseId, Long organizationId, Pageable pageable);
 

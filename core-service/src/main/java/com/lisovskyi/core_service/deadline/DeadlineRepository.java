@@ -1,6 +1,8 @@
 package com.lisovskyi.core_service.deadline;
 
 import com.lisovskyi.core_service.case_event.CaseEvent;
+import com.lisovskyi.core_service.deadline.enums.DeadlineStatus;
+import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -15,9 +17,23 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface DeadlineRepository extends JpaRepository<Deadline, Long> {
 
-    Optional<Deadline> findByTriggeringEvent(CaseEvent triggeringEvent);
+    // SEN-29: подія може породжувати кілька дедлайнів (по одному на кожне застосовне правило),
+    // тож "дедлайн(и) цієї події" - завжди список, ніколи Optional (findByTriggeringEvent/
+    // findIdByTriggeringEventId прибрані разом з переходом DeadlineEngine на
+    // findAllActiveRules - одна подія й один рядок Deadline більше не 1:1).
+    List<Deadline> findAllByTriggeringEvent(CaseEvent triggeringEvent);
 
-    Optional<Long> findIdByTriggeringEventId(Long triggeringEventId);
+    // Для update-в-місці одного конкретного (подія, правило) - на відміну від пошуку "чи є вже
+    // хоч якийсь дедлайн для цієї події" (findAllByTriggeringEvent), тут потрібен саме цей
+    // рядок: і для звичайного recalculation-шляху (SEN-29 reconciliation по DeadlineRule.code -
+    // DeadlineEngine), і для відновлення після гонки на uq_deadlines_triggering_event_rule.
+    Optional<Deadline> findByTriggeringEventAndRule(CaseEvent triggeringEvent, DeadlineRule rule);
+
+    @Query("SELECT d FROM Deadline d " + "WHERE d.id = :id "
+            + "AND d.case_.id = :caseId "
+            + "AND d.organizationId = :organizationId")
+    Optional<Deadline> findByIdAndCaseIdAndOrganizationId(
+            @Param("id") Long id, @Param("caseId") Long caseId, @Param("organizationId") Long organizationId);
 
     List<Deadline> findAllByTriggeringEventIdIn(List<Long> triggeringEventIds);
 
@@ -46,7 +62,8 @@ public interface DeadlineRepository extends JpaRepository<Deadline, Long> {
     @Query("SELECT ce FROM Deadline d JOIN d.triggeringEvent ce "
             + "WHERE d.status = :status "
             + "AND d.startsOn <= :date "
-            + "AND d.dueOn >= :date")
+            + "AND d.dueOn >= :date "
+            + "AND d.source <> 'MANUAL'")
     List<CaseEvent> findTriggeringEventsByStatusAndWindowCovering(
             @Param("status") DeadlineStatus status, @Param("date") LocalDate date);
 }

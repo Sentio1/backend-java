@@ -35,6 +35,30 @@ public interface DeadlineRuleRepository extends JpaRepository<DeadlineRule, Long
             @Param("instance") CourtInstance instance,
             @Param("date") LocalDate date);
 
+    // SEN-29: та сама умова, що й findByActiveRule вище, але без припущення "щонайбільше один
+    // рядок" - різні DeadlineRule.code (різні строки, різна стаття) можуть законно мати
+    // однакові (procedure, triggerEventCode, instance) й одночасно чинні періоди, коли та сама
+    // подія відкриває кілька паралельних строків (напр. право на апеляцію й окремо право на
+    // клопотання про роз'яснення того самого рішення). findByActiveRule лишається як є для
+    // DeadlineRuleController.getActiveRule (адмінський перегляд "якЕ ОДНЕ правило" - там
+    // множинний збіг і далі має падати як помилка конфігурації довідника, а не мовчки брати
+    // перше). ORDER BY dr.id - лише для детермінованого порядку створюваних Deadline, не для
+    // семантики (усі знайдені рядки застосовуються однаково).
+    @Query("""
+        SELECT dr From DeadlineRule dr
+        WHERE dr.procedure = :procedure
+                AND dr.triggerEventCode = :triggerEventCode
+                AND dr.courtInstance = :instance
+                AND dr.validFrom <= :date
+                AND (dr.validTo IS NULL or dr.validTo > :date)
+        ORDER BY dr.id
+        """)
+    List<DeadlineRule> findAllActiveRules(
+            @Param("procedure") ProcedureType procedure,
+            @Param("triggerEventCode") EventCode triggerEventCode,
+            @Param("instance") CourtInstance instance,
+            @Param("date") LocalDate date);
+
     @Query("""
         SELECT dr FROM DeadlineRule dr
         WHERE dr.code = :code

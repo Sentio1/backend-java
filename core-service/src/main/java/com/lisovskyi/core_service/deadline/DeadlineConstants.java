@@ -8,4 +8,5 @@ public final class DeadlineConstants {
 
     public static final int TITLE_LENGTH = 255;
     public static final int LEGAL_BASIS_LENGTH = 255;
+    public static final int REJECTION_REASON_LENGTH = 500;
 }

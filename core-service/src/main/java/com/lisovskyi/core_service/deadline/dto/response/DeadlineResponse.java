@@ -1,6 +1,7 @@
 package com.lisovskyi.core_service.deadline.dto.response;
 
-import com.lisovskyi.core_service.deadline.DeadlineStatus;
+import com.lisovskyi.core_service.deadline.enums.DeadlineSource;
+import com.lisovskyi.core_service.deadline.enums.DeadlineStatus;
 import java.time.Instant;
 import java.time.LocalDate;
 import lombok.Builder;
@@ -13,6 +14,7 @@ public record DeadlineResponse(
         Long ruleId,
         String title,
         String legalBasis,
+        DeadlineSource source,
         LocalDate startsOn,
         LocalDate dueOn,
         DeadlineStatus status,
@@ -20,5 +22,9 @@ public record DeadlineResponse(
         Long completedBy,
         LocalDate extendedTo,
         String note,
-        String explanation
+        String explanation,
+        Instant rejectedAt,
+        Long rejectedBy,
+        String rejectionReason,
+        Long createdBy
 ) {}

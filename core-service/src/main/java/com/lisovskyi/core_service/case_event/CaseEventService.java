@@ -3,7 +3,7 @@ package com.lisovskyi.core_service.case_event;
 import static com.sentio.shared.persistence.ConstraintViolations.isUniqueConstraintViolation;
 
 import com.lisovskyi.core_service.audit_log.AuditLogService;
-import com.lisovskyi.core_service.audit_log.EntityType;
+import com.lisovskyi.core_service.audit_log.enums.EntityType;
 import com.lisovskyi.core_service.case_.Case;
 import com.lisovskyi.core_service.case_.finder.CaseFinder;
 import com.lisovskyi.core_service.case_event.dto.request.CaseEventAutoRegisterRequest;
@@ -21,9 +21,7 @@ import com.lisovskyi.core_service.deadline.Deadline;
 import com.lisovskyi.core_service.deadline.DeadlineRepository;
 import com.lisovskyi.core_service.deadline.finder.DeadlineFinder;
 import com.lisovskyi.core_service.deadline_processor.DeadlineEngine;
-import com.lisovskyi.core_service.deadline_rule.DeadlineRuleRepository;
 import com.lisovskyi.core_service.entity.SoftDeleteManager;
-import com.lisovskyi.core_service.holiday.HolidayRepository;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsException;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.shared.dto.PageResponse;
@@ -53,8 +51,6 @@ public class CaseEventService {
     private final CaseEventFinder caseEventFinder;
     private final DeadlineRepository deadlineRepository;
     private final DeadlineFinder deadlineFinder;
-    private final DeadlineRuleRepository deadlineRuleRepository;
-    private final HolidayRepository holidayRepository;
     private final CaseEventOccurredAtHistoryRepository caseEventOccurredAtHistoryRepository;
 
     private final CaseEventMapper caseEventMapper;
@@ -124,8 +120,9 @@ public class CaseEventService {
         try {
             CaseEvent savedCaseEvent = caseEventRepository.saveAndFlush(caseEvent);
             // changedBy = null: автоматична реєстрація з Go-сервісу, немає людини-автора
-            // (SERVICE-роль з власною ідентичністю ще не реалізована - README/SEN-33), тож
-            // dueOn тут просто не потрапляє в audit_log замість вигаданого системного actor'а.
+            // (SERVICE-роль з власною ідентичністю ще не реалізована - README/SEN-33), тож зміна
+            // dueOn (якщо була) потрапить в audit_log з ChangedByType.SYSTEM, а не з вигаданим
+            // системним юзером (див. DeadlineEngine.generateDeadline).
             Long deadlineId = deadlineEngine.generateDeadline(savedCaseEvent, null);
             log.info("Successfully registered registry event id: {} for caseId: {}", savedCaseEvent.getId(), caseId);
             return caseEventMapper.toResponse(savedCaseEvent, deadlineId);

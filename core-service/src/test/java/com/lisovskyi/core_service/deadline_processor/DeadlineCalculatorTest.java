@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
+import com.lisovskyi.core_service.deadline_processor.dto.DeadlineDatesResponse;
 import com.lisovskyi.core_service.deadline_rule.enums.CountFrom;
 import com.lisovskyi.core_service.deadline_rule.enums.DayKind;
 import com.lisovskyi.core_service.deadline_rule.enums.DurationUnit;
@@ -49,11 +50,11 @@ class DeadlineCalculatorTest {
             LocalDate expectedStartsOn,
             LocalDate expectedDueOn) {
         LocalDate startsOn = DeadlineCalculator.calculateStartsOn(eventDate, countFrom);
-        LocalDate dueOn =
+        DeadlineDatesResponse dates =
                 DeadlineCalculator.calculateDueOn(startsOn, durationUnit, dayKind, durationValue, Map.of());
 
         assertThat(startsOn).isEqualTo(expectedStartsOn);
-        assertThat(dueOn).isEqualTo(expectedDueOn);
+        assertThat(dates.dueOn()).isEqualTo(expectedDueOn);
     }
 
     // ─── свята (не лише вихідні) ────────────────────────────────────────
@@ -65,10 +66,13 @@ class DeadlineCalculatorTest {
     @MethodSource("holidayWorkingDayCases")
     void calculateDueOn_workingDays_respectsHolidayOverrides(
             LocalDate startsOn, short durationValue, Map<LocalDate, Boolean> holidayOverrides, LocalDate expectedDueOn) {
-        LocalDate dueOn = DeadlineCalculator.calculateDueOn(
+        DeadlineDatesResponse dates = DeadlineCalculator.calculateDueOn(
                 startsOn, DurationUnit.DAY, DayKind.WORKING, durationValue, holidayOverrides);
 
-        assertThat(dueOn).isEqualTo(expectedDueOn);
+        assertThat(dates.dueOn()).isEqualTo(expectedDueOn);
+        // Робочі дні: результат апріорі впадає на робочий день, тут нема окремого кроку
+        // "перенести" - naiveDueOn і dueOn завжди збігаються (SEN-28).
+        assertThat(dates.naiveDueOn()).isEqualTo(expectedDueOn);
     }
 
     private static Stream<Arguments> holidayWorkingDayCases() {
@@ -84,10 +88,14 @@ class DeadlineCalculatorTest {
         LocalDate startsOn = LocalDate.of(2024, 6, 3);
         Map<LocalDate, Boolean> holidays = Map.of(LocalDate.of(2024, 6, 10), false);
 
-        LocalDate dueOn =
+        DeadlineDatesResponse dates =
                 DeadlineCalculator.calculateDueOn(startsOn, DurationUnit.DAY, DayKind.CALENDAR, (short) 6, holidays);
 
-        assertThat(dueOn).isEqualTo(LocalDate.of(2024, 6, 11));
+        // Наївно (без перенесення) 03.06 (пн) + 6 календарних днів = 09.06 (неділя); і 09.06,
+        // і оголошений неробочим 10.06 пропускаються - результат 11.06. naiveDueOn зберігає
+        // саме "до перенесення" (09.06), щоб SEN-28 міг пояснити "перенесено з неділі на 11.06".
+        assertThat(dates.naiveDueOn()).isEqualTo(LocalDate.of(2024, 6, 9));
+        assertThat(dates.dueOn()).isEqualTo(LocalDate.of(2024, 6, 11));
     }
 
     // ─── зупинення й поновлення перебігу строку ────────────────────────
@@ -98,11 +106,13 @@ class DeadlineCalculatorTest {
         List<SuspensionPeriod> suspensions =
                 List.of(new SuspensionPeriod(LocalDate.of(2024, 6, 5), LocalDate.of(2024, 6, 6)));
 
-        // Наївно (без зупинення) 5 календарних днів від 03.06 = 08.06, +2 дні зупинення = 10.06.
-        LocalDate dueOn = DeadlineCalculator.calculateDueOn(
+        // Наївно (без зупинення) 5 календарних днів від 03.06 = 08.06, +2 дні зупинення = 10.06
+        // (понеділок, робочий - подальшого перенесення календарем нема, naiveDueOn == dueOn).
+        DeadlineDatesResponse dates = DeadlineCalculator.calculateDueOn(
                 startsOn, DurationUnit.DAY, DayKind.CALENDAR, (short) 5, Map.of(), suspensions);
 
-        assertThat(dueOn).isEqualTo(LocalDate.of(2024, 6, 10));
+        assertThat(dates.naiveDueOn()).isEqualTo(LocalDate.of(2024, 6, 10));
+        assertThat(dates.dueOn()).isEqualTo(LocalDate.of(2024, 6, 10));
     }
 
     @org.junit.jupiter.api.Test
@@ -116,10 +126,13 @@ class DeadlineCalculatorTest {
                 new SuspensionPeriod(LocalDate.of(2024, 1, 5), LocalDate.of(2024, 1, 6)),
                 new SuspensionPeriod(LocalDate.of(2024, 1, 12), LocalDate.of(2024, 1, 12)));
 
-        LocalDate dueOn = DeadlineCalculator.calculateDueOn(
+        DeadlineDatesResponse dates = DeadlineCalculator.calculateDueOn(
                 startsOn, DurationUnit.DAY, DayKind.CALENDAR, (short) 10, Map.of(), suspensions);
 
-        assertThat(dueOn).isEqualTo(LocalDate.of(2024, 1, 15));
+        // extendedDueOn (14.01, неділя) - те, що фактично пішло на перенесення календарем,
+        // а не "сира" 11.01 без урахування зупинень.
+        assertThat(dates.naiveDueOn()).isEqualTo(LocalDate.of(2024, 1, 14));
+        assertThat(dates.dueOn()).isEqualTo(LocalDate.of(2024, 1, 15));
     }
 
     @org.junit.jupiter.api.Test
@@ -128,12 +141,13 @@ class DeadlineCalculatorTest {
         List<SuspensionPeriod> suspensions =
                 List.of(new SuspensionPeriod(LocalDate.of(2024, 6, 20), LocalDate.of(2024, 6, 25)));
 
-        LocalDate dueOn = DeadlineCalculator.calculateDueOn(
+        DeadlineDatesResponse dates = DeadlineCalculator.calculateDueOn(
                 startsOn, DurationUnit.DAY, DayKind.CALENDAR, (short) 5, Map.of(), suspensions);
 
         // Наївно (без зупинення) 03.06 (пн) + 5 календарних днів = 08.06 (субота) - зупинення
         // після цієї дати жодного дня не додає, лишається тільки перенесення з вихідного на 10.06.
-        assertThat(dueOn).isEqualTo(LocalDate.of(2024, 6, 10));
+        assertThat(dates.naiveDueOn()).isEqualTo(LocalDate.of(2024, 6, 8));
+        assertThat(dates.dueOn()).isEqualTo(LocalDate.of(2024, 6, 10));
     }
 
     @org.junit.jupiter.api.Test
@@ -143,10 +157,11 @@ class DeadlineCalculatorTest {
                 List.of(new SuspensionPeriod(LocalDate.of(2024, 6, 4), LocalDate.of(2024, 6, 5)));
 
         // вт/ср зупинені (не рахуються), чт(1)/пт(2)/сб-нд(вихідні, скіп)/пн(3).
-        LocalDate dueOn = DeadlineCalculator.calculateDueOn(
+        DeadlineDatesResponse dates = DeadlineCalculator.calculateDueOn(
                 startsOn, DurationUnit.DAY, DayKind.WORKING, (short) 3, Map.of(), suspensions);
 
-        assertThat(dueOn).isEqualTo(LocalDate.of(2024, 6, 10));
+        assertThat(dates.dueOn()).isEqualTo(LocalDate.of(2024, 6, 10));
+        assertThat(dates.naiveDueOn()).isEqualTo(LocalDate.of(2024, 6, 10));
     }
 
     // ─── межові/захисні випадки ─────────────────────────────────────────

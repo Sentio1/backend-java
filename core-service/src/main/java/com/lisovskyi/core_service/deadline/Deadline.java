@@ -6,6 +6,8 @@ import static com.lisovskyi.core_service.deadline.DeadlineConstants.TITLE_LENGTH
 import com.lisovskyi.core_service.case_.Case;
 import com.lisovskyi.core_service.case_event.CaseEvent;
 import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
+import com.lisovskyi.core_service.deadline_rule.enums.DayKind;
+import com.lisovskyi.core_service.deadline_rule.enums.DurationUnit;
 import com.lisovskyi.core_service.entity.CoreEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import jakarta.persistence.*;
@@ -60,11 +62,37 @@ public class Deadline extends CoreEntity {
     @Column(name = "due_on", nullable = false)
     private LocalDate dueOn;
 
+    // "до перенесення" - те саме, що dueOn, якщо календар нічого не переніс (SEN-28).
+    // Nullable з тієї ж причини, що й baseDate: для рядків, порахованих до SEN-28, значення
+    // невідоме і заднім числом не відновлюється.
+    @Column(name = "naive_due_on")
+    private LocalDate naiveDueOn;
+
+    // Знімок правила на момент розрахунку (SEN-28) - разом з legalBasis/title вище. Читати ці
+    // три значення напряму з rule небезпечно: DeadlineRuleService.updateDeadlineRule редагує
+    // рядок DeadlineRule на місці (без нової версії), тож "жива" durationValue могла піти в
+    // інший бік від тієї, що реально застосовувалась тут.
+    @Column(name = "duration_value")
+    private Short durationValue;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "duration_unit")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private DurationUnit durationUnit;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "day_kind")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private DayKind dayKind;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Builder.Default
     private DeadlineStatus status = DeadlineStatus.PENDING;
+
+    @Column(name = "rule_version", nullable = false)
+    private short ruleVersion;
 
     @Column(name = "completed_at")
     private Instant completedAt;
@@ -75,6 +103,9 @@ public class Deadline extends CoreEntity {
 
     @Column(name = "extended_to")
     private LocalDate extendedTo;
+
+    @Column(name = "base_date")
+    private LocalDate baseDate;
 
     @Column(name = "note", columnDefinition = "text")
     private String note;

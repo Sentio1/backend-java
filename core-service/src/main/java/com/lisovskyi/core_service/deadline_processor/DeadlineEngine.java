@@ -1,7 +1,7 @@
 package com.lisovskyi.core_service.deadline_processor;
 
 import com.lisovskyi.core_service.audit_log.AuditLogService;
-import com.lisovskyi.core_service.audit_log.EntityType;
+import com.lisovskyi.core_service.audit_log.enums.EntityType;
 import com.lisovskyi.core_service.case_.enums.ProcedureType;
 import com.lisovskyi.core_service.case_event.CaseEvent;
 import com.lisovskyi.core_service.case_event.enums.EventCode;
@@ -9,6 +9,7 @@ import com.lisovskyi.core_service.court.Court;
 import com.lisovskyi.core_service.court.EventDateResolver;
 import com.lisovskyi.core_service.deadline.Deadline;
 import com.lisovskyi.core_service.deadline.DeadlineRepository;
+import com.lisovskyi.core_service.deadline_processor.dto.DeadlineDatesResponse;
 import com.lisovskyi.core_service.deadline_rule.DeadlineRule;
 import com.lisovskyi.core_service.deadline_rule.finder.DeadlineRuleFinder;
 import com.lisovskyi.core_service.holiday.finder.HolidayFinder;
@@ -41,10 +42,12 @@ public class DeadlineEngine {
 
 
     // changedBy: null означає "немає людини-автора" (напр. автоматична реєстрація події з
-    // Registry Monitor через registerRegistryCaseEvent - там ще нема SERVICE-токена з
-    // ідентичністю виклику, див. README/SEN-33) - у цьому випадку зміну dueOn просто не
-    // аудитуємо, а не вигадуємо фіктивного "системного" користувача, якого AuditLog.changedBy
-    // (NOT NULL, soft-ref на реального auth.users.id) не мав би сенсу представляти.
+    // Registry Monitor через registerRegistryCaseEvent, чи перерахунок від DeadlineListener при
+    // зміні виробничого календаря - там ще нема SERVICE-токена з ідентичністю виклику, див.
+    // README/SEN-33). Це більше не означає "не аудитувати": AuditLogService.logSystemChange
+    // пише рядок з changedByType = SYSTEM і changedBy = null замість вигаданого "системного"
+    // користувача, якого AuditLog.changedBy (коли не null - soft-ref на реального
+    // auth.users.id) не мав би сенсу представляти.
     @Transactional
     public Long generateDeadline(CaseEvent caseEvent, Long changedBy) {
         Court court = caseEvent.getCase_().getCourt();
@@ -71,7 +74,10 @@ public class DeadlineEngine {
         // чистій функції без Spring і без репозиторіїв. DeadlineEngine лише дістає з БД те,
         // чого сама функція дістати не може (свята), і передає аргументами.
         LocalDate startsOn = calculateStartsOn(occurredAt, rule.getCountFrom());
-        LocalDate dueOn = calculateDueOn(startsOn, rule, court);
+        DeadlineDatesResponse dates = calculateDueOn(startsOn, rule, court);
+
+        LocalDate dueOn = dates.dueOn();
+        LocalDate naiveDueOn = dates.naiveDueOn();
 
         // За triggeringEvent, а не за парою (triggeringEvent, rule): при зміні procedure/instance
         // справи (SEN-21) підбирається інше правило (інший рядок DeadlineRule), і пошук саме по
@@ -94,6 +100,12 @@ public class DeadlineEngine {
                     existing.setLegalBasis(rule.getLegalBasis());
                     existing.setStartsOn(startsOn);
                     existing.setDueOn(dueOn);
+                    existing.setRuleVersion(rule.getVersion());
+                    existing.setBaseDate(occurredAt);
+                    existing.setNaiveDueOn(naiveDueOn);
+                    existing.setDurationValue(rule.getDurationValue());
+                    existing.setDurationUnit(rule.getDurationUnit());
+                    existing.setDayKind(rule.getDayKind());
                     return existing;
                 })
                 .orElseGet(() -> Deadline.builder()
@@ -105,28 +117,39 @@ public class DeadlineEngine {
                         .triggeringEvent(caseEvent)
                         .startsOn(startsOn)
                         .dueOn(dueOn)
+                        .ruleVersion(rule.getVersion())
+                        .baseDate(occurredAt)
+                        .naiveDueOn(naiveDueOn)
+                        .durationValue(rule.getDurationValue())
+                        .durationUnit(rule.getDurationUnit())
+                        .dayKind(rule.getDayKind())
                         .build());
 
         Deadline savedDeadline = deadlineRepository.save(deadline);
 
         // Лише перерахунок УЖЕ наявного дедлайна (не первинне створення - там нема з чим
         // порівнювати "стару" дату, як і CaseService.updateCase не пише аудит на createCase),
-        // і лише коли dueOn реально змінився, і лише коли є хто в цьому винний (changedBy != null).
-        if (changedBy != null && oldDueOn != null && !Objects.equals(oldDueOn, dueOn)) {
-            auditLogService.log(
-                    OrganizationId.of(caseEvent.getOrganizationId()),
-                    EntityType.DEADLINE,
-                    DeadlineId.of(savedDeadline.getId()),
-                    UserId.of(changedBy),
-                    "dueOn",
-                    oldDueOn.toString(),
-                    dueOn.toString());
+        // і лише коли dueOn реально змінився. changedBy != null -> звичайний запис з людиною-
+        // автором; changedBy == null -> той самий факт зміни, але з ChangedByType.SYSTEM
+        // (див. коментар над generateDeadline) - в обох випадках рядок в історії лишається.
+        if (oldDueOn != null && !Objects.equals(oldDueOn, dueOn)) {
+            OrganizationId organizationId = OrganizationId.of(caseEvent.getOrganizationId());
+            DeadlineId deadlineId = DeadlineId.of(savedDeadline.getId());
+            if (changedBy != null) {
+                auditLogService.log(
+                        organizationId, EntityType.DEADLINE, deadlineId, UserId.of(changedBy),
+                        "dueOn", oldDueOn.toString(), dueOn.toString());
+            } else {
+                auditLogService.logSystemChange(
+                        organizationId, EntityType.DEADLINE, deadlineId,
+                        "dueOn", oldDueOn.toString(), dueOn.toString());
+            }
         }
 
         return savedDeadline.getId();
     }
 
-    private LocalDate calculateDueOn(LocalDate startsOn, DeadlineRule rule, Court court) {
+    private DeadlineDatesResponse calculateDueOn(LocalDate startsOn, DeadlineRule rule, Court court) {
         // asOf = "сьогодні" в часовому поясі суду - календар таким, яким він відомий зараз;
         // рядки з effectiveFrom у майбутньому (оголошене, але ще не чинне перенесення) до
         // вибірки не потраплять. Матеріалізацію Map<дата, чи робочий> з core.holidays робить

@@ -1,7 +1,7 @@
 package com.lisovskyi.core_service.case_;
 
 import com.lisovskyi.core_service.audit_log.AuditLogService;
-import com.lisovskyi.core_service.audit_log.EntityType;
+import com.lisovskyi.core_service.audit_log.enums.EntityType;
 import com.lisovskyi.core_service.case_.dto.request.CaseCreateRequest;
 import com.lisovskyi.core_service.case_.dto.request.CaseUpdateRequest;
 import com.lisovskyi.core_service.case_.dto.response.CaseResponse;

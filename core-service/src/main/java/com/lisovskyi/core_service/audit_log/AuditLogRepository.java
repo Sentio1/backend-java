@@ -23,10 +23,10 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
             SELECT a FROM AuditLog a
             WHERE a.organizationId = :organizationId
             AND (
-                (a.entityType = com.lisovskyi.core_service.audit_log.EntityType.CASE AND a.entityId = :caseId)
-                OR (a.entityType = com.lisovskyi.core_service.audit_log.EntityType.CASE_EVENT
+                (a.entityType = com.lisovskyi.core_service.audit_log.enums.EntityType.CASE AND a.entityId = :caseId)
+                OR (a.entityType = com.lisovskyi.core_service.audit_log.enums.EntityType.CASE_EVENT
                     AND a.entityId IN (SELECT ce.id FROM CaseEvent ce WHERE ce.case_.id = :caseId))
-                OR (a.entityType = com.lisovskyi.core_service.audit_log.EntityType.DEADLINE
+                OR (a.entityType = com.lisovskyi.core_service.audit_log.enums.EntityType.DEADLINE
                     AND a.entityId IN (SELECT d.id FROM Deadline d WHERE d.case_.id = :caseId))
             )
             ORDER BY a.changedAt DESC

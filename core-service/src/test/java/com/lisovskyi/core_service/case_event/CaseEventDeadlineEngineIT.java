@@ -142,6 +142,13 @@ class CaseEventDeadlineEngineIT {
         assertThat(firstDeadline.getTitle()).isEqualTo(rule.getTitle());
         assertThat(deadlineRepository.count()).isEqualTo(1);
 
+        // SEN-28: знімок правила й дати в момент розрахунку - і на первинному створенні
+        // теж, не лише при перерахунку.
+        assertThat(firstDeadline.getRuleVersion()).isEqualTo(rule.getVersion());
+        assertThat(firstDeadline.getBaseDate()).isEqualTo(LocalDate.of(2024, 6, 3));
+        // naiveDueOn (09.06, неділя) - дата до перенесення календарем на 10.06.
+        assertThat(firstDeadline.getNaiveDueOn()).isEqualTo(LocalDate.of(2024, 6, 9));
+
         // Симулюємо майбутній SEN-19 AC: правку occurredAt на вже існуючій події і повторний
         // виклик рушія для того самого CaseEvent — має оновити той самий Deadline, а не
         // створити другий.
@@ -161,5 +168,11 @@ class CaseEventDeadlineEngineIT {
         Deadline recalculated = deadlineRepository.findById(secondDeadlineId).orElseThrow();
         assertThat(recalculated.getStartsOn()).isEqualTo(LocalDate.of(2024, 6, 6));
         assertThat(recalculated.getDueOn()).isEqualTo(LocalDate.of(2024, 6, 11));
+
+        // Знімок оновлюється разом з перерахунком: нова baseDate (05.06), і 11.06 (вівторок) -
+        // робочий день, перенесення календарем нема, тож naiveDueOn == dueOn.
+        assertThat(recalculated.getRuleVersion()).isEqualTo(rule.getVersion());
+        assertThat(recalculated.getBaseDate()).isEqualTo(LocalDate.of(2024, 6, 5));
+        assertThat(recalculated.getNaiveDueOn()).isEqualTo(LocalDate.of(2024, 6, 11));
     }
 }

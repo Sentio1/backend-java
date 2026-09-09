@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.lisovskyi.core_service.TestcontainersConfiguration;
 import com.lisovskyi.core_service.audit_log.AuditLog;
 import com.lisovskyi.core_service.audit_log.AuditLogRepository;
-import com.lisovskyi.core_service.audit_log.EntityType;
+import com.lisovskyi.core_service.audit_log.enums.EntityType;
 import com.lisovskyi.core_service.case_.dto.request.CaseUpdateRequest;
 import com.lisovskyi.core_service.case_.enums.CaseInstance;
 import com.lisovskyi.core_service.case_.enums.CaseStatus;

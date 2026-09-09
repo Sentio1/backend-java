@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.lisovskyi.core_service.audit_log.dto.response.AuditLogResponse;
+import com.lisovskyi.core_service.audit_log.enums.ChangedByType;
+import com.lisovskyi.core_service.audit_log.enums.EntityType;
 import com.lisovskyi.core_service.audit_log.finder.AuditLogFinder;
 import com.lisovskyi.core_service.audit_log.mapper.AuditLogMapper;
 import com.lisovskyi.core_service.case_.Case;
@@ -16,6 +18,7 @@ import com.lisovskyi.core_service.case_.finder.CaseFinder;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.shared.dto.PageResponse;
 import com.sentio.shared.entity.id.case_.CaseId;
+import com.sentio.shared.entity.id.deadline.DeadlineId;
 import com.sentio.shared.entity.id.organization.OrganizationId;
 import com.sentio.shared.entity.id.user.UserId;
 import java.time.Instant;
@@ -61,10 +64,27 @@ class AuditLogServiceTest {
         assertThat(saved.getEntityType()).isEqualTo(EntityType.CASE);
         assertThat(saved.getEntityId()).isEqualTo(10L);
         assertThat(saved.getChangedBy()).isEqualTo(5L);
+        assertThat(saved.getChangedByType()).isEqualTo(ChangedByType.USER);
         assertThat(saved.getFieldName()).isEqualTo("procedure");
         assertThat(saved.getOldValue()).isEqualTo("CIVIL");
         assertThat(saved.getNewValue()).isEqualTo("COMMERCIAL");
         assertThat(saved.getChangedAt()).isNotNull();
+    }
+
+    @Test
+    void logSystemChange_savesAuditLogWithNullChangedByAndSystemType() {
+        ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
+
+        auditLogService.logSystemChange(
+                OrganizationId.of(1L), EntityType.DEADLINE, DeadlineId.of(10L), "dueOn", "2026-01-10", "2026-01-13");
+
+        verify(auditLogRepository).save(captor.capture());
+        AuditLog saved = captor.getValue();
+        assertThat(saved.getChangedBy()).isNull();
+        assertThat(saved.getChangedByType()).isEqualTo(ChangedByType.SYSTEM);
+        assertThat(saved.getFieldName()).isEqualTo("dueOn");
+        assertThat(saved.getOldValue()).isEqualTo("2026-01-10");
+        assertThat(saved.getNewValue()).isEqualTo("2026-01-13");
     }
 
     @Test
@@ -79,10 +99,11 @@ class AuditLogServiceTest {
                 .oldValue("CIVIL")
                 .newValue("COMMERCIAL")
                 .changedBy(5L)
+                .changedByType(ChangedByType.USER)
                 .changedAt(Instant.now())
                 .build();
-        AuditLogResponse response =
-                new AuditLogResponse(1L, 1L, EntityType.CASE, 10L, "procedure", "CIVIL", "COMMERCIAL", 5L, Instant.now());
+        AuditLogResponse response = new AuditLogResponse(
+                1L, 1L, EntityType.CASE, 10L, "procedure", "CIVIL", "COMMERCIAL", 5L, ChangedByType.USER, Instant.now());
         Pageable pageable = Pageable.ofSize(20);
 
         when(caseFinder.findByIdAndOrganizationId(10L, 1L)).thenReturn(case_);

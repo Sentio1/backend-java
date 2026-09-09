@@ -1,6 +1,8 @@
 package com.lisovskyi.core_service.audit_log;
 
 import com.lisovskyi.core_service.audit_log.dto.response.AuditLogResponse;
+import com.lisovskyi.core_service.audit_log.enums.ChangedByType;
+import com.lisovskyi.core_service.audit_log.enums.EntityType;
 import com.lisovskyi.core_service.audit_log.finder.AuditLogFinder;
 import com.lisovskyi.core_service.audit_log.mapper.AuditLogMapper;
 import com.lisovskyi.core_service.case_.finder.CaseFinder;
@@ -44,6 +46,35 @@ public class AuditLogService {
             String fieldName,
             String oldValue,
             String newValue) {
+        save(organizationId, entityType, entityId, changedBy.id(), ChangedByType.USER, fieldName, oldValue, newValue);
+    }
+
+    // Той самий журнал, коли зміну спричинив автоматичний процес, а не людина (напр.
+    // DeadlineEngine при перерахунку dueOn через зміну виробничого календаря) - changedBy = null
+    // замість вигаданого auth.users.id, і ChangedByType.SYSTEM каже, чому саме null (див.
+    // ChangedByType).
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void logSystemChange(
+            OrganizationId organizationId,
+            EntityType entityType,
+            EntityId entityId,
+            String fieldName,
+            String oldValue,
+            String newValue
+    ) {
+        save(organizationId, entityType, entityId, null, ChangedByType.SYSTEM, fieldName, oldValue, newValue);
+    }
+
+    private void save(
+            OrganizationId organizationId,
+            EntityType entityType,
+            EntityId entityId,
+            Long changedBy,
+            ChangedByType changedByType,
+            String fieldName,
+            String oldValue,
+            String newValue
+    ) {
         AuditLog auditLog = AuditLog.builder()
                 .organizationId(organizationId.id())
                 .entityType(entityType)
@@ -51,7 +82,8 @@ public class AuditLogService {
                 .fieldName(fieldName)
                 .oldValue(oldValue)
                 .newValue(newValue)
-                .changedBy(changedBy.id())
+                .changedBy(changedBy)
+                .changedByType(changedByType)
                 .changedAt(Instant.now())
                 .build();
 

@@ -1,5 +1,7 @@
 package com.lisovskyi.core_service.audit_log;
 
+import com.lisovskyi.core_service.audit_log.enums.ChangedByType;
+import com.lisovskyi.core_service.audit_log.enums.EntityType;
 import com.lisovskyi.jpa.autoconfigure.entity.CreationTimestampedEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import jakarta.persistence.*;
@@ -43,8 +45,18 @@ public class AuditLog extends CreationTimestampedEntity {
     @Column(name = "new_value", columnDefinition = "TEXT")
     private String newValue;
 
-    @Column(name = "changed_by", nullable = false)
-    private long changedBy;
+    // Nullable: тільки для changedByType == USER це реальний auth.users.id (soft-ref, як і
+    // раніше); для SYSTEM - null, і саме changedByType, а не вигаданий id, каже, чому.
+    @Column(name = "changed_by")
+    private Long changedBy;
+
+    // USER / SYSTEM - хто відповідає за зміну: людина (тоді changedBy обов'язковий) чи
+    // автоматичний процес (тоді changedBy = null). БД (V35, CHECK-обмеження
+    // audit_logs_changed_by_matches_type) гарантує, що ці два поля не розійдуться.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "changed_by_type", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private ChangedByType changedByType;
 
     @Column(name = "changed_at", nullable = false)
     private Instant changedAt;

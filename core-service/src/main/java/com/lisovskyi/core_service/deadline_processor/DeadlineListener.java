@@ -15,7 +15,8 @@ import java.util.List;
 // не реагувати на зміну holidays, яка потім відкотиться, і не бачити її мідтранзакційно.
 // changedBy = null: тут немає людини, відповідальної саме за це зрушення dueOn - редактор
 // календаря виправив факт, а не ухвалив рішення по конкретній справі (той самий підхід, що й
-// автоматична реєстрація подій з Registry Monitor у DeadlineEngine).
+// автоматична реєстрація подій з Registry Monitor у DeadlineEngine). DeadlineEngine записує це
+// в аудит з ChangedByType.SYSTEM, а не пропускає запис.
 @Component
 @Slf4j
 @RequiredArgsConstructor

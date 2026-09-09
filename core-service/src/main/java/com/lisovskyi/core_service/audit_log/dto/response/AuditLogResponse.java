@@ -1,6 +1,7 @@
 package com.lisovskyi.core_service.audit_log.dto.response;
 
-import com.lisovskyi.core_service.audit_log.EntityType;
+import com.lisovskyi.core_service.audit_log.enums.ChangedByType;
+import com.lisovskyi.core_service.audit_log.enums.EntityType;
 import java.time.Instant;
 
 public record AuditLogResponse(
@@ -11,6 +12,7 @@ public record AuditLogResponse(
         String fieldName,
         String oldValue,
         String newValue,
-        long changedBy,
+        Long changedBy,
+        ChangedByType changedByType,
         Instant changedAt
 ) {}

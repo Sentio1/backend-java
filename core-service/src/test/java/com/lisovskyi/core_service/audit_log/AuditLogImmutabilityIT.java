@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.lisovskyi.core_service.TestcontainersConfiguration;
+import com.lisovskyi.core_service.audit_log.enums.ChangedByType;
+import com.lisovskyi.core_service.audit_log.enums.EntityType;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceException;
 import java.time.Instant;
@@ -41,6 +43,7 @@ class AuditLogImmutabilityIT {
                 .oldValue("old")
                 .newValue("new")
                 .changedBy(1L)
+                .changedByType(ChangedByType.USER)
                 .changedAt(Instant.now())
                 .build());
         entityManager.flush();

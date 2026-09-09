@@ -1,5 +1,6 @@
 package com.lisovskyi.core_service.deadline_processor;
 
+import com.lisovskyi.core_service.deadline_processor.dto.DeadlineDatesResponse;
 import com.lisovskyi.core_service.deadline_rule.enums.CountFrom;
 import com.lisovskyi.core_service.deadline_rule.enums.DayKind;
 import com.lisovskyi.core_service.deadline_rule.enums.DurationUnit;
@@ -25,7 +26,7 @@ public final class DeadlineCalculator {
         return countFrom == CountFrom.NEXT_DAY ? eventDate.plusDays(1) : eventDate;
     }
 
-    public static LocalDate calculateDueOn(
+    public static DeadlineDatesResponse calculateDueOn(
             @NonNull LocalDate startsOn,
             @NonNull DurationUnit durationUnit,
             @NonNull DayKind dayKind,
@@ -35,7 +36,7 @@ public final class DeadlineCalculator {
         return calculateDueOn(startsOn, durationUnit, dayKind, durationValue, holidayOverrides, List.of());
     }
 
-    public static LocalDate calculateDueOn(
+    public static DeadlineDatesResponse calculateDueOn(
             @NonNull LocalDate startsOn,
             @NonNull DurationUnit durationUnit,
             @NonNull DayKind dayKind,
@@ -47,7 +48,8 @@ public final class DeadlineCalculator {
         // Робочі дні: свята й вихідні не рахуються за визначенням — окрема гілка, що йде
         // day-by-day, а не рахує "наперед" і переносить, як календарні.
         if (durationUnit == DurationUnit.DAY && dayKind == DayKind.WORKING) {
-            return advanceByWorkingDays(startsOn, durationValue, holidayOverrides, suspensions);
+            LocalDate result = advanceByWorkingDays(startsOn, durationValue, holidayOverrides, suspensions);
+            return new DeadlineDatesResponse(result, result);
         }
 
         // Календарні дні й місяці — рахуємо "наперед" арифметикою java.time, продовжуємо на
@@ -58,7 +60,8 @@ public final class DeadlineCalculator {
                 : startsOn.plusDays(durationValue);
 
         LocalDate extendedDueOn = extendForSuspensions(startsOn, naiveDueOn, suspensions);
-        return WorkingDayCalendar.nextWorkingDayOnOrAfter(extendedDueOn, holidayOverrides);
+        LocalDate dueOn = WorkingDayCalendar.nextWorkingDayOnOrAfter(extendedDueOn, holidayOverrides);
+        return new DeadlineDatesResponse(extendedDueOn, dueOn);
     }
 
     private static LocalDate advanceByWorkingDays(

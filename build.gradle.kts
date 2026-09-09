@@ -34,6 +34,9 @@ subprojects {
 
     tasks.withType<Checkstyle>().configureEach {
         exclude("**/generated/**")
+        if (name.contains("Aot")) {
+            enabled = false
+        }
     }
 
     java {

@@ -19,4 +19,6 @@ public record DeadlineResponse(
         Instant completedAt,
         Long completedBy,
         LocalDate extendedTo,
-        String note) {}
+        String note,
+        String explanation
+) {}

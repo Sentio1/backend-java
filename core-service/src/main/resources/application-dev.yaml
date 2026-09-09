@@ -1,0 +1,44 @@
+spring:
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:core-service/.env[.properties]
+
+  # Власний Postgres-контейнер core-service (docker-compose.yaml, порт 5433,
+  # щоб не конфліктувати з user-service на 5432) - окрема БД на сервіс.
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:5433/${POSTGRES_CORE_SERVICE_DB}
+    username: postgres
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  # Spring Data Redis defaults to localhost:6379 - that's user-service's redis,
+  # not core-service's own (docker-compose.yaml maps it to 6380 specifically to
+  # avoid the port clash). Without this override, a solo core-service dev run
+  # either hits the wrong redis or gets connection-refused with neither stack up.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+logging:
+  level:
+    com.lisovskyi.*: DEBUG
+    org.apache.kafka: WARN
+
+management:
+  tracing:
+    sampling:
+      # 100% трейсінг в dev — бачимо кожен запит
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://localhost:4317

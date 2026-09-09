@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Підтягуємо spring.application.name для label у Loki -->
+    <springProperty name="APP_NAME" source="spring.application.name" defaultValue="unknown"/>
+    <!-- Підтягуємо OTLP/Loki endpoint (може відрізнятись між dev і prod) -->
+    <springProperty name="LOKI_URL" source="loki.url" defaultValue="http://localhost:3100/loki/api/v1/push"/>
+
+    <!-- ═══════════════════════════════════════════
+         Console appender з traceId/spanId
+         Spring Boot Actuator + Micrometer Tracing
+         автоматично вставляють traceId у MDC,
+         тому %X{traceId} і %X{spanId} просто працюють
+    ════════════════════════════════════════════ -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%cyan(${APP_NAME})] [%blue(%X{traceId},%X{spanId})] [%thread] %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ═══════════════════════════════════════════
+         Loki appender (loki-logback-appender)
+         Пушить батчами в Grafana Loki.
+         Логи в Grafana можна фільтрувати за:
+           {app="core-service"} або {level="ERROR"}
+         і одразу бачити traceId → перейти в Tempo.
+    ════════════════════════════════════════════ -->
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>${LOKI_URL}</url>
+        </http>
+        <!-- Надсилати батч кожні 500ms або якщо накопичилось 1000 повідомлень - властивості
+             самого Loki4jAppender (setBatchTimeoutMs/setBatchMaxItems), а НЕ <http> (той
+             мапиться на AbstractHttpSender: лише url/auth/tenantId/таймаути з'єднання).
+             Всередині <http> Joran це просто мовчки ігнорує, апендер тихо йде з дефолтами. -->
+        <batchTimeoutMs>500</batchTimeoutMs>
+        <batchMaxItems>1000</batchMaxItems>
+        <format>
+            <label>
+                <!--
+                    Labels — індексовані поля Loki, за якими фільтруєш у Grafana.
+                    НЕ РОБИ label-ами поля з високою кардинальністю (userId, requestId) —
+                    кожне унікальне значення = окремий stream = велике навантаження.
+                -->
+                <pattern>app=${APP_NAME},level=%level,host=${HOSTNAME}</pattern>
+                <readMarkers>true</readMarkers>
+            </label>
+            <message>
+                <!--
+                    Повний текст логу + traceId зі Spring MDC.
+                    Grafana Loki datasource налаштований витягувати traceId
+                    з JSON і робити клікабельне посилання на Tempo
+                    (див. datasources.yml: derivedFields).
+                -->
+                <pattern>{"level":"%level","logger":"%logger{36}","thread":"%thread","traceId":"%X{traceId}","spanId":"%X{spanId}","message":"%message"}</pattern>
+            </message>
+        </format>
+    </appender>
+
+    <!-- ═══════════════════════════════════════════
+         Profile-специфічна активація Loki appender.
+         У dev Loki може не бути запущений —
+         якщо не хочеш помилок, просто не додавай
+         LOKI appender-ref у dev-profile нижче.
+    ════════════════════════════════════════════ -->
+    <springProfile name="dev">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="LOKI"/>
+        </root>
+        <logger name="com.lisovskyi" level="DEBUG"/>
+        <logger name="com.sentio" level="DEBUG"/>
+        <!-- Kafka дуже шумний на INFO — лишаємо WARN -->
+        <logger name="org.apache.kafka" level="WARN"/>
+    </springProfile>
+
+    <springProfile name="prod">
+        <!-- CONSOLE лишається поруч з LOKI: якщо Loki впаде чи мережа поламається,
+             journalctl/docker logs — єдина копія логів, що лишиться взагалі десь.
+             Дублювання дешеве (stdout в контейнері), відсутність логів при збої
+             агрегатора - ні. -->
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="LOKI"/>
+        </root>
+        <!-- Зашумлені бібліотеки -->
+        <logger name="org.apache.kafka" level="WARN"/>
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.hibernate" level="WARN"/>
+    </springProfile>
+
+</configuration>

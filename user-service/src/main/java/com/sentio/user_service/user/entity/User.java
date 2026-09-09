@@ -1,29 +1,33 @@
 package com.sentio.user_service.user.entity;
 
+import static com.sentio.user_service.user.UserConstants.*;
+
 import com.lisovskyi.jpa.autoconfigure.entity.TimestampedEntity;
 import com.lisovskyi.jpa.autoconfigure.generator.SequenceSize;
 import com.sentio.user_service.user.enums.PlatformRole;
 import jakarta.persistence.*;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.sentio.user_service.user.UserConstants.*;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "users")
-@Getter @Setter
-@AllArgsConstructor @NoArgsConstructor
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @SuperBuilder
 @SequenceSize(size = 50)
+@SQLRestriction("deleted_at IS NULL")
+/** User class. */
 public class User extends TimestampedEntity {
 
-    @Column(name = "email", columnDefinition = "citext", unique = true, nullable = false)
+    @Column(name = "email", columnDefinition = "citext", nullable = false)
     private String email;
 
     @Column(name = "password_hash", length = PASSWORD_HASH_LENGTH)
@@ -60,5 +64,9 @@ public class User extends TimestampedEntity {
     private Instant deletedAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UserIdentity> identities = new ArrayList<>();
+    private final List<UserIdentity> identities = new ArrayList<>();
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
 }

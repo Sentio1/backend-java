@@ -4,9 +4,133 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
+  threads:
+    virtual:
+      enabled: true
+
   datasource:
     driver-class-name: org.postgresql.Driver
+
+  jpa:
+    properties:
+      hibernate:
+        default_schema: auth
+
+  data:
+    redis:
+      password: ${REDIS_PASSWORD:}
+
+    web:
+      pageable:
+        max-page-size: 100
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+              - openid
+
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
 
 server:
   servlet:
     context-path: /api/v1
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLE_RATE:0.1}
+  otlp:
+    tracing:
+      endpoint: ${OTLP_ENDPOINT:http://localhost:4317}
+
+loki:
+  url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
+
+
+resilience4j:
+  ratelimiter:
+    configs:
+      login-by-email:
+        limit-for-period: 5
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
+      login-by-ip:
+        limit-for-period: 20
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
+      register-by-email:
+        limit-for-period: 5
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
+      register-by-ip:
+        limit-for-period: 20
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
+      service-token-by-email:
+        limit-for-period: 5
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
+      service-token-by-ip:
+        limit-for-period: 20
+        limit-refresh-period: 60s
+        timeout-duration: 0s
+
+
+app:
+  jwt:
+    private-key: ${JWT_PRIVATE_KEY}
+    previous-private-key: ${JWT_PREVIOUS_PRIVATE_KEY}
+    issuer: sentio-startup
+    refresh-token-expiration: 2592000000
+
+  security:
+    allow-credentials: true
+    allowed-origins:
+      - http://localhost:5173
+      - http://localhost:3000
+    bcrypt-strength: 12
+    public-paths:
+      - /auth/register
+      - /auth/login
+      - /auth/refresh
+      - /oauth2/**
+      - /login/oauth2/**
+      - /actuator/health/**
+
+  cookie:
+    # в prod поміняти на true
+    secure: false
+
+  oauth:
+    success-redirect-uri: http://localhost:5173/dashboard
+    failure-redirect-uri: http://localhost:5173/login
+
+  async:
+    enabled: true

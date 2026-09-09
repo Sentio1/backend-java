@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <springProperty name="APP_NAME" source="spring.application.name" defaultValue="unknown"/>
+    <springProperty name="LOKI_URL" source="loki.url" defaultValue="http://localhost:3100/loki/api/v1/push"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%cyan(${APP_NAME})] [%blue(%X{traceId},%X{spanId})] [%thread] %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>${LOKI_URL}</url>
+        </http>
+        <!-- batchTimeoutMs/batchMaxItems - властивості Loki4jAppender, не <http>
+             (AbstractHttpSender: лише url/auth/tenantId/таймаути з'єднання) - усередині
+             <http> Joran мовчки ігнорує теги, апендер тихо йде з дефолтами замість цих. -->
+        <batchTimeoutMs>500</batchTimeoutMs>
+        <batchMaxItems>1000</batchMaxItems>
+        <format>
+            <label>
+                <pattern>app=${APP_NAME},level=%level,host=${HOSTNAME}</pattern>
+                <readMarkers>true</readMarkers>
+            </label>
+            <message>
+                <pattern>{"level":"%level","logger":"%logger{36}","thread":"%thread","traceId":"%X{traceId}","spanId":"%X{spanId}","message":"%message"}</pattern>
+            </message>
+        </format>
+    </appender>
+
+    <springProfile name="dev">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="LOKI"/>
+        </root>
+        <logger name="com.sentio" level="DEBUG"/>
+    </springProfile>
+
+    <springProfile name="prod">
+        <!-- CONSOLE поруч з LOKI: якщо агрегатор впаде, journalctl/docker logs лишається
+             єдиним джерелом логів - дублювання в stdout дешевше за повну відсутність логів. -->
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="LOKI"/>
+        </root>
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.hibernate" level="WARN"/>
+    </springProfile>
+
+</configuration>

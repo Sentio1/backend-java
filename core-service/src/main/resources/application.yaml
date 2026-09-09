@@ -1,0 +1,116 @@
+spring:
+  application:
+    name: core-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  threads:
+    virtual:
+      enabled: true
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    properties:
+      hibernate:
+        default_schema: core
+
+  data:
+    redis:
+      password: ${REDIS_PASSWORD:}
+
+    web:
+      pageable:
+        max-page-size: 100
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: core-service-registry-event
+      auto-offset-reset: earliest
+      # Ручний ack ПІСЛЯ запису в БД (див. spring.kafka.listener.ack-mode нижче) -
+      # автокоміт вимкнено навмисно, інакше offset коміситься відразу після читання,
+      # незалежно від того, чи справді подія оброблена.
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # ErrorHandlingDeserializer навколо JacksonJsonDeserializer - поламане/невідповідне
+      # JSON-повідомлення саме по собі не вбиває listener-контейнер, а йде тим самим
+      # шляхом, що й помилка з бізнес-логіки (CommonErrorHandler -> retry -> DLQ,
+      # див. RegistryKafkaConsumerConfig - там же й лишається сам error handler,
+      # бо це вже не властивість, а програмна логіка).
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.value.default.type: com.lisovskyi.core_service.registry_event.dto.RegistryDocumentFoundEvent
+        # Обов'язково - за замовчуванням десеріалізатор відмовляється десеріалізувати
+        # в довільні класи. Тут довіряємо лише своєму DTO-пакету.
+        spring.json.trusted.packages: com.lisovskyi.core_service.registry_event.dto
+        # Повідомлення без заголовків типу (Go їх не проставляє) - тип береться
+        # з spring.json.value.default.type вище, а не з заголовків.
+        spring.json.use.type.headers: false
+    producer:
+      # Потрібен лише для DeadLetterPublishingRecoverer (публікація в DLQ-топік) -
+      # core-service сам по собі нікому іншому в Kafka не продюсить.
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+server:
+  # 8081, не дефолтний 8080: user-service теж 8080 - обидва мають бути живими
+  # одночасно локально, щоб Prometheus (config/prometheus.yml) бачив обидва джоби
+  # й Tempo service graph міг показати виклики між сервісами.
+  port: 8081
+  servlet:
+    context-path: /api/v1
+  shutdown: graceful
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  tracing:
+    sampling:
+      # Перевизначається у application-dev.yaml (1.0) і application-prod.yaml (0.1)
+      probability: ${TRACING_SAMPLE_RATE:0.1}
+  otlp:
+    tracing:
+      # У dev: localhost:4317 (Tempo запущений через docker-compose.yaml)
+      # У prod: tempo:4317 (Tempo у тій самій Docker-мережі)
+      endpoint: ${OTLP_ENDPOINT:http://localhost:4317}
+
+loki:
+  # Підхоплюється logback-spring.xml через <springProperty>
+  url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
+
+app:
+  jwt:
+    # jwks-uri, не статичний public-key/previous-public-key: JWKS сам віддає
+    # обидва ключі під час ротації user-service (app.jwt.previous-private-key
+    # там же) - core-service підхоплює новий kid сам, без ручного синку значень
+    # при кожній ротації. Дефолт розрахований на user-service, який слухає 8080
+    # локально - context-path /api/v1 (README.md, JwksControllerIT).
+    jwks-uri: ${JWT_JWKS_URI:http://localhost:8080/api/v1/.well-known/jwks.json}
+    issuer: sentio-startup
+
+  security:
+    allow-credentials: true
+    allowed-origins:
+      - http://localhost:5173
+      - http://localhost:3000
+    public-paths:
+      - /actuator/health/**

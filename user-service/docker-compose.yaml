@@ -1,7 +1,7 @@
 services:
-  postgres:
+  user-postgres:
     image: postgres:17-alpine
-    container_name: postgres_container
+    container_name: postgres_user_service_container
 
     ports:
       - "5432:5432"
@@ -9,19 +9,36 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_DB: ${POSTGRES_USER_SERVICE_DB}
 
     restart: unless-stopped
 
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB}" ]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_USER_SERVICE_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 10s
 
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - user_postgres_data:/var/lib/postgresql/data/
+
+  user-redis:
+    image: redis:8-alpine
+    container_name: redis_user_service_container
+    ports:
+      # 0.0.0.0, not 127.0.0.1: a k8s pod (minikube) reaching this via host.minikube.internal
+      # arrives as if from the docker bridge gateway, not from 127.0.0.1 itself - Docker's
+      # loopback-only publish refuses that connection outright (Connection refused). Password
+      # is still required below either way - this widens reachability, not who can auth.
+      - "6379:6379"
+    # No fallback default - an unset REDIS_PASSWORD must fail `docker compose up`
+    # loudly instead of quietly starting Redis with a well-known password.
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+    restart: unless-stopped
+    volumes:
+      - user_redis_data:/data
 
 volumes:
-  postgres_data:
+  user_postgres_data:
+  user_redis_data:

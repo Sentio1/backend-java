@@ -43,3 +43,16 @@ server:
 logging:
   level:
     root: WARN
+
+management:
+  tracing:
+    sampling:
+      # 10% у prod — зменшує навантаження на Tempo
+      probability: ${TRACING_SAMPLE_RATE:0.1}
+  otlp:
+    tracing:
+      # Tempo у тій самій Docker-мережі — звертаємось за іменем контейнера
+      endpoint: ${OTLP_ENDPOINT:http://tempo:4317}
+
+loki:
+  url: ${LOKI_URL:http://loki:3100/loki/api/v1/push}

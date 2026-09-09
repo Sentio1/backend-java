@@ -1,0 +1,75 @@
+# Спільний observability стек для всього проекту.
+# Запуск: docker compose -f docker-compose.observability.yaml up -d
+#
+# Сервіси тут — НЕ частина core-service або user-service.
+# Prometheus, Grafana, Tempo, Loki обслуговують обидва мікросервіси одночасно.
+# Spring Boot сервіси запускаються через bootRun на хості → Prometheus
+# дістається до них через host.docker.internal.
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus_container
+    ports:
+      - "9090:9090"
+    # host.docker.internal резолвиться "з коробки" лише на Docker Desktop (Mac/Windows).
+    # На звичайному Docker Engine (Linux) без цього прометей ніколи не достукається до
+    # host.docker.internal:8081/8080, де слухають bootRun-нуті сервіси на хості.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Конфіг монтується з кореня проекту, де лежить цей docker-compose файл
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo_container
+    ports:
+      - "3200:3200"   # HTTP API → Grafana datasource
+      - "4317:4317"   # OTLP gRPC ← Spring Boot (management.otlp.tracing.endpoint)
+    volumes:
+      - ./config/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/var/tempo
+    command: [ "-config.file=/etc/tempo/tempo.yml" ]
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki_container
+    ports:
+      - "3100:3100"   # HTTP ← loki4j logback appender (loki.url в application.yaml)
+    volumes:
+      - ./config/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+    command: [ "-config.file=/etc/loki/loki.yml" ]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana_container
+    ports:
+      - "3001:3000"   # UI: http://localhost:3001 (admin / admin)
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      # Datasources (Prometheus, Tempo, Loki) і дашборди provisioning-ом —
+      # не треба налаштовувати вручну через UI при кожному docker compose up
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  tempo_data:
+  loki_data:
+  grafana_data:

@@ -25,6 +25,13 @@ dependencies {
     api(libs.micrometer.core)
     api(libs.micrometer.prometheus)
 
+    // Tracing: Micrometer -> OpenTelemetry -> Grafana Tempo (OTLP)
+    api(libs.micrometer.tracing.bridge.otel)
+    api(libs.opentelemetry.exporter.otlp)
+
+    // Logs -> Grafana Loki
+    api(libs.loki.logback)
+
     compileOnly(libs.spring.webmvc)
 
     testImplementation(platform(libs.junit.bom))

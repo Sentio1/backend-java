@@ -7,6 +7,8 @@ postgresql = "42.7.13"
 
 resilience4j = "2.4.0"
 
+loki-logback = "1.5.2"
+
 grpc = "1.76.0"
 grpc-spring = "1.1.0.RELEASE"
 
@@ -128,6 +130,13 @@ grpc-client = { module = "org.springframework.grpc:spring-grpc-spring-boot-start
 
 micrometer-core = { module = "io.micrometer:micrometer-core" }
 micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+
+# Tracing: Micrometer -> OpenTelemetry bridge + OTLP exporter (версії керуються Spring Boot BOM)
+micrometer-tracing-bridge-otel = { module = "io.micrometer:micrometer-tracing-bridge-otel" }
+opentelemetry-exporter-otlp = { module = "io.opentelemetry:opentelemetry-exporter-otlp" }
+
+# Logs -> Loki
+loki-logback = { module = "com.github.loki4j:loki-logback-appender", version.ref = "loki-logback" }
 
 zipkin-reporter = { module = "io.zipkin.reporter2:zipkin-reporter-brave" }
 

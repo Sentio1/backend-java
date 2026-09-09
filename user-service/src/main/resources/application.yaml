@@ -48,7 +48,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health, info, prometheus
   endpoint:
     health:
       probes:
@@ -58,6 +58,15 @@ management:
       enabled: true
     readinessstate:
       enabled: true
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLE_RATE:0.1}
+  otlp:
+    tracing:
+      endpoint: ${OTLP_ENDPOINT:http://localhost:4317}
+
+loki:
+  url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
 
 
 resilience4j:

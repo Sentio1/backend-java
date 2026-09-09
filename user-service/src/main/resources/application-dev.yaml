@@ -30,3 +30,11 @@ spring:
 logging:
   level:
     com.sentio.*: DEBUG
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://localhost:4317

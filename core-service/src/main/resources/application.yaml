@@ -60,6 +60,10 @@ spring:
     timeout-per-shutdown-phase: 30s
 
 server:
+  # 8081, не дефолтний 8080: user-service теж 8080 - обидва мають бути живими
+  # одночасно локально, щоб Prometheus (config/prometheus.yml) бачив обидва джоби
+  # й Tempo service graph міг показати виклики між сервісами.
+  port: 8081
   servlet:
     context-path: /api/v1
   shutdown: graceful
@@ -69,7 +73,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health, info, prometheus
   endpoint:
     health:
       probes:
@@ -79,6 +83,19 @@ management:
       enabled: true
     readinessstate:
       enabled: true
+  tracing:
+    sampling:
+      # Перевизначається у application-dev.yaml (1.0) і application-prod.yaml (0.1)
+      probability: ${TRACING_SAMPLE_RATE:0.1}
+  otlp:
+    tracing:
+      # У dev: localhost:4317 (Tempo запущений через docker-compose.yaml)
+      # У prod: tempo:4317 (Tempo у тій самій Docker-мережі)
+      endpoint: ${OTLP_ENDPOINT:http://localhost:4317}
+
+loki:
+  # Підхоплюється logback-spring.xml через <springProperty>
+  url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
 
 app:
   jwt:

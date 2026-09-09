@@ -41,8 +41,16 @@ app:
 
 
 logging:
-  structured:
-    format:
-      console: logstash
   level:
     root: WARN
+
+management:
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLE_RATE:0.1}
+  otlp:
+    tracing:
+      endpoint: ${OTLP_ENDPOINT:http://tempo:4317}
+
+loki:
+  url: ${LOKI_URL:http://loki:3100/loki/api/v1/push}

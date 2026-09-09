@@ -33,3 +33,12 @@ logging:
   level:
     com.lisovskyi.*: DEBUG
     org.apache.kafka: WARN
+
+management:
+  tracing:
+    sampling:
+      # 100% трейсінг в dev — бачимо кожен запит
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://localhost:4317

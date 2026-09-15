@@ -76,9 +76,9 @@ Package root: `com.sentio.user_service`. Organized by feature, not by layer:
     rather than defining its own `SecurityFilterChain` from scratch.
   - Access/refresh tokens are set as cookies (`AuthCookieService` from the security starter), not returned in JSON
     bodies — see `AuthController`.
-- **`organization/`** — `Organization`/`OrganizationMember` entities, `OrganizationService`/`OrganizationSecurity`
+- **`organization/`** — `Organization`/`OrganizationMember` entities, `OrganizationServiceImpl`/`OrganizationSecurity`
   (authorization checks, e.g. `@PreAuthorize`-backed), `OrganizationController` (management API).
-- **`user/`** — `User`/`UserIdentity` entities, repositories, `UserController`/`UserService`.
+- **`user/`** — `User`/`UserIdentity` entities, repositories, `UserController`/`UserServiceImpl`.
 - **`refresh_token/`** — `RefreshToken` entity + repository; tokens are stored **hashed** (`OpaqueTokenService`),
   never in plaintext.
 - Each feature package has a `*Constants` class (`AuthConstants`, `OrganizationConstants`, `UserConstants`) for

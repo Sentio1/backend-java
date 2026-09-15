@@ -8,9 +8,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 public record CaseResponse(
-        Long id,
-        Long organizationId,
-        Long responsibleUserId,
+        long id,
+        long organizationId,
+        long responsibleUserId,
         String caseNumber,
         String internalNumber,
         String title,
@@ -25,4 +25,5 @@ public record CaseResponse(
         Instant registryLastCheckedAt,
         Long createdBy,
         Instant createdAt,
-        Instant updatedAt) {}
+        Instant updatedAt
+) {}

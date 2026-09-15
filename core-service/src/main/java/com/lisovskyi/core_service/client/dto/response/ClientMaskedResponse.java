@@ -5,8 +5,8 @@ import java.time.Instant;
 import java.util.List;
 
 public record ClientMaskedResponse(
-        Long id,
-        Long organizationId,
+        long id,
+        long organizationId,
         ClientType type,
 
         String lastName,
@@ -29,4 +29,5 @@ public record ClientMaskedResponse(
 
         Long createdBy,
         Instant createdAt,
-        Instant updatedAt) {}
+        Instant updatedAt
+) {}

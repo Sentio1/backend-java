@@ -1,0 +1,29 @@
+package com.sentio.user_service.identity.organization.internal.repository;
+
+import com.sentio.user_service.identity.organization.internal.entity.OrganizationInvite;
+import jakarta.persistence.LockModeType;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface OrganizationInviteRepository extends JpaRepository<OrganizationInvite, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<OrganizationInvite> findByTokenHash(String tokenHash);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM OrganizationInvite i WHERE i.id = :id")
+    Optional<OrganizationInvite> findByIdLocked(long id);
+
+    List<OrganizationInvite> findAllByEmail(String email);
+
+    Page<OrganizationInvite> findAllByOrganizationId(long orgId, Pageable pageable);
+
+    boolean existsByOrganizationIdAndEmailAndAcceptedAtIsNullAndRevokedAtIsNull(long orgId, String email);
+}

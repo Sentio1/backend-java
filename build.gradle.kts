@@ -1,24 +1,16 @@
 plugins {
     alias(libs.plugins.spring.boot) apply false
     alias(libs.plugins.spring.dependency.management) apply false
+    alias(libs.plugins.graalvm.native.buildtools) apply false
     java
-    id("org.graalvm.buildtools.native") version("0.10.5") apply false
 }
 
 allprojects {
     group = "com.sentio"
-    version = "0.0.1-SNAPSHOT"
+    version = "0.0.1"
 
     repositories {
         mavenCentral()
-        maven {
-            url = uri("https://maven.pkg.github.com/Sentio1/backend-java")
-            credentials {
-                username = findProperty("gpr.user") as String? ?: System.getenv("GITHUB_ACTOR") ?: ""
-                password = findProperty("gpr.token") as String? ?: System.getenv("GITHUB_TOKEN") ?: ""
-            }
-        }
-        mavenLocal()
     }
 }
 
@@ -45,8 +37,23 @@ subprojects {
         }
     }
 
+    dependencies {
+        "annotationProcessor"(rootProject.libs.bundles.annotation.processors)
+        "testAnnotationProcessor"(rootProject.libs.bundles.test.annotation.processors)
+    }
+
     tasks.withType<Test> {
         useJUnitPlatform()
+    }
+
+    tasks.withType<JavaCompile>().configureEach {
+        options.compilerArgs.addAll(
+            listOf(
+                "-parameters",
+                "-Amapstruct.defaultComponentModel=spring",
+                "-Amapstruct.unmappedTargetPolicy=ERROR"
+            )
+        )
     }
 
     plugins.withId("org.springframework.boot") {
@@ -63,26 +70,6 @@ subprojects {
                     val activeProcessors = if (numberOfProcessors > 0) numberOfProcessors else 1
                     buildArgs.add("-J-XX:ActiveProcessorCount=$activeProcessors")
                 }
-            }
-        }
-        
-        tasks.matching { it.name == "collectReachabilityMetadata" }.configureEach {
-            enabled = false
-        }
-
-        // Doppler run
-        tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
-            doFirst {
-                val output = providers.exec {
-                    commandLine("doppler", "secrets", "download", "--no-file", "--format", "env")
-                }.standardOutput.asText.get()
-
-                output.lines()
-                    .filter { it.contains("=") }
-                    .forEach { line ->
-                        val (key, value) = line.split("=", limit = 2)
-                        environment(key, value.trim('"'))
-                    }
             }
         }
     }

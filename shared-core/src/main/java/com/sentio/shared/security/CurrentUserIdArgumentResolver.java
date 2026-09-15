@@ -25,7 +25,8 @@ public class CurrentUserIdArgumentResolver implements HandlerMethodArgumentResol
             @NonNull MethodParameter parameter,
             ModelAndViewContainer mavContainer,
             @NonNull NativeWebRequest webRequest,
-            WebDataBinderFactory binderFactory) {
+            WebDataBinderFactory binderFactory
+    ) {
         Long rawId = SecurityUtils.getCurrentUserId()
                 .orElseThrow(() -> new ForbiddenOperationException("Request is missing user context"));
 

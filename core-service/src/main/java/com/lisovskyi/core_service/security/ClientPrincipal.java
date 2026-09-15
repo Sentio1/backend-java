@@ -2,6 +2,7 @@ package com.lisovskyi.core_service.security;
 
 import com.lisovskyi.security.autoconfigure.security.SecurityPrincipal;
 import jakarta.annotation.Nullable;
+import org.jspecify.annotations.NonNull;
 
 /**
  * The authenticated caller as seen by core-service. There's no local users table to load a real
@@ -28,7 +29,7 @@ public record ClientPrincipal(Long id) implements SecurityPrincipal {
     }
 
     @Override
-    public String getUsername() {
+    public @NonNull String getUsername() {
         return id.toString();
     }
 

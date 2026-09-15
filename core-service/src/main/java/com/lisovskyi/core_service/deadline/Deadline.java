@@ -101,6 +101,10 @@ public class Deadline extends CoreEntity {
     @Column(name = "rule_version")
     private Short ruleVersion;
 
+    @Column(name = "needs_checking", nullable = false)
+    @Builder.Default
+    private boolean needsChecking = false;
+
     @Column(name = "completed_at")
     private Instant completedAt;
 

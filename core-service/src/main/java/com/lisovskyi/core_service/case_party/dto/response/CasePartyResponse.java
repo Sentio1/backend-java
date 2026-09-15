@@ -5,8 +5,8 @@ import com.lisovskyi.core_service.client.dto.response.ClientResponse;
 import java.time.Instant;
 
 public record CasePartyResponse(
-        Long id,
-        Long caseId,
+        long id,
+        long caseId,
         Long organizationId,
         CasePartyRole role,
         boolean isClient,

@@ -7,8 +7,8 @@ import java.time.Instant;
 import java.util.List;
 
 public record CaseEventResponse(
-        Long id,
-        Long caseId,
+        long id,
+        long caseId,
         EventCode eventCode,
         String title,
         String description,
@@ -27,4 +27,5 @@ public record CaseEventResponse(
         List<Long> deadlineIds,
         // SEN-29 AC2: явний стан для картки справи — не змушує фронт здогадуватись по
         // порожньому/непорожньому deadlineIds, і розрізняє "нема правила" від "юрист відхилив".
-        DeadlineResolution deadlineResolution) {}
+        DeadlineResolution deadlineResolution
+) {}

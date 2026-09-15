@@ -14,7 +14,8 @@ public class StringToEntityIdConverterFactory implements ConverterFactory<String
 
     @Override
     public @NonNull <T extends EntityId> Converter<String, ? extends T> getConverter(
-            @NonNull final Class<T> targetType) {
+            @NonNull final Class<T> targetType
+    ) {
         return new StringToEntityIdConverter<>(targetType);
     }
 

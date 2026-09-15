@@ -6,8 +6,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 public record ClientResponse(
-        Long id,
-        Long organizationId,
+        long id,
+        long organizationId,
         ClientType type,
 
         String lastName,
@@ -30,4 +30,5 @@ public record ClientResponse(
 
         Long createdBy,
         Instant createdAt,
-        Instant updatedAt) {}
+        Instant updatedAt
+) {}

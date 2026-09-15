@@ -13,18 +13,26 @@ grpc = "1.76.0"
 grpc-spring = "1.1.0.RELEASE"
 
 spring-ai = "2.0.0"
+spring-modulith = "2.1.1"
+spring-cloud = "2025.1.3"
+
+graalvm-native-buildtools = "1.1.12"
 
 # Custom starters
-lisovskyi-security = "0.5.2"
-lisovskyi-jpa = "0.2.0"
-lisovskyi-web-error = "0.1.6"
+lisovskyi-security = "1.0.0"
+lisovskyi-jpa = "1.0.1"
+lisovskyi-web-error = "1.0.0"
 
 mapstruct = "1.6.3"
+lombok = "1.18.48"
 lombok-mapstruct-binding = "0.2.0"
 caffeine = "3.2.4"
 vavr = "0.11.0"
 
 jackson-databind-nullable = "0.2.11"
+
+aspectjweaver = "1.9.22.1"
+junit = "6.0.0"
 
 [libraries]
 
@@ -33,19 +41,25 @@ jackson-databind-nullable = "0.2.11"
 # =========================
 
 # Custom starters
-lisovskyi-security = { group = "com.lisovskyi", name = "lisovskyi-security-starter", version.ref = "lisovskyi-security" }
-lisovskyi-jpa = { group = "com.lisovskyi", name = "lisovskyi-jpa-starter", version.ref = "lisovskyi-jpa" }
-lisovskyi-web-error = { group = "com.lisovskyi", name = "lisovskyi-web-error-starter", version.ref = "lisovskyi-web-error" }
+lisovskyi-security = { group = "io.github.lisovskyi-arsenii", name = "lisovskyi-security-starter", version.ref = "lisovskyi-security" }
+lisovskyi-web-error = { group = "io.github.lisovskyi-arsenii", name = "lisovskyi-web-error-starter", version.ref = "lisovskyi-web-error" }
+lisovskyi-jpa = { group = "io.github.lisovskyi-arsenii", name = "lisovskyi-jpa-starter", version.ref = "lisovskyi-jpa" }
 
 # Mapstruct
 mapstruct-core = { group = "org.mapstruct", name = "mapstruct", version.ref = "mapstruct" }
 mapstruct-processor = { group = "org.mapstruct", name = "mapstruct-processor", version.ref = "mapstruct" }
 
+# =========================
+# Lombok
+# =========================
+lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
+lombok-mapstruct-binding = { module = "org.projectlombok:lombok-mapstruct-binding", version.ref = "lombok-mapstruct-binding" }
+
 # Jackson
 jackson-databind-nullable = { module = "org.openapitools:jackson-databind-nullable", version.ref = "jackson-databind-nullable" }
 
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
-aspectjweaver = { module = "org.aspectj:aspectjweaver", version = "1.9.22.1" }
+aspectjweaver = { module = "org.aspectj:aspectjweaver", version.ref = "aspectjweaver" }
 spring-boot-starter-cache = { module = "org.springframework.boot:spring-boot-starter-cache" }
 spring-webmvc = { module = "org.springframework.boot:spring-boot-starter-webmvc" }
 
@@ -56,6 +70,20 @@ spring-jdbc = { module = "org.springframework.boot:spring-boot-starter-jdbc" }
 spring-security = { module = "org.springframework.boot:spring-boot-starter-security" }
 spring-oauth2-client = { module = "org.springframework.boot:spring-boot-starter-oauth2-client" }
 spring-oauth2-resource-server = { module = "org.springframework.boot:spring-boot-starter-oauth2-resource-server" }
+
+spring-modulith-bom = { module = "org.springframework.modulith:spring-modulith-bom", version.ref = "spring-modulith" }
+
+spring-cloud-bom = { module = "org.springframework.cloud:spring-cloud-dependencies", version.ref = "spring-cloud" }
+
+# Модулі API
+spring-modulith-api = { module = "org.springframework.modulith:spring-modulith-api" }
+spring-modulith-events-api = { module = "org.springframework.modulith:spring-modulith-events-api" }
+
+# Обов'язково для runtime / GraalVM AOT hints
+spring-modulith-runtime = { module = "org.springframework.modulith:spring-modulith-runtime" }
+
+# Для тестів перевірки архітектури
+spring-modulith-starter-test = { module = "org.springframework.modulith:spring-modulith-starter-test" }
 
 spring-graphql = { module = "org.springframework.boot:spring-boot-starter-graphql" }
 
@@ -106,9 +134,6 @@ flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
 
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
-
-h2 = { module = "com.h2database:h2" }
-
 
 # =========================
 # HTTP
@@ -166,28 +191,13 @@ resilience4j-ratelimiter = { module = "io.github.resilience4j:resilience4j-ratel
 # =========================
 
 spring-ai-anthropic = { module = "org.springframework.ai:spring-ai-starter-model-anthropic", version.ref = "spring-ai" }
-
 spring-ai-google-genai = { module = "org.springframework.ai:spring-ai-starter-model-google-genai", version.ref = "spring-ai" }
-
-
-# =========================
-# Lombok
-# =========================
-
-lombok = { module = "org.projectlombok:lombok" }
-
-# Ensures the MapStruct annotation processor runs after Lombok's in the same compilation
-# round - without it, Lombok-generated getters/setters aren't visible yet and MapStruct
-# silently leaves unmapped fields null instead of failing loudly.
-lombok-mapstruct-binding = { module = "org.projectlombok:lombok-mapstruct-binding", version.ref = "lombok-mapstruct-binding" }
-
 
 # =========================
 # Caching
 # =========================
 
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
-
 
 # =========================
 # Functional Programming
@@ -200,7 +210,7 @@ vavr = { module = "io.vavr:vavr", version.ref = "vavr"}
 
 spring-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 
-junit-bom = { module = "org.junit:junit-bom", version = "6.0.0" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 
@@ -223,3 +233,18 @@ testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka" }
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 
 spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency-management" }
+
+graalvm-native-buildtools = { id = "org.graalvm.buildtools.native", version.ref = "graalvm-native-buildtools" }
+
+[bundles]
+annotation-processors = [
+    "lombok",
+    "lombok-mapstruct-binding",
+    "mapstruct-processor",
+    "spring-configuration-processor"
+]
+
+test-annotation-processors = [
+    "lombok",
+    "mapstruct-processor"
+]

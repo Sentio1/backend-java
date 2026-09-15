@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -95,6 +96,9 @@ public class DeadlineEngine {
         for (Deadline orphaned : reconciliation.orphaned()) {
             deadlines.add(autoRejectOrphaned(caseEvent, orphaned, changedBy));
         }
+        for (Deadline checking : reconciliation.needsChecking()) {
+            deadlines.add(marksNeedsChecking(caseEvent, checking, changedBy));
+        }
         return deadlines;
     }
 
@@ -103,7 +107,7 @@ public class DeadlineEngine {
     // orphaned: рядки, що лишились PENDING/RULE, але жодне активне правило з rules більше їх
     // не покриває - обробляються окремо від pairings у generateDeadline (autoRejectOrphaned),
     // а не тут, бо це вже дія над сутністю (save + аудит), а reconcile() лише розподіляє.
-    private record ReconciliationResult(List<RulePairing> pairings, List<Deadline> orphaned) {}
+    private record ReconciliationResult(List<RulePairing> pairings, List<Deadline> orphaned, List<Deadline> needsChecking) {}
 
     // Зіставляє щойно знайдені активні правила з уже наявними Deadline-ами цієї події, щоб
     // "оновити в місці" правильний рядок, а не завжди створювати новий чи (гірше) дублювати.
@@ -137,21 +141,34 @@ public class DeadlineEngine {
                 .filter(existing -> existing.getStatus() == DeadlineStatus.PENDING)
                 .sorted(Comparator.comparing(Deadline::getId))
                 .collect(Collectors.toCollection(ArrayList::new));
-        List<DeadlineRule> unmatchedRules = new ArrayList<>(rules);
 
+        List<Deadline> unmatchedChecking = deadlineFinder.findAllByTriggeringEvent(caseEvent).stream()
+                .filter(deadline -> deadline.getStatus() == DeadlineStatus.DONE
+                        || deadline.getStatus() == DeadlineStatus.MISSED
+                        || deadline.getStatus() == DeadlineStatus.EXTENDED
+                )
+                .sorted(Comparator.comparing(Deadline::getId))
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        List<DeadlineRule> unmatchedRules = new ArrayList<>(rules);
         List<RulePairing> pairings = new ArrayList<>();
+        List<Deadline> needsChecking = new ArrayList<>();
+
         Iterator<DeadlineRule> ruleIt = unmatchedRules.iterator();
         while (ruleIt.hasNext()) {
             DeadlineRule rule = ruleIt.next();
-            Iterator<Deadline> existingIt = unmatchedExisting.iterator();
-            while (existingIt.hasNext()) {
-                Deadline existing = existingIt.next();
-                if (existing.getRule() != null && existing.getRule().getCode().equals(rule.getCode())) {
-                    pairings.add(new RulePairing(rule, existing));
-                    ruleIt.remove();
-                    existingIt.remove();
-                    break;
-                }
+
+            Deadline matchedExisting = findAndRemoveByCode(unmatchedExisting, rule.getCode());
+            if (matchedExisting != null) {
+                pairings.add(new RulePairing(rule, matchedExisting));
+                ruleIt.remove();
+                continue;
+            }
+
+            Deadline matchedChecking = findAndRemoveByCode(unmatchedChecking, rule.getCode());
+            if (matchedChecking != null) {
+                needsChecking.add(matchedChecking);
+                ruleIt.remove();
             }
         }
 
@@ -163,8 +180,22 @@ public class DeadlineEngine {
             pairings.add(new RulePairing(unmatchedRules.get(i), null));
         }
 
-        List<Deadline> orphaned = unmatchedExisting.subList(fallbackPairs, unmatchedExisting.size());
-        return new ReconciliationResult(pairings, orphaned);
+        List<Deadline> orphaned = new ArrayList<>(unmatchedExisting.subList(fallbackPairs, unmatchedExisting.size()));
+        orphaned.addAll(unmatchedChecking);
+
+        return new ReconciliationResult(pairings, orphaned, needsChecking);
+    }
+
+    private Deadline findAndRemoveByCode(List<Deadline> deadlines, String code) {
+        Iterator<Deadline> it = deadlines.iterator();
+        while (it.hasNext()) {
+            Deadline deadline = it.next();
+            if (deadline.getRule() != null && deadline.getRule().getCode().equals(code)) {
+                it.remove();
+                return deadline;
+            }
+        }
+        return null;
     }
 
     // Раніше такі рядки просто лишались PENDING з попередженням у лог - юрист бачив у картці
@@ -206,6 +237,16 @@ public class DeadlineEngine {
         }
 
         return saved;
+    }
+
+    private Deadline marksNeedsChecking(CaseEvent caseEvent, Deadline checking, Long changedBy) {
+        log.info("Marking deadline {} as needs checking", checking.getId());
+        if (checking.isNeedsChecking()) {
+            return checking;
+        }
+
+        checking.setNeedsChecking(true);
+        return deadlineRepository.save(checking);
     }
 
     private Deadline generateDeadlineForRule(

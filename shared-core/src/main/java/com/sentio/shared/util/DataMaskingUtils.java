@@ -5,11 +5,11 @@ import org.springframework.util.StringUtils;
 
 public final class DataMaskingUtils {
 
-    private static final char DEFAULT_MASK_CHAR = '*';
-
     private DataMaskingUtils() {
         throw new UnsupportedOperationException();
     }
+
+    private static final char DEFAULT_MASK_CHAR = '*';
 
     public static String mask(final String value, int visiblePrefix, int visibleSuffix, char maskChar) {
         if (!StringUtils.hasText(value)) {

@@ -67,7 +67,7 @@ server:
   servlet:
     context-path: /api/v1
   shutdown: graceful
-
+  forward-headers-strategy: framework
 
 management:
   endpoints:

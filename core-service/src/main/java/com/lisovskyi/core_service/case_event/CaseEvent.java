@@ -32,7 +32,6 @@ public class CaseEvent extends CoreEntityCreatedOnly {
     @JoinColumn(name = "case_id", nullable = false, referencedColumnName = "id")
     private Case case_;
 
-    // 'CLAIM_FILED', 'RULING_RECEIVED'
     @Enumerated(EnumType.STRING)
     @Column(name = "event_code", nullable = false, length = EVENT_CODE_LENGTH)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)

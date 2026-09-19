@@ -1,5 +1,6 @@
 package com.sentio.user_service.identity.organization.internal.service;
 
+import com.sentio.user_service.identity.organization.api.exception.LastOwnerException;
 import com.sentio.shared.dto.PageResponse;
 import com.sentio.shared.entity.id.user.UserId;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationDto;
@@ -132,8 +133,8 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
         if (organizationMember.getRole() == OrgRole.OWNER
                 && newRole != OrgRole.OWNER
                 && organizationMemberRepository.countByOrganizationIdAndRole(orgId, OrgRole.OWNER) <= 1) {
-            log.warn("Cannot change platformRole for userId: {} in orgId: {}: they are the last OWNER", userId, orgId);
-            throw new IllegalArgumentException(
+            log.warn("Cannot change role for userId: {} in orgId: {}: they are the last OWNER", userId, orgId);
+            throw new LastOwnerException(
                     "Cannot change the last owner's role. Promote someone else to OWNER first.");
         }
 
@@ -161,7 +162,7 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
             long ownerCount = organizationMemberRepository.countByOrganizationIdAndRole(orgId, OrgRole.OWNER);
             if (ownerCount <= 1) {
                 log.warn("Cannot delete userId: {} from orgId: {}: they are the last OWNER", userId, orgId);
-                throw new IllegalArgumentException(
+                throw new LastOwnerException(
                         "Cannot delete the last owner of the organization. Promote someone else to OWNER first.");
             }
         }

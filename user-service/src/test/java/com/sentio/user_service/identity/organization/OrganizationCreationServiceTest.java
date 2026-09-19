@@ -1,5 +1,6 @@
 package com.sentio.user_service.identity.organization;
 
+import com.lisovskyi.web.error.autoconfigure.standard.BadRequestException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -91,9 +92,9 @@ class OrganizationCreationServiceTest {
     }
 
     @Test
-    void createOwnerMembership_blankOrgName_throwsIllegalArgumentException() {
+    void createOwnerMembership_blankOrgName_throwsBadRequest() {
         assertThatThrownBy(() -> organizationProvisioning.createOwnerMembership(userId(), "  ", null, null))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Organization name is required");
 
         verify(organizationRepository, never()).save(any());

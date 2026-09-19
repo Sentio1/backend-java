@@ -1,5 +1,6 @@
 package com.sentio.user_service.identity.user.internal.service;
 
+import com.sentio.user_service.identity.organization.api.exception.LastOwnerException;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationDto;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationInviteResponse;
@@ -125,7 +126,7 @@ public class UserServiceImpl implements UserDeletionService {
 
                             OrganizationDto organization = organizationService.getOrganizationById(orgId);
 
-                            throw new IllegalArgumentException("Cannot delete account: you are the last owner of \""
+                            throw new LastOwnerException("Cannot delete account: you are the last owner of \""
                                     + organization.name()
                                     + "\". Promote someone else to OWNER or delete the organization first.");
                         }

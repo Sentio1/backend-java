@@ -4,7 +4,7 @@ public interface UserDeletionService {
 
     /**
      * Soft-deletes the account: removes its memberships and revokes all its sessions (refresh
-     * tokens). Refuses (IllegalArgumentException) while the user is the last OWNER of any
+     * tokens). Refuses (LastOwnerException, 409) while the user is the last OWNER of any
      * organization. The current access token is the caller's (auth's) business - this module
      * never sees raw tokens.
      */

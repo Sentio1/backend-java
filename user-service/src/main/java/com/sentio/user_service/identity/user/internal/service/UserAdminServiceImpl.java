@@ -1,5 +1,7 @@
 package com.sentio.user_service.identity.user.internal.service;
 
+import com.sentio.user_service.identity.user.internal.exception.UserNotDeletedException;
+import com.sentio.user_service.identity.user.internal.exception.LastPlatformAdminException;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsException;
 import com.sentio.shared.dto.PageResponse;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberResponse;
@@ -72,7 +74,7 @@ public class UserAdminServiceImpl {
         if (user.getPlatformRole() == PlatformRole.ADMIN
                 && userRepository.findActiveByPlatformRoleWithLock(PlatformRole.ADMIN).size() <= 1) {
             log.warn("Cannot demote userId {}: they are the last platform admin", userId);
-            throw new IllegalStateException("Cannot demote: " + user.getEmail() + " is the last platform admin.");
+            throw new LastPlatformAdminException(userId);
         }
 
         user.setPlatformRole(PlatformRole.USER);
@@ -89,7 +91,7 @@ public class UserAdminServiceImpl {
 
         if (!user.isDeleted()) {
             log.warn("Restore failed: userId {} is not deleted", userId);
-            throw new IllegalArgumentException("User " + userId + " is not deleted");
+            throw new UserNotDeletedException(userId);
         }
 
         // цей запит поверне лише true, якщо в користувача буде активна пошта

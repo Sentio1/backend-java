@@ -1,5 +1,6 @@
 package com.sentio.core_service.deadline;
 
+import com.sentio.core_service.deadline.internal.exception.DeadlineRuleValidFromConflictException;
 import com.sentio.core_service.deadline.internal.model.DeadlineRule;
 import com.sentio.core_service.deadline.internal.repository.DeadlineRuleRepository;
 import com.sentio.core_service.deadline.internal.service.DeadlineRuleService;
@@ -159,7 +160,7 @@ class DeadlineRuleVersioningIT {
 
         assertThatThrownBy(() -> deadlineRuleService.createDeadlineRule(
                         request(code, CourtInstance.FIRST, EventCode.RULING_RECEIVED, LocalDate.of(2024, 1, 1))))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(DeadlineRuleValidFromConflictException.class);
 
         assertThat(deadlineRuleRepository.findAllByCodeOrderByVersionDesc(code)).hasSize(1);
     }

@@ -1,5 +1,6 @@
 package com.sentio.user_service.identity.user.service;
 
+import com.sentio.user_service.identity.organization.api.exception.LastOwnerException;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.sentio.user_service.TestcontainersConfiguration;
@@ -143,7 +144,7 @@ class UserServiceConcurrencyIT {
             future1.get(10, TimeUnit.SECONDS);
             succeeded++;
         } catch (ExecutionException e) {
-            assertThat(e.getCause()).isInstanceOf(IllegalArgumentException.class);
+            assertThat(e.getCause()).isInstanceOf(LastOwnerException.class);
             failed++;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -153,7 +154,7 @@ class UserServiceConcurrencyIT {
             future2.get(10, TimeUnit.SECONDS);
             succeeded++;
         } catch (ExecutionException e) {
-            assertThat(e.getCause()).isInstanceOf(IllegalArgumentException.class);
+            assertThat(e.getCause()).isInstanceOf(LastOwnerException.class);
             failed++;
         } catch (Exception e) {
             throw new RuntimeException(e);

@@ -1,5 +1,6 @@
 package com.sentio.user_service.identity.organization.internal.service;
 
+import com.lisovskyi.web.error.autoconfigure.standard.BadRequestException;
 import com.sentio.shared.entity.id.user.UserId;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberDto;
 import com.sentio.user_service.identity.organization.api.enums.OrgRole;
@@ -33,7 +34,7 @@ public class OrganizationCreationService {
         log.debug("Creating owner membership for user: {} with orgName: {}", userId.id(), orgName);
         if (orgName == null || orgName.isBlank()) {
             log.warn("Failed to create owner membership: missing organization name");
-            throw new IllegalArgumentException("Organization name is required to create a new organization");
+            throw new BadRequestException("Organization name is required to create a new organization", "ORGANIZATION_NAME_REQUIRED");
         }
 
         Organization organization = Organization.builder()

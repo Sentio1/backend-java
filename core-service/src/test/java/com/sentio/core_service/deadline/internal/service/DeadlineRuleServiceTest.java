@@ -1,5 +1,6 @@
 package com.sentio.core_service.deadline.internal.service;
 
+import com.sentio.core_service.deadline.internal.exception.DeadlineRuleValidFromConflictException;
 import com.sentio.core_service.deadline.internal.model.DeadlineRule;
 import com.sentio.core_service.deadline.internal.repository.DeadlineRuleRepository;
 
@@ -148,7 +149,7 @@ class DeadlineRuleServiceTest {
     }
 
     @Test
-    void createDeadlineRule_withValidFromNotAfterPrevious_throwsIllegalArgumentException_andNeverSaves() {
+    void createDeadlineRule_withValidFromNotAfterPrevious_throwsValidFromConflict_andNeverSaves() {
         DeadlineRule previous = rule(1L, "CPC_STATEMENT_OF_DEFENCE", (short) 1, LocalDate.of(2024, 1, 1), null);
         DeadlineRuleCreateRequest sameDateRequest =
                 createRequest("CPC_STATEMENT_OF_DEFENCE", LocalDate.of(2024, 1, 1));
@@ -157,13 +158,13 @@ class DeadlineRuleServiceTest {
         when(deadlineRuleMapper.toEntity(sameDateRequest)).thenReturn(rule(0L, "x", (short) 0, null, null));
 
         assertThatThrownBy(() -> deadlineRuleService.createDeadlineRule(sameDateRequest))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(DeadlineRuleValidFromConflictException.class);
 
         verify(deadlineRuleRepository, never()).save(any());
     }
 
     @Test
-    void createDeadlineRule_withValidFromBeforePrevious_throwsIllegalArgumentException() {
+    void createDeadlineRule_withValidFromBeforePrevious_throwsValidFromConflict() {
         DeadlineRule previous = rule(1L, "CPC_STATEMENT_OF_DEFENCE", (short) 1, LocalDate.of(2024, 1, 1), null);
         DeadlineRuleCreateRequest earlierRequest =
                 createRequest("CPC_STATEMENT_OF_DEFENCE", LocalDate.of(2020, 1, 1));
@@ -172,7 +173,7 @@ class DeadlineRuleServiceTest {
         when(deadlineRuleMapper.toEntity(earlierRequest)).thenReturn(rule(0L, "x", (short) 0, null, null));
 
         assertThatThrownBy(() -> deadlineRuleService.createDeadlineRule(earlierRequest))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(DeadlineRuleValidFromConflictException.class);
 
         verify(deadlineRuleRepository, never()).save(any());
     }

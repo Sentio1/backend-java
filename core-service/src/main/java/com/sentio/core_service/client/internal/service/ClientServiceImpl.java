@@ -1,5 +1,6 @@
 package com.sentio.core_service.client.internal.service;
 
+import com.sentio.core_service.client.internal.exception.ClientActivitiesNotAllowedException;
 import com.sentio.core_service.client.api.enums.ClientType;
 import com.sentio.core_service.client.internal.model.Client;
 import com.sentio.core_service.client.internal.repository.ClientRepository;
@@ -124,7 +125,7 @@ public class ClientServiceImpl implements ClientService {
         Client client = findClient(clientId.id(), organizationId.id());
 
         if (request.activities().isPresent() && client.getType() != ClientType.SOLE_TRADER) {
-            throw new IllegalArgumentException("Activities can only be modified for SOLE_TRADER clients");
+            throw new ClientActivitiesNotAllowedException();
         }
 
         String rnokpp = request.rnokpp().orElse(null);

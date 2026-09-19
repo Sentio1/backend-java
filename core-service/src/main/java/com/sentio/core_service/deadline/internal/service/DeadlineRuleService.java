@@ -1,5 +1,6 @@
 package com.sentio.core_service.deadline.internal.service;
 
+import com.sentio.core_service.deadline.internal.exception.DeadlineRuleValidFromConflictException;
 import com.sentio.core_service.deadline.internal.model.DeadlineRule;
 import com.sentio.core_service.deadline.internal.repository.DeadlineRuleRepository;
 
@@ -82,7 +83,8 @@ public class DeadlineRuleService {
         if (!rules.isEmpty()) {
             DeadlineRule previousRule = rules.getFirst();
             if (!previousRule.getValidFrom().isBefore(request.validFrom())) {
-                throw new IllegalArgumentException("New rule valid from date must be after previous rule valid from date");
+                throw new DeadlineRuleValidFromConflictException(
+                        request.code(), previousRule.getValidFrom(), request.validFrom());
             }
 
             previousRule.setValidTo(request.validFrom());

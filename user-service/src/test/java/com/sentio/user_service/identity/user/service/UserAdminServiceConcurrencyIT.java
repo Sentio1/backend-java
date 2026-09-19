@@ -1,5 +1,6 @@
 package com.sentio.user_service.identity.user.service;
 
+import com.sentio.user_service.identity.user.internal.exception.LastPlatformAdminException;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.sentio.user_service.TestcontainersConfiguration;
@@ -106,7 +107,7 @@ class UserAdminServiceConcurrencyIT {
                     future.get(10, TimeUnit.SECONDS);
                     succeeded++;
                 } catch (ExecutionException e) {
-                    assertThat(e.getCause()).isInstanceOf(IllegalStateException.class);
+                    assertThat(e.getCause()).isInstanceOf(LastPlatformAdminException.class);
                     failed++;
                 }
             }

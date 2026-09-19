@@ -3,6 +3,7 @@ package com.sentio.user_service.identity.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.sentio.user_service.TestcontainersConfiguration;
@@ -92,5 +93,23 @@ class UserSoftDeleteIT {
         // Same email, different phone number (that column is still a plain
         // unique constraint, unrelated to this scenario).
         register(email, "+380507778899");
+    }
+
+    // A business-rule refusal is a 409 with its own code the frontend can react to - not a
+    // generic 400 BAD_REQUEST (IllegalArgumentException) as before.
+    @Test
+    void deleteAccount_ofTheLastOwnerOfAnOrganization_returns409LastOwner() throws Exception {
+        Session session = register("last-owner@sentio.dev", "+380509990011");
+
+        mockMvc.perform(authenticated(post("/organizations"), session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"orgName": "Solo Practice"}
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(authenticated(delete("/users/me"), session))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("LAST_OWNER"));
     }
 }

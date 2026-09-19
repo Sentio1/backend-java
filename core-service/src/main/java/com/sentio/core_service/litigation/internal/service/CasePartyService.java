@@ -1,5 +1,6 @@
 package com.sentio.core_service.litigation.internal.service;
 
+import com.lisovskyi.web.error.autoconfigure.standard.BadRequestException;
 import com.sentio.core_service.litigation.internal.model.CaseParty;
 import com.sentio.core_service.litigation.internal.repository.CasePartyRepository;
 
@@ -98,8 +99,11 @@ public class CasePartyService {
         boolean hasClient = caseParty.getClientId() != null;
         boolean hasOpponentName = StringUtils.hasText(caseParty.getOpponentName());
         if (hasClient == hasOpponentName) {
-            throw new IllegalArgumentException(
-                    "Either 'clientId' must be set for an existing client OR 'opponentName' for an external opponent, but not both.");
+            // Same XOR rule CasePartyCreateRequest enforces with bean validation - on PATCH it can only
+            // be checked after merging the request into the stored party.
+            throw new BadRequestException(
+                    "Either 'clientId' must be set for an existing client OR 'opponentName' for an external opponent, but not both.",
+                    "CASE_PARTY_CLIENT_XOR_OPPONENT");
         }
 
         return toResponse(saveCaseParty(caseParty));

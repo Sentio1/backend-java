@@ -1,5 +1,6 @@
 package com.sentio.user_service.identity.organization;
 
+import com.sentio.user_service.identity.organization.api.exception.LastOwnerException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -152,7 +153,7 @@ class OrganizationServiceTest {
         }
 
         @Test
-        void lastOwner_throwsIllegalArgumentExceptionAndNeverDeletes() {
+        void lastOwner_throwsLastOwnerExceptionAndNeverDeletes() {
             when(organizationRepository.findByIdLocked(1L)).thenReturn(Optional.of(Organization.builder().build()));
             OrganizationMember lastOwner = member(1L, 2L, OrgRole.OWNER);
             when(organizationMemberRepository.findByUserIdAndOrganizationId(2L, 1L))
@@ -161,7 +162,7 @@ class OrganizationServiceTest {
                     .thenReturn(1L);
 
             assertThatThrownBy(() -> organizationService.deleteOrganizationMember(1L, 2L))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(LastOwnerException.class)
                     .hasMessageContaining("last owner");
 
             verify(organizationMemberRepository, never()).delete(any());

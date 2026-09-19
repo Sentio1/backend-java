@@ -1,7 +1,7 @@
 package com.sentio.shared.config;
 
-import com.sentio.shared.security.CurrentOrganizationIdArgumentResolver;
-import com.sentio.shared.security.CurrentUserIdArgumentResolver;
+import com.sentio.shared.security.argument_resolver.CurrentOrganizationIdArgumentResolver;
+import com.sentio.shared.security.argument_resolver.CurrentUserIdArgumentResolver;
 import com.sentio.shared.web.StringToEntityIdConverterFactory;
 import java.util.List;
 import org.jspecify.annotations.NonNull;

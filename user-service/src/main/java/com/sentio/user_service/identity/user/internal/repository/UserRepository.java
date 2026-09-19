@@ -1,10 +1,7 @@
 package com.sentio.user_service.identity.user.internal.repository;
 
-import com.sentio.user_service.identity.user.internal.entity.User;
 import com.sentio.user_service.identity.user.api.enums.PlatformRole;
-
-import java.util.List;
-import java.util.Optional;
+import com.sentio.user_service.identity.user.internal.entity.User;
 import lombok.NonNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +10,9 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {

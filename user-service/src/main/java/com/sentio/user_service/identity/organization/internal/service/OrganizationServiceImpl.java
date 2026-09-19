@@ -2,15 +2,13 @@ package com.sentio.user_service.identity.organization.internal.service;
 
 import com.sentio.shared.dto.PageResponse;
 import com.sentio.shared.entity.id.user.UserId;
-import com.sentio.user_service.identity.auth.dto.response.AuthResult;
-import com.sentio.user_service.identity.auth.token.TokenIssuer;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationDto;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberDto;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberResponse;
 import com.sentio.user_service.identity.organization.api.enums.OrgRole;
 import com.sentio.user_service.identity.organization.api.service.OrganizationMemberService;
 import com.sentio.user_service.identity.organization.api.service.OrganizationService;
-import com.sentio.user_service.identity.organization.internal.controller.dto.CreateOrganizationRequest;
+import com.sentio.user_service.identity.organization.api.dto.CreateOrganizationRequest;
 import com.sentio.user_service.identity.organization.internal.controller.dto.organization.OrganizationResponse;
 import com.sentio.user_service.identity.organization.internal.controller.dto.organization.UpdateOrganizationRequest;
 import com.sentio.user_service.identity.organization.internal.entity.Organization;
@@ -21,18 +19,16 @@ import com.sentio.user_service.identity.organization.internal.mapper.Organizatio
 import com.sentio.user_service.identity.organization.internal.mapper.OrganizationMemberMapper;
 import com.sentio.user_service.identity.organization.internal.repository.OrganizationMemberRepository;
 import com.sentio.user_service.identity.organization.internal.repository.OrganizationRepository;
-import com.sentio.user_service.identity.user.api.service.UserService;
 import com.sentio.user_service.identity.user.api.dto.UserContextResponse;
-import com.sentio.user_service.identity.user.api.dto.UserDto;
-
-import java.util.List;
-import java.util.Optional;
-
+import com.sentio.user_service.identity.user.api.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -45,8 +41,6 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
     private final OrganizationCreationService organizationProvisioning;
     private final UserService userService;
 
-    private final TokenIssuer tokenIssuer;
-
     private final OrganizationMapper organizationMapper;
     private final OrganizationMemberMapper organizationMemberMapper;
 
@@ -55,7 +49,7 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
         log.debug("Fetching organization members for orgId: {}", orgId);
 
         return PageResponse.of(organizationMemberRepository
-                .findAllByOrganizationIdAndUserDeletedAtIsNull(orgId, pageable)
+                .findAllByOrganizationId(orgId, pageable)
                 .map(this::toMemberResponse));
     }
 
@@ -79,9 +73,9 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
     // it's only ever called for a brand new user with zero memberships), so here -
     // where the caller may already have a default org - the old default has to be
     // cleared first, or the partial unique index on organization_members rejects it.
+    @Override
     @Transactional
-    public AuthResult createOrganization(
-            long userId, CreateOrganizationRequest request, String ip, String userAgent) {
+    public OrganizationMemberDto createOrganization(long userId, CreateOrganizationRequest request) {
         log.debug("Attempting to create organization: {} for user: {}", request.orgName(), userId);
 
         organizationMemberRepository.findByUserIdAndIsDefaultTrue(userId)
@@ -95,15 +89,13 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
         OrganizationMemberDto membership = organizationProvisioning.createOwnerMembership(
                 UserId.of(userId), request.orgName(), request.edrpou(), request.plan());
 
-        UserDto user = userService.findUserById(userId);
         log.info("Successfully created organization and set as default for user: {}", userId);
-        return new AuthResult(
-                tokenIssuer.issue(user, membership, ip, userAgent),
-                userService.buildUserContext(userId, membership));
+        return membership;
     }
 
+    @Override
     @Transactional
-    public AuthResult switchDefaultOrganization(long userId, long targetOrgId, String ip, String userAgent) {
+    public OrganizationMemberDto switchDefaultOrganization(long userId, long targetOrgId) {
         log.debug("User: {} attempting to switch default organization to targetOrgId: {}", userId, targetOrgId);
         OrganizationMember target = organizationMemberRepository
                 .findByUserIdAndOrganizationId(userId, targetOrgId)
@@ -120,21 +112,18 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
         target.setDefault(true);
         organizationMemberRepository.save(target);
 
-        UserDto user = userService.findUserById(target.getUserId());
-        OrganizationMemberDto targetDto = organizationMemberMapper.toDto(target);
         log.info("User: {} successfully switched default organization to: {}", userId, targetOrgId);
-        return new AuthResult(
-                tokenIssuer.issue(user, targetDto, ip, userAgent),
-                userService.buildUserContext(target.getUserId(), targetDto));
+        return organizationMemberMapper.toDto(target);
     }
 
     @Transactional
     public OrganizationMemberResponse patchRoleForMember(long orgId, long userId, OrgRole newRole) {
         log.debug("Attempting to patch platformRole to {} for userId: {} in orgId: {}", newRole, userId, orgId);
 
-        if (!organizationRepository.existsById(orgId)) {
-            throw new OrganizationNotFoundException("id", orgId);
-        }
+        // Row lock on the org serializes every "is this the last OWNER?" check-then-act
+        // (role change, member removal, account deletion) - without it two of them can
+        // each see two owners and together leave the organization with none.
+        lockOrganization(orgId);
 
         OrganizationMember organizationMember = organizationMemberRepository
                 .findByUserIdAndOrganizationId(userId, orgId)
@@ -145,7 +134,7 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
                 && organizationMemberRepository.countByOrganizationIdAndRole(orgId, OrgRole.OWNER) <= 1) {
             log.warn("Cannot change platformRole for userId: {} in orgId: {}: they are the last OWNER", userId, orgId);
             throw new IllegalArgumentException(
-                    "Cannot change the last owner's platformRole. Promote someone else to OWNER first.");
+                    "Cannot change the last owner's role. Promote someone else to OWNER first.");
         }
 
         organizationMember.setRole(newRole);
@@ -159,9 +148,10 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
     public void deleteOrganizationMember(long orgId, long userId) {
         log.debug("Attempting to delete userId: {} from orgId: {}", userId, orgId);
 
-        if (!organizationRepository.existsById(orgId)) {
-            throw new OrganizationNotFoundException("id", orgId);
-        }
+        // Row lock on the org serializes every "is this the last OWNER?" check-then-act
+        // (role change, member removal, account deletion) - without it two of them can
+        // each see two owners and together leave the organization with none.
+        lockOrganization(orgId);
 
         OrganizationMember organizationMember = organizationMemberRepository
                 .findByUserIdAndOrganizationId(userId, orgId)
@@ -205,12 +195,17 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
                 .map(organizationMemberMapper::toDto);
     }
 
+    // Not readOnly: it takes a SELECT ... FOR UPDATE lock held until the caller's
+    // transaction ends (see UserServiceImpl.deleteUser).
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public void lockOrganizationOrThrow(long orgId) {
-        if (!organizationRepository.existsById(orgId)) {
-            throw new OrganizationNotFoundException("id", orgId);
-        }
+        lockOrganization(orgId);
+    }
+
+    private void lockOrganization(long orgId) {
+        organizationRepository.findByIdLocked(orgId)
+                .orElseThrow(() -> new OrganizationNotFoundException("id", orgId));
     }
 
     @Override

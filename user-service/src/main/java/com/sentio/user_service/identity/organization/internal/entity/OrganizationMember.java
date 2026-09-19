@@ -3,11 +3,12 @@ package com.sentio.user_service.identity.organization.internal.entity;
 import com.lisovskyi.jpa.autoconfigure.entity.CreationTimestampedEntity;
 import com.sentio.user_service.identity.organization.api.enums.OrgRole;
 import jakarta.persistence.*;
-import java.time.Instant;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "organization_members")
@@ -26,7 +27,7 @@ public class OrganizationMember extends CreationTimestampedEntity {
     private Long userId;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "platformRole", nullable = false)
+    @Column(name = "role", nullable = false)
     @Builder.Default
     private OrgRole role = OrgRole.LAWYER;
 

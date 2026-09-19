@@ -1,10 +1,12 @@
 package com.sentio.user_service.identity.auth.rate_limiting;
 
 import com.lisovskyi.web.error.autoconfigure.ProblemDetailFactory;
-import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -12,21 +14,21 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Maps resilience4j's {@link RequestNotPermitted} (thrown when a rate limiter denies a call) to a
- * 429 response in the same {@link ProblemDetail} shape as every other error in this service. Kept
- * local to user-service rather than added to web-error-spring-boot-starter's
- * GlobalExceptionHandler, so that starter doesn't have to depend on resilience4j-ratelimiter for
- * every consumer that doesn't use rate limiting.
+ * Maps {@link RateLimitExceededException} to a 429 in the same {@link ProblemDetail} shape as every
+ * other error in this service, plus a {@code Retry-After} header (seconds until the current window
+ * resets). Ordered first so the web-error starter's catch-all handler can't claim it.
  */
 @Slf4j
 @RestControllerAdvice
 @RequiredArgsConstructor
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class RateLimitExceptionHandler {
 
     private final ProblemDetailFactory problemDetailFactory;
 
-    @ExceptionHandler(RequestNotPermitted.class)
-    public ResponseEntity<ProblemDetail> handleRateLimitExceeded(RequestNotPermitted ex, HttpServletRequest request) {
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ProblemDetail> handleRateLimitExceeded(
+            RateLimitExceededException ex, HttpServletRequest request) {
         log.warn("Rate limit exceeded on path [{}]", request.getRequestURI());
 
         ProblemDetail problemDetail = problemDetailFactory.create(
@@ -36,6 +38,11 @@ public class RateLimitExceptionHandler {
                 request,
                 ex);
 
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(problemDetail);
+        // Round up - "retry after 0 seconds" for a window with 400 ms left would be a lie.
+        long retryAfterSeconds = Math.max(1, (ex.getRetryAfter().toMillis() + 999) / 1000);
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(retryAfterSeconds))
+                .body(problemDetail);
     }
 }

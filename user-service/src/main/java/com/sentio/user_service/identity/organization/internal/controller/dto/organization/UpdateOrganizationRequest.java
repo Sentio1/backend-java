@@ -1,9 +1,9 @@
 package com.sentio.user_service.identity.organization.internal.controller.dto.organization;
 
-import static com.sentio.user_service.identity.organization.internal.OrganizationConstants.NAME_LENGTH;
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+
+import static com.sentio.user_service.identity.organization.internal.OrganizationConstants.NAME_LENGTH;
 
 public record UpdateOrganizationRequest(
         @NotBlank(message = "Organization name must not be blank")

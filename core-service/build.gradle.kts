@@ -24,11 +24,7 @@ dependencies {
     implementation(libs.mapstruct.core)
     developmentOnly(libs.spring.devtools)
 
-    // Annotation processors are applied to every subproject via the root
-    // build.gradle.kts (annotation-processors / test-annotation-processors
-    // bundles) - no need to redeclare mapstruct/lombok processors here.
-
-    // Testing (Modulith test and core test starters are inherited via shared-core where applicable)
+    // Testing
     testImplementation(libs.spring.actuator.test)
     testImplementation(libs.spring.data.jpa.test)
     testImplementation(libs.spring.flyway.test)
@@ -38,6 +34,7 @@ dependencies {
     testImplementation(libs.testcontainers.junit)
     testImplementation(libs.testcontainers.postgresql)
     testImplementation(libs.testcontainers.kafka)
+    testImplementation(libs.spring.modulith.starter.test)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 

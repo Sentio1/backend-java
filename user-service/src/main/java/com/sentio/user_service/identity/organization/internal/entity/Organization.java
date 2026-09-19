@@ -1,17 +1,20 @@
 package com.sentio.user_service.identity.organization.internal.entity;
 
-import static com.sentio.user_service.identity.organization.internal.OrganizationConstants.*;
-
 import com.lisovskyi.jpa.autoconfigure.entity.TimestampedEntity;
 import com.sentio.user_service.identity.organization.api.enums.PlanTier;
 import com.sentio.user_service.identity.organization.api.enums.SubscriptionStatus;
-import jakarta.persistence.*;
-import java.time.Instant;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
+
+import java.time.Instant;
+
+import static com.sentio.user_service.identity.organization.internal.OrganizationConstants.*;
 
 @Entity
 @Table(name = "organizations")

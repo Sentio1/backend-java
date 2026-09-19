@@ -8,8 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.lisovskyi.security.autoconfigure.cookie.CookieService;
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
+import com.sentio.user_service.identity.auth.cookie.AuthCookieService;
 import com.sentio.user_service.identity.auth.service.AuthService;
 import com.sentio.user_service.identity.auth.dto.response.AuthResult;
 import com.sentio.user_service.identity.auth.dto.response.AuthTokens;
@@ -44,7 +44,7 @@ class GoogleOAuth2SuccessHandlerTest {
     private AuthService authService;
 
     @Mock
-    private CookieService cookieService;
+    private AuthCookieService authCookieService;
 
     @Mock
     private HttpServletRequest request;
@@ -62,7 +62,7 @@ class GoogleOAuth2SuccessHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new GoogleOAuth2SuccessHandler(authService, cookieService);
+        handler = new GoogleOAuth2SuccessHandler(authService, authCookieService);
         ReflectionTestUtils.setField(handler, "successRedirectUri", SUCCESS_URI);
         ReflectionTestUtils.setField(handler, "failureRedirectUri", FAILURE_URI);
         when(authentication.getPrincipal()).thenReturn(oAuth2User);
@@ -93,8 +93,7 @@ class GoogleOAuth2SuccessHandlerTest {
         assertThat(identityCaptor.getValue())
                 .isEqualTo(new GoogleIdentity("google-sub-1", "user@sentio.dev", "Jane", "Doe", true));
 
-        verify(cookieService).setAccessTokenCookie(response, "access-token");
-        verify(cookieService).setRefreshTokenCookie(response, "refresh-token");
+        verify(authCookieService).setCookies(response, new AuthTokens("access-token", "refresh-token"));
         verify(response).sendRedirect(SUCCESS_URI);
     }
 
@@ -121,7 +120,7 @@ class GoogleOAuth2SuccessHandlerTest {
 
         handler.onAuthenticationSuccess(request, response, authentication);
 
-        verifyNoInteractions(authService, cookieService);
+        verifyNoInteractions(authService, authCookieService);
         verify(response).sendRedirect(FAILURE_URI + "?error=oauth_failed");
     }
 
@@ -136,7 +135,7 @@ class GoogleOAuth2SuccessHandlerTest {
 
         verify(response).sendRedirect(FAILURE_URI + "?error=oauth_failed");
         verify(response, never()).sendRedirect(eq("Google account email is not verified"));
-        verifyNoInteractions(cookieService);
+        verifyNoInteractions(authCookieService);
     }
 
     @Test

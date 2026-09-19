@@ -1,8 +1,8 @@
 package com.sentio.user_service.identity.organization.internal.mapper;
 
 import com.sentio.user_service.identity.organization.api.dto.OrganizationInviteAcceptResponse;
-import com.sentio.user_service.identity.organization.internal.controller.dto.organization_invite.OrganizationInviteCreatedResponse;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationInviteResponse;
+import com.sentio.user_service.identity.organization.internal.controller.dto.organization_invite.OrganizationInviteCreatedResponse;
 import com.sentio.user_service.identity.organization.internal.entity.OrganizationInvite;
 import com.sentio.user_service.identity.organization.internal.entity.OrganizationMember;
 import org.mapstruct.Mapper;

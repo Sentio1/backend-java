@@ -13,7 +13,11 @@ dependencies {
     // Web & HTTP
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.oauth2.client)
-    implementation(libs.resilience4j.spring.boot)
+
+    // Redis: JWT blacklist (shared with Go services), rate limiting, and the
+    // OAuth2 handshake session (Spring Session) - all replica-safe.
+    implementation(libs.spring.data.redis)
+    implementation(libs.spring.session.data.redis)
 
     // Persistence & Migrations (специфіка user-service)
     implementation(libs.spring.jdbc)
@@ -42,6 +46,7 @@ dependencies {
     testImplementation(libs.spring.boot.testcontainers)
     testImplementation(libs.testcontainers.junit)
     testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.testcontainers)
     testImplementation(libs.spring.modulith.starter.test)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

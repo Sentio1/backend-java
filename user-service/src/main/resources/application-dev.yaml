@@ -27,6 +27,11 @@ spring:
     enabled: true
     baseline-on-migrate: true
 
+app:
+  cookie:
+    # Local dev runs over plain http - Secure cookies would never be sent back.
+    secure: false
+
 logging:
   level:
     com.sentio.*: DEBUG

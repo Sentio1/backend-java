@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,12 +16,14 @@ import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberD
 import com.sentio.user_service.identity.organization.api.enums.OrgRole;
 import com.sentio.user_service.identity.user.api.dto.UserDto;
 import com.sentio.user_service.identity.user.api.enums.PlatformRole;
-import com.sentio.user_service.identity.user.api.service.UserService;
 import com.sentio.user_service.refresh_token.api.dto.RefreshTokenDto;
 import com.sentio.user_service.refresh_token.api.service.RefreshTokenService;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 import java.util.Base64;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,9 +47,6 @@ class TokenIssuerTest {
     @Mock
     private RefreshTokenService refreshTokenService;
 
-    @Mock
-    private UserService userService;
-
     private JwtProperties jwtProperties;
     private JwtService jwtService;
     private TokenIssuer tokenIssuer;
@@ -60,7 +60,8 @@ class TokenIssuerTest {
         jwtProperties.setRefreshTokenExpiration(604_800_000L);
         jwtService = new JwtService(jwtProperties);
 
-        tokenIssuer = new TokenIssuer(jwtProperties, jwtService, new OpaqueTokenService(), refreshTokenService, userService);
+        tokenIssuer = new TokenIssuer(
+                jwtProperties, jwtService, new OpaqueTokenService(), refreshTokenService, Duration.ofDays(30));
     }
 
     // JwtService doesn't expose a generic claims getter, and neither jjwt nor
@@ -75,16 +76,21 @@ class TokenIssuerTest {
     }
 
     private UserDto user(long id, String email, PlatformRole platformRole) {
-        return new UserDto(id, email, null, platformRole);
+        return new UserDto(id, email, null, platformRole, null, false);
     }
 
     private OrganizationMemberDto membershipFor(OrgRole role) {
         return new OrganizationMemberDto(1L, 42L, "Acme Legal", role);
     }
 
+    private RefreshTokenDto existingToken() {
+        return new RefreshTokenDto(1L, 1L, UUID.randomUUID(), "irrelevant-hash", null, null,
+                Instant.now(), Instant.now().plus(30, ChronoUnit.DAYS), null, null);
+    }
+
     private void stubRefreshTokenIssue() {
-        when(refreshTokenService.issue(any(Long.class), any(), any(), any(), any()))
-                .thenReturn(new RefreshTokenDto(1L, 1L, "irrelevant-hash", null, null, Instant.now(), null));
+        when(refreshTokenService.startSession(any(Long.class), any(), any(), any(), any(), any()))
+                .thenReturn(existingToken());
     }
 
     @Test
@@ -128,13 +134,17 @@ class TokenIssuerTest {
 
         ArgumentCaptor<String> tokenHashCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Instant> expiresAtCaptor = ArgumentCaptor.forClass(Instant.class);
+        ArgumentCaptor<Instant> familyExpiresAtCaptor = ArgumentCaptor.forClass(Instant.class);
         verify(refreshTokenService)
-                .issue(eq(1L), tokenHashCaptor.capture(), eq("JUnit-Agent/1.0"), any(InetAddress.class),
-                        expiresAtCaptor.capture());
+                .startSession(eq(1L), tokenHashCaptor.capture(), eq("JUnit-Agent/1.0"), any(InetAddress.class),
+                        expiresAtCaptor.capture(), familyExpiresAtCaptor.capture());
 
         assertThat(tokenHashCaptor.getValue()).isNotEqualTo(tokens.refreshToken()); // stored hashed, not raw
         assertThat(expiresAtCaptor.getValue())
                 .isAfter(Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration() - 60_000));
+        // Absolute session cap: 30 days from login, regardless of later rotations.
+        assertThat(familyExpiresAtCaptor.getValue())
+                .isBetween(Instant.now().plus(29, ChronoUnit.DAYS), Instant.now().plus(31, ChronoUnit.DAYS));
     }
 
     @Test
@@ -145,6 +155,34 @@ class TokenIssuerTest {
 
         tokenIssuer.issue(user, membership, "not-an-ip-address", "JUnit-Agent/1.0");
 
-        verify(refreshTokenService).issue(eq(1L), any(), eq("JUnit-Agent/1.0"), isNull(), any());
+        verify(refreshTokenService).startSession(eq(1L), any(), eq("JUnit-Agent/1.0"), isNull(), any(), any());
+    }
+
+    @Test
+    void rotate_continuesTheSameSessionWithoutCountingAgainstTheSessionLimit() {
+        RefreshTokenDto current = existingToken();
+        UserDto user = user(1L, "user@sentio.dev", PlatformRole.USER);
+
+        AuthTokens tokens = tokenIssuer.rotate(user, membershipFor(OrgRole.LAWYER), current, "203.0.113.5", "agent");
+
+        ArgumentCaptor<String> newHashCaptor = ArgumentCaptor.forClass(String.class);
+        verify(refreshTokenService).rotate(eq(current), newHashCaptor.capture(), eq("agent"), any(), any());
+        assertThat(newHashCaptor.getValue()).isNotEqualTo(tokens.refreshToken());
+        verify(refreshTokenService, never()).enforceActiveSessionLimit(any(Long.class));
+        verify(refreshTokenService, never()).startSession(any(Long.class), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void serviceAccessToken_carriesServiceRoleAndNoOrg() {
+        String token = tokenIssuer.issueServiceAccessToken(user(9L, "svc@service.internal", PlatformRole.SERVICE));
+
+        assertThat(jwtService.extractSubject(token)).isEqualTo("9");
+        assertThat(payloadOf(token)).contains("\"roles\":[\"SERVICE\"]").doesNotContain("org_id");
+    }
+
+    // RFC 6749 expires_in is in seconds - JwtProperties stores millis.
+    @Test
+    void accessTokenTtlSeconds_convertsFromMillis() {
+        assertThat(tokenIssuer.accessTokenTtlSeconds()).isEqualTo(900L);
     }
 }

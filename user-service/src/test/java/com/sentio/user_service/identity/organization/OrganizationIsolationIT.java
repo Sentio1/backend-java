@@ -10,7 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.sentio.user_service.TestcontainersConfiguration;
 import com.sentio.user_service.identity.auth.dto.request.RegistrationRequest;
 import com.sentio.user_service.identity.auth.rate_limiting.RateLimitingService;
-import com.sentio.user_service.identity.organization.internal.controller.dto.CreateOrganizationRequest;
+import com.sentio.user_service.identity.organization.api.dto.CreateOrganizationRequest;
 import com.sentio.user_service.identity.organization.internal.controller.dto.organization.UpdateOrganizationRequest;
 import com.sentio.user_service.identity.organization.internal.controller.dto.organization_invite.OrganizationInviteRequest;
 import com.sentio.user_service.identity.organization.api.enums.OrgRole;

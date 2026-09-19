@@ -1,8 +1,9 @@
 package com.sentio.user_service.identity.user.internal.controller.dto.response;
 
 import com.sentio.user_service.identity.user.api.enums.PlatformRole;
-import java.time.Instant;
 import lombok.Builder;
+
+import java.time.Instant;
 
 @Builder
 public record UserAdminSummaryResponse(

@@ -1,8 +1,8 @@
 package com.sentio.user_service.identity.organization.internal;
 
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
-import com.sentio.user_service.identity.organization.internal.entity.OrganizationMember;
 import com.sentio.user_service.identity.organization.api.enums.OrgRole;
+import com.sentio.user_service.identity.organization.internal.entity.OrganizationMember;
 import com.sentio.user_service.identity.organization.internal.repository.OrganizationMemberRepository;
 import com.sentio.user_service.identity.user.api.SecurityUser;
 import lombok.RequiredArgsConstructor;

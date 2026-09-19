@@ -3,7 +3,7 @@ package com.sentio.user_service.identity.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
@@ -16,34 +16,35 @@ import com.lisovskyi.security.autoconfigure.security.jwt.JwtProperties;
 import com.lisovskyi.security.autoconfigure.security.jwt.JwtService;
 import com.lisovskyi.security.autoconfigure.security.jwt.OpaqueTokenService;
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
-import com.sentio.shared.entity.id.user.UserId;
 import com.sentio.user_service.identity.auth.dto.request.LoginRequest;
 import com.sentio.user_service.identity.auth.dto.request.RegistrationRequest;
 import com.sentio.user_service.identity.auth.dto.response.AuthResult;
 import com.sentio.user_service.identity.auth.dto.response.AuthTokens;
+import com.sentio.user_service.identity.auth.exception.RefreshTokenReusedException;
 import com.sentio.user_service.identity.auth.oauth.GoogleAccountResolver;
 import com.sentio.user_service.identity.auth.oauth.dto.GoogleIdentity;
 import com.sentio.user_service.identity.auth.service.AuthGuards;
 import com.sentio.user_service.identity.auth.service.AuthService;
+import com.sentio.user_service.identity.auth.service.PasswordVerifier;
 import com.sentio.user_service.identity.auth.token.TokenIssuer;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberDto;
 import com.sentio.user_service.identity.organization.api.enums.OrgRole;
-import com.sentio.user_service.identity.organization.internal.service.OrganizationCreationService;
-import com.sentio.user_service.identity.organization.internal.service.OrganizationServiceImpl;
-import com.sentio.user_service.refresh_token.api.dto.RefreshTokenDto;
-import com.sentio.user_service.refresh_token.api.service.RefreshTokenService;
+import com.sentio.user_service.identity.organization.api.service.OrganizationMemberService;
 import com.sentio.user_service.identity.user.api.SecurityUser;
+import com.sentio.user_service.identity.user.api.dto.NewLocalUser;
 import com.sentio.user_service.identity.user.api.dto.UserContextResponse;
 import com.sentio.user_service.identity.user.api.dto.UserDto;
+import com.sentio.user_service.identity.user.api.enums.PlatformRole;
+import com.sentio.user_service.identity.user.api.service.UserAccountService;
 import com.sentio.user_service.identity.user.api.service.UserService;
-import com.sentio.user_service.identity.user.internal.entity.User;
-import com.sentio.user_service.identity.user.internal.mapper.UserMapper;
-import com.sentio.user_service.identity.user.internal.mapper.UserMapperImpl;
-import com.sentio.user_service.identity.user.internal.repository.UserRepository;
+import com.sentio.user_service.refresh_token.api.dto.RefreshTokenDto;
+import com.sentio.user_service.refresh_token.api.enums.RevokeReason;
+import com.sentio.user_service.refresh_token.api.service.RefreshTokenService;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -55,17 +56,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
- * Unit tests for {@link AuthService}. AuthService itself is now a thin orchestrator: organization
- * creation lives in {@link OrganizationCreationService}, Google identity resolution in {@link
- * GoogleAccountResolver}, token issuance in {@link TokenIssuer}, and building the user-facing
- * context in {@link UserService} - all mocked here and covered by their own test classes. What's
- * left to test at this level is *wiring*: does register() call the OWNER path vs the join path,
- * does login() reject bad credentials, is the right membership/user handed to the right
- * collaborator, etc.
+ * Unit tests for {@link AuthService} - a thin orchestrator over the user/organization/refresh_token
+ * module APIs, {@link GoogleAccountResolver} and {@link TokenIssuer}, all mocked here and covered by
+ * their own tests. What's left at this level is the decision logic: who gets rejected, which
+ * membership goes into the token, how a presented refresh token is judged.
  *
- * <p>passwordEncoder/jwtService/opaqueTokenService stay real (pure logic, no I/O) - AuthService
- * still uses them directly for password checks and token hashing. userMapper stays real too, since
- * AuthService still calls it directly for the local-identity build in register().
+ * <p>passwordEncoder/PasswordVerifier/AuthGuards/jwtService/opaqueTokenService stay real (pure
+ * logic, no I/O).
  */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -74,8 +71,19 @@ class AuthServiceTest {
     private static final String DUMMY_PRIVATE_KEY =
             "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDZrWu2iGsRL6OUKzPyqj/TMbtEEIEHrrJgEOsYqNawp/1UctJ1jtvkJ6oK5lOAMpIPNPc9p87XrwNUng/adBH1eG1RFR/FK0vgCgETxY9TFFGuaMR4qZhOxVHWfFvqrREuZc0/Pen0LJZak6usJyc3SAyrxij6IOsiNEDxvQwVSadcp36L5FUJ93RpepTJl1c4ktFmlhU8wouM6vgflHHRVUe9OySmL8ODw1iJcnPydZ1ewq4iutlBRp7puH3Isb7vW8kVu3qOW7H1n/XKLkMuKjENaSwBIz3+eCMtBIa9xaCW6DEVEURhtulAxuGUOrlEUaPAJVitEM/cgFxh6DXhAgMBAAECggEAEMz6CI1YaCvrXfMEsCjUQsZum/cDInbpFRGRN6bGZT2eB5/SHxku3xnxnaQ/0x/0FoDhyUwzooGDSgtmEVgOj8ni9BRjjpoEIe9bvG0t3f1uPX4gFekPFJtVsO6JwJ/peNGKKSSr8zjixOxrXl7qP7HLqpFhlcanJ01tqsrKzTSs6cOxmpJuqF0KxJgTOY+uVhiULWxu0f8c9jHPFrRQ8OgnXrX++vSAfv9keEL7gbIKxfKunGUen3nXHi3FMJ5I82e9TSjAYDohbcZOZYSVEGrk4FXlC8j6XohR/4outKdKmAfbEQvDPZ2oT8T56d/T2/mznS4eBqq1+g7XAMKfzQKBgQDs9vN7O+vJb59c7pnWxOEVXgrpBn9KOXuPkKwzDVvGMTKTyeyAe8S5QyY8AFGsS30Z2MW4IRYxjgTwxjpGRVkLUiKxvl/qXUUoNYbBFf4WKLfsRQ1AK3DIdzzw2alHkcdWQ/YDlW8UDBHs6YdkDoUwbf/SX9R/r/+Vwht2Ty3yJQKBgQDrKdacn4QURiGG7gmBZJXfLLa72cntxecknCKQw8E4+BQ236ocIKA76fL2A2r2DY44i2sZTaK7ITjeiKs6kWeg0L9WYbExuoHwJxQmGVjGHiI548nxCdzP6vmHLlakNg1ikA+DoTjhH27phHdrDpxU1ROZvHC4wroRkC+6u6IiDQKBgC6xktTrv9CXsD1tvt61OO0u9NNqNlb38MMfbO86aKUrOJ4qofHHccJX2wbjwTREQ8h+EKfxzR/CrnKLfRwvuhYi/zcrHldePaxor78IiGLxbxydlrjYVocKB/YlzdeOgEsdZTLblWHL5xRaCBXNTq12X3yi6YqnsaNe9m5ft9wJAoGBAKr+oyUEAKBVVm+sipDhuPCsrLrvZBtW+fnu5ltpXAi2qswz2pfVSW4HcTldxtrfhHitN9UQVLHJOHbn3coajMWsxFRleNj2CyG66LXDXH/CzZRWhDKWv08YRxT6ptmEzDrNEdre0mMv3hBC2CqqVxaAUV5KXZSbU30N4QbhBMXJAoGAUKVTdahVmA2+qSPd7fh6eqMk2iTUCjNoeVWUQPnDhDpmiPr5tIRrFGCewRFWgkj96s1gthxGz8Hmmu+RzCYpaCHQkZCZgt34Wgf7AdWAzUCskjTADqb3FzrAWQjWGfsy6VBaADNJcsyiEhonseO27M7hPLj85vMtfTE+cdJBaEA=";
 
+    private static final String PASSWORD = "Password123!";
+
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
+
+    @Mock
+    private UserAccountService userAccountService;
+
+    @Mock
+    private OrganizationMemberService organizationMemberService;
+
+    @Mock
+    private RefreshTokenService refreshTokenService;
 
     @Mock
     private JwtBlacklistService jwtBlacklistService;
@@ -84,433 +92,362 @@ class AuthServiceTest {
     private TokenIssuer tokenIssuer;
 
     @Mock
-    private OrganizationCreationService organizationProvisioning;
-
-    @Mock
-    private OrganizationServiceImpl organizationService;
-
-    @Mock
-    private RefreshTokenService refreshTokenService;
-
-    @Mock
     private GoogleAccountResolver googleAccountResolver;
 
-    @Mock
-    private AuthGuards authGuards;
-
-    @Mock
-    private UserService userService;
-
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    // Strength 4 - the minimum; nothing here is about BCrypt's cost.
+    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(4);
     private final OpaqueTokenService opaqueTokenService = new OpaqueTokenService();
-    private final UserMapper userMapper = new UserMapperImpl();
-    private JwtProperties jwtProperties;
     private JwtService jwtService;
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        jwtProperties = new JwtProperties();
+        JwtProperties jwtProperties = new JwtProperties();
         jwtProperties.setPrivateKey(DUMMY_PRIVATE_KEY);
         jwtProperties.setIssuer("sentio-test");
-        jwtProperties.setAccessTokenExpiration(900_000L);
-        jwtProperties.setRefreshTokenExpiration(604_800_000L);
         jwtService = new JwtService(jwtProperties);
 
         authService = new AuthService(
-                userRepository,
                 userService,
-                userMapper,
+                userAccountService,
+                organizationMemberService,
+                refreshTokenService,
                 jwtService,
                 opaqueTokenService,
                 jwtBlacklistService,
-                organizationService,
-                refreshTokenService,
-                authGuards,
+                new AuthGuards(),
                 tokenIssuer,
                 passwordEncoder,
-                organizationProvisioning,
+                new PasswordVerifier(passwordEncoder),
                 googleAccountResolver);
     }
 
     // ---- helpers -----------------------------------------------------
 
-    private RegistrationRequest registrationRequest(String email) {
-        return new RegistrationRequest(email, "password123", "password123", null, "Doe", "John", null);
+    private UserDto user(long id, String passwordHash, PlatformRole role) {
+        return new UserDto(id, "user@sentio.dev", passwordHash, role, null, false);
     }
 
-    private void stubUserSaveAssignsId(long id) {
-        // register() calls saveAndFlush (not save) so the unique-email constraint
-        // violation surfaces inside its try block instead of at commit time - see
-        // the ResourceAlreadyExistsException translation below.
-        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(inv -> {
-            User u = inv.getArgument(0);
-            u.setId(id);
-            return u;
-        });
+    private UserDto localUser(long id) {
+        return user(id, passwordEncoder.encode(PASSWORD), PlatformRole.USER);
     }
 
-    private User persistedUser(long id, String email, String rawPassword) {
-        User user = User.builder()
-                .email(email)
-                .password(passwordEncoder.encode(rawPassword))
-                .firstName("Jane")
-                .lastName("Doe")
-                .build();
-        user.setId(id);
-        return user;
+    private OrganizationMemberDto membership() {
+        return new OrganizationMemberDto(1L, 10L, "Acme Legal", OrgRole.OWNER);
     }
 
-    private UserDto userDto(User user) {
-        return new UserDto(user.getId(), user.getEmail(), user.getPassword(), user.getPlatformRole());
+    private UserContextResponse context(long id) {
+        return UserContextResponse.builder().id(id).email("user@sentio.dev").build();
     }
 
-    private OrganizationMemberDto membership(String orgName, OrgRole role) {
-        return new OrganizationMemberDto(1L, 10L, orgName, role);
+    private LoginRequest login(String password) {
+        return new LoginRequest("user@sentio.dev", password);
     }
 
-    private UserContextResponse context(long id, String email, String orgName, String orgRole) {
-        return UserContextResponse.builder()
-                .id(id)
-                .email(email)
-                .orgName(orgName)
-                .orgRole(orgRole)
-                .build();
+    private RefreshTokenDto refreshToken(
+            String raw, Instant expiresAt, Instant revokedAt, RevokeReason reason) {
+        return new RefreshTokenDto(
+                99L, 1L, UUID.fromString("00000000-0000-0000-0000-000000000001"),
+                opaqueTokenService.hash(raw), "agent", null,
+                expiresAt, Instant.now().plus(30, ChronoUnit.DAYS), revokedAt, reason);
     }
 
-    // Stubs the two UserService hops AuthService now delegates to instead of
-    // building the context itself.
-    private void stubUserService(User user, OrganizationMemberDto membership, UserContextResponse response) {
-        when(userService.findUserById(user.getId())).thenReturn(userDto(user));
-        when(userService.buildUserContext(user.getId(), membership)).thenReturn(response);
-    }
-
-    private void stubTokenIssuer() {
+    private void stubTokenIssue() {
         when(tokenIssuer.issue(any(UserDto.class), any(), any(), any()))
                 .thenReturn(new AuthTokens("access-token", "refresh-token"));
     }
 
     // ---- register ------------------------------------------------------
 
-    // Registration is always org-less - the user creates or joins an organization
-    // as a separate onboarding step (OrganizationServiceTest#createOrganization,
-    // OrganizationInviteServiceTest#acceptInvite), never as part of register()
-    // itself.
+    // Registration is always org-less - creating/joining an organization is a
+    // separate onboarding step, never part of register() itself.
     @Nested
-    /** Register class. */
     class Register {
 
         @Test
-        void registration_createsUserWithoutMembershipAndOrglessTokens() {
-            when(userRepository.existsByEmail("newcomer@sentio.dev")).thenReturn(false);
-            stubUserSaveAssignsId(3L);
-            when(tokenIssuer.issue(any(UserDto.class), isNull(), any(), any()))
-                    .thenReturn(new AuthTokens("access-token", "refresh-token"));
-            when(userService.findUserById(3L))
-                    .thenReturn(new UserDto(3L, "newcomer@sentio.dev", null, null));
-            when(userService.buildUserContext(3L, null))
-                    .thenReturn(context(3L, "newcomer@sentio.dev", null, null));
+        void registration_storesEncodedPasswordAndIssuesOrglessSession() {
+            UserDto created = localUser(1L);
+            when(userAccountService.registerLocal(any())).thenReturn(created);
+            when(userService.buildUserContext(1L, null)).thenReturn(context(1L));
+            stubTokenIssue();
 
-            AuthResult result =
-                    authService.register(registrationRequest("newcomer@sentio.dev"), "127.0.0.1", "test-agent");
+            AuthResult result = authService.register(
+                    new RegistrationRequest("user@sentio.dev", PASSWORD, PASSWORD, null, "Doe", "John", null),
+                    "127.0.0.1", "agent");
 
-            assertThat(result.userContext().id()).isEqualTo(3L);
-            assertThat(result.userContext().email()).isEqualTo("newcomer@sentio.dev");
-            assertThat(result.userContext().orgName()).isNull();
-            assertThat(result.userContext().orgRole()).isNull();
-            assertThat(result.authTokens().accessToken()).isEqualTo("access-token");
-            verifyNoInteractions(organizationProvisioning);
+            ArgumentCaptor<NewLocalUser> captor = ArgumentCaptor.forClass(NewLocalUser.class);
+            verify(userAccountService).registerLocal(captor.capture());
+            assertThat(captor.getValue().passwordHash()).isNotEqualTo(PASSWORD);
+            assertThat(passwordEncoder.matches(PASSWORD, captor.getValue().passwordHash())).isTrue();
 
-            ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-            org.mockito.Mockito.verify(userRepository, org.mockito.Mockito.times(2)).saveAndFlush(userCaptor.capture());
-            User savedUser = userCaptor.getAllValues().get(1); // get the second invocation
-            assertThat(savedUser.getIdentities()).hasSize(1);
-            assertThat(savedUser.getIdentities().get(0).getProviderUserId()).isNotNull();
-        }
-
-        @Test
-        void duplicateEmail_throwsResourceAlreadyExists() {
-            when(userRepository.existsByEmail("owner@sentio.dev")).thenReturn(true);
-
-            assertThatThrownBy(() ->
-                            authService.register(registrationRequest("owner@sentio.dev"), "127.0.0.1", "test-agent"))
-                    .isInstanceOf(com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsException.class);
-
-            verify(userRepository, never()).save(any());
+            verify(tokenIssuer).issue(eq(created), isNull(), eq("127.0.0.1"), eq("agent"));
+            assertThat(result.userContext()).isEqualTo(context(1L));
+            verifyNoInteractions(organizationMemberService);
         }
     }
 
-    // ---- login --------------------------------------------------------
+    // ---- login ---------------------------------------------------------
 
     @Nested
-    /** Login class. */
     class Login {
 
         @Test
-        void validCredentials_returnsAuthResultWithDefaultOrgContext() {
-            User user = persistedUser(1L, "user@sentio.dev", "password123");
-            when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.of(user));
-            OrganizationMemberDto membership = membership("Acme Legal", OrgRole.LAWYER);
-            when(organizationService.findDefaultMembership(1L)).thenReturn(Optional.of(membership));
-            stubUserService(user, membership, context(1L, "user@sentio.dev", "Acme Legal", "LAWYER"));
-            stubTokenIssuer();
+        void validCredentials_issuesSessionScopedToDefaultOrg() {
+            UserDto user = localUser(1L);
+            when(userAccountService.findActiveByEmail("user@sentio.dev")).thenReturn(Optional.of(user));
+            when(organizationMemberService.findDefaultMembership(1L)).thenReturn(Optional.of(membership()));
+            when(userService.buildUserContext(1L, membership())).thenReturn(context(1L));
+            stubTokenIssue();
 
-            AuthResult result =
-                    authService.login(new LoginRequest("user@sentio.dev", "password123"), "127.0.0.1", "test-agent");
+            AuthResult result = authService.login(login(PASSWORD), "127.0.0.1", "agent");
 
-            assertThat(result.userContext().id()).isEqualTo(1L);
-            assertThat(result.userContext().orgName()).isEqualTo("Acme Legal");
-            assertThat(result.userContext().orgRole()).isEqualTo("LAWYER");
+            verify(tokenIssuer).issue(user, membership(), "127.0.0.1", "agent");
             assertThat(result.authTokens().accessToken()).isEqualTo("access-token");
         }
 
         @Test
-        void unknownEmail_throwsUnauthorizedWithGenericMessage() {
-            when(userRepository.findByEmail("ghost@sentio.dev")).thenReturn(Optional.empty());
+        void noDefaultOrganization_issuesOrglessSession() {
+            UserDto user = localUser(1L);
+            when(userAccountService.findActiveByEmail("user@sentio.dev")).thenReturn(Optional.of(user));
+            when(organizationMemberService.findDefaultMembership(1L)).thenReturn(Optional.empty());
+            stubTokenIssue();
 
-            assertThatThrownBy(() -> authService.login(
-                            new LoginRequest("ghost@sentio.dev", "whatever123"), "127.0.0.1", "test-agent"))
-                    .isInstanceOf(UnauthorizedException.class)
-                    .hasMessage("Invalid email or password");
+            authService.login(login(PASSWORD), "127.0.0.1", "agent");
+
+            verify(tokenIssuer).issue(eq(user), isNull(), any(), any());
         }
 
         @Test
-        void wrongPassword_throwsUnauthorizedWithSameGenericMessageAsUnknownEmail() {
-            User user = persistedUser(1L, "user@sentio.dev", "correct-password");
-            when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.of(user));
+        void unknownEmail_throwsGenericUnauthorized() {
+            when(userAccountService.findActiveByEmail("user@sentio.dev")).thenReturn(Optional.empty());
 
-            // Same message as the "unknown email" case above is the point here -
-            // an attacker must not be able to distinguish the two.
-            assertThatThrownBy(() -> authService.login(
-                            new LoginRequest("user@sentio.dev", "wrong-password"), "127.0.0.1", "test-agent"))
+            assertThatThrownBy(() -> authService.login(login(PASSWORD), "127.0.0.1", "agent"))
                     .isInstanceOf(UnauthorizedException.class)
-                    .hasMessage("Invalid email or password");
+                    .hasMessage(AuthConstants.INVALID_CREDENTIALS_MSG);
+            verifyNoInteractions(tokenIssuer);
         }
 
-        // Org-less is a legitimate post-registration state now (AuthService.register
-        // never creates an org), so login must tolerate it too, not just Google's
-        // fallback path - the user just gets an org-less session back, not an error.
         @Test
-        void noDefaultOrganization_returnsOrglessAuthResult() {
-            User user = persistedUser(1L, "user@sentio.dev", "password123");
-            when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.of(user));
-            when(organizationService.findDefaultMembership(1L)).thenReturn(Optional.empty());
-            stubUserService(user, null, context(1L, "user@sentio.dev", null, null));
-            when(tokenIssuer.issue(any(UserDto.class), isNull(), any(), any()))
-                    .thenReturn(new AuthTokens("access-token", "refresh-token"));
+        void wrongPassword_throwsSameGenericUnauthorizedAsUnknownEmail() {
+            when(userAccountService.findActiveByEmail("user@sentio.dev")).thenReturn(Optional.of(localUser(1L)));
 
-            AuthResult result =
-                    authService.login(new LoginRequest("user@sentio.dev", "password123"), "127.0.0.1", "test-agent");
+            assertThatThrownBy(() -> authService.login(login("wrong-password"), "127.0.0.1", "agent"))
+                    .isInstanceOf(UnauthorizedException.class)
+                    .hasMessage(AuthConstants.INVALID_CREDENTIALS_MSG);
+            verifyNoInteractions(tokenIssuer);
+        }
 
-            assertThat(result.userContext().orgName()).isNull();
-            assertThat(result.userContext().orgRole()).isNull();
-            assertThat(result.authTokens().accessToken()).isEqualTo("access-token");
+        // Regression: a NULL password_hash (Google-only account) used to skip the
+        // password check entirely - any password logged you in.
+        @Test
+        void accountWithoutPassword_isRejectedForAnyPassword() {
+            when(userAccountService.findActiveByEmail("user@sentio.dev"))
+                    .thenReturn(Optional.of(user(1L, null, PlatformRole.USER)));
+
+            assertThatThrownBy(() -> authService.login(login("anything-at-all"), "127.0.0.1", "agent"))
+                    .isInstanceOf(UnauthorizedException.class);
+            verifyNoInteractions(tokenIssuer);
+        }
+
+        @Test
+        void serviceAccount_isRejectedEvenWithCorrectSecret() {
+            when(userAccountService.findActiveByEmail("user@sentio.dev"))
+                    .thenReturn(Optional.of(user(1L, passwordEncoder.encode(PASSWORD), PlatformRole.SERVICE)));
+
+            assertThatThrownBy(() -> authService.login(login(PASSWORD), "127.0.0.1", "agent"))
+                    .isInstanceOf(UnauthorizedException.class)
+                    .hasMessage(AuthConstants.INVALID_CREDENTIALS_MSG);
+            verifyNoInteractions(tokenIssuer);
         }
     }
 
-    // ---- loginOrRegisterWithGoogle --------------------------------------
+    // ---- Google ----------------------------------------------------------
 
     @Nested
-    /** GoogleAuth class. */
     class GoogleAuth {
 
-        private GoogleIdentity identity() {
-            return new GoogleIdentity("google-sub-1", "user@sentio.dev", "Jane", "Doe", true);
+        private final GoogleIdentity identity =
+                new GoogleIdentity("google-sub-1", "user@sentio.dev", "Jane", "Doe", true);
+
+        @Test
+        void existingUser_keepsTheirDefaultMembership() {
+            UserDto user = user(1L, null, PlatformRole.USER);
+            when(googleAccountResolver.resolveOrCreate(identity)).thenReturn(user);
+            when(organizationMemberService.findDefaultMembership(1L)).thenReturn(Optional.of(membership()));
+            stubTokenIssue();
+
+            authService.loginOrRegisterWithGoogle(identity, "127.0.0.1", "agent");
+
+            verify(tokenIssuer).issue(user, membership(), "127.0.0.1", "agent");
+        }
+
+        // Same as local registration: no organization is created on sign-up, the
+        // frontend sends an org-less user to onboarding.
+        @Test
+        void brandNewUser_isOrgless() {
+            UserDto user = user(1L, null, PlatformRole.USER);
+            when(googleAccountResolver.resolveOrCreate(identity)).thenReturn(user);
+            when(organizationMemberService.findDefaultMembership(1L)).thenReturn(Optional.empty());
+            stubTokenIssue();
+
+            authService.loginOrRegisterWithGoogle(identity, "127.0.0.1", "agent");
+
+            verify(tokenIssuer).issue(eq(user), isNull(), any(), any());
         }
 
         @Test
-        void existingUser_reusesTheirDefaultMembershipAndDoesNotCreateAnOrganization() {
-            User user = persistedUser(1L, "user@sentio.dev", "unused");
-            when(googleAccountResolver.resolveOrCreate(identity())).thenReturn(user);
-            OrganizationMemberDto membership = membership("Acme Legal", OrgRole.OWNER);
-            when(organizationService.findDefaultMembership(1L)).thenReturn(Optional.of(membership));
-            stubUserService(user, membership, context(1L, "user@sentio.dev", "Acme Legal", "OWNER"));
-            stubTokenIssuer();
+        void serviceAccount_isRejected() {
+            when(googleAccountResolver.resolveOrCreate(identity)).thenReturn(user(1L, null, PlatformRole.SERVICE));
 
-            AuthResult result = authService.loginOrRegisterWithGoogle(identity(), "127.0.0.1", "test-agent");
-
-            assertThat(result.userContext().orgName()).isEqualTo("Acme Legal");
-            verifyNoInteractions(organizationProvisioning);
-        }
-
-        @Test
-        void brandNewUser_createsOwnerMembershipNamedAfterTheGoogleProfile() {
-            User user = persistedUser(5L, "user@sentio.dev", "unused");
-            when(googleAccountResolver.resolveOrCreate(identity())).thenReturn(user);
-            when(organizationService.findDefaultMembership(5L)).thenReturn(Optional.empty());
-            OrganizationMemberDto membership = membership("Jane Doe", OrgRole.OWNER);
-            when(organizationProvisioning.createOwnerMembership(eq(UserId.of(5L)), eq("Jane Doe"), eq(null), any()))
-                    .thenReturn(membership);
-            stubUserService(user, membership, context(5L, "user@sentio.dev", "Jane Doe", "OWNER"));
-            stubTokenIssuer();
-
-            AuthResult result = authService.loginOrRegisterWithGoogle(identity(), "127.0.0.1", "test-agent");
-
-            assertThat(result.userContext().orgName()).isEqualTo("Jane Doe");
-            assertThat(result.userContext().orgRole()).isEqualTo("OWNER");
-        }
-
-        @Test
-        void brandNewUser_withMissingFamilyName_doesNotProduceLiteralNullInOrgName() {
-            GoogleIdentity noLastName = new GoogleIdentity("google-sub-2", "user@sentio.dev", "Jane", null, true);
-            User user = persistedUser(6L, "user@sentio.dev", "unused");
-            when(googleAccountResolver.resolveOrCreate(noLastName)).thenReturn(user);
-            when(organizationService.findDefaultMembership(6L)).thenReturn(Optional.empty());
-            OrganizationMemberDto membership = membership("Jane", OrgRole.OWNER);
-            when(organizationProvisioning.createOwnerMembership(eq(UserId.of(6L)), eq("Jane"), eq(null), any()))
-                    .thenReturn(membership);
-            stubUserService(user, membership, context(6L, "user@sentio.dev", "Jane", "OWNER"));
-            stubTokenIssuer();
-
-            AuthResult result = authService.loginOrRegisterWithGoogle(noLastName, "127.0.0.1", "test-agent");
-
-            assertThat(result.userContext().orgName()).isEqualTo("Jane");
-        }
-
-        @Test
-        void brandNewUser_withNoNameAtAll_fallsBackToEmailAsOrgName() {
-            GoogleIdentity noName = new GoogleIdentity("google-sub-3", "nameless@sentio.dev", null, null, true);
-            User user = persistedUser(7L, "nameless@sentio.dev", "unused");
-            when(googleAccountResolver.resolveOrCreate(noName)).thenReturn(user);
-            when(organizationService.findDefaultMembership(7L)).thenReturn(Optional.empty());
-            OrganizationMemberDto membership = membership("nameless@sentio.dev", OrgRole.OWNER);
-            when(organizationProvisioning.createOwnerMembership(
-                            eq(UserId.of(7L)), eq("nameless@sentio.dev"), eq(null), any()))
-                    .thenReturn(membership);
-            stubUserService(user, membership, context(7L, "nameless@sentio.dev", "nameless@sentio.dev", "OWNER"));
-            stubTokenIssuer();
-
-            AuthResult result = authService.loginOrRegisterWithGoogle(noName, "127.0.0.1", "test-agent");
-
-            assertThat(result.userContext().orgName()).isEqualTo("nameless@sentio.dev");
+            assertThatThrownBy(() -> authService.loginOrRegisterWithGoogle(identity, "127.0.0.1", "agent"))
+                    .isInstanceOf(UnauthorizedException.class);
+            verifyNoInteractions(tokenIssuer);
         }
     }
 
-    // ---- refresh --------------------------------------------------------
+    // ---- refresh ---------------------------------------------------------
 
     @Nested
-    /** Refresh class. */
     class Refresh {
 
-        private RefreshTokenDto refreshTokenDto(long id, long userId, Instant expiresAt, Instant revokedAt) {
-            return new RefreshTokenDto(id, userId, "hashed", "test-agent", null, expiresAt, revokedAt);
+        private static final String RAW = "raw-refresh-token";
+
+        private void stubFound(RefreshTokenDto token) {
+            when(refreshTokenService.findByTokenHash(opaqueTokenService.hash(RAW))).thenReturn(Optional.of(token));
         }
 
         @Test
-        void validToken_rotatesAndReturnsNewTokens() {
-            String rawToken = "raw-refresh-token";
-            String hashedToken = opaqueTokenService.hash(rawToken);
+        void validToken_rotatesWithinTheSameSession() {
+            RefreshTokenDto token = refreshToken(RAW, Instant.now().plus(1, ChronoUnit.DAYS), null, null);
+            UserDto user = localUser(1L);
+            stubFound(token);
+            when(userAccountService.findActiveById(1L)).thenReturn(Optional.of(user));
+            when(organizationMemberService.findDefaultMembership(1L)).thenReturn(Optional.of(membership()));
+            when(tokenIssuer.rotate(user, membership(), token, "127.0.0.1", "agent"))
+                    .thenReturn(new AuthTokens("new-access", "new-refresh"));
 
-            User user = persistedUser(1L, "user@sentio.dev", "password123");
-            RefreshTokenDto existing =
-                    refreshTokenDto(99L, user.getId(), Instant.now().plus(1, ChronoUnit.DAYS), null);
-            when(refreshTokenService.findByTokenHash(hashedToken)).thenReturn(Optional.of(existing));
-            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-            OrganizationMemberDto membership = membership("Acme Legal", OrgRole.LAWYER);
-            when(organizationService.findDefaultMembership(1L)).thenReturn(Optional.of(membership));
-            // refresh() only returns AuthTokens, not a UserContextResponse - no
-            // buildUserContext() stub needed here, unlike the other flows.
-            when(userService.findUserById(1L)).thenReturn(userDto(user));
-            stubTokenIssuer();
+            AuthTokens tokens = authService.refresh(RAW, "127.0.0.1", "agent");
 
-            AuthTokens tokens = authService.refresh(rawToken, "127.0.0.1", "test-agent");
-
-            assertThat(tokens.accessToken()).isEqualTo("access-token");
-            // The old token being rotated must be revoked by its own id - not by
-            // treating that id as a userId (revokeAllActiveForUser would silently
-            // revoke a different user's sessions, or nobody's).
-            verify(refreshTokenService).revokeSession(1L, 99L);
+            assertThat(tokens.refreshToken()).isEqualTo("new-refresh");
+            verify(tokenIssuer, never()).issue(any(), any(), any(), any());
         }
 
         @Test
-        void unknownToken_throwsUnauthorizedException() {
-            when(refreshTokenService.findByTokenHash(any())).thenReturn(Optional.empty());
+        void unknownToken_isRejected() {
+            when(refreshTokenService.findByTokenHash(anyString())).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> authService.refresh("some-token", "127.0.0.1", "test-agent"))
+            assertThatThrownBy(() -> authService.refresh(RAW, "127.0.0.1", "agent"))
+                    .isInstanceOf(UnauthorizedException.class);
+            verifyNoInteractions(tokenIssuer);
+        }
+
+        @Test
+        void expiredToken_isRejected() {
+            stubFound(refreshToken(RAW, Instant.now().minusSeconds(1), null, null));
+
+            assertThatThrownBy(() -> authService.refresh(RAW, "127.0.0.1", "agent"))
+                    .isInstanceOf(UnauthorizedException.class);
+            verifyNoInteractions(tokenIssuer);
+        }
+
+        @Test
+        void loggedOutToken_isRejectedWithoutTouchingTheFamily() {
+            stubFound(refreshToken(RAW, Instant.now().plus(1, ChronoUnit.DAYS),
+                    Instant.now().minus(1, ChronoUnit.HOURS), RevokeReason.LOGOUT));
+
+            assertThatThrownBy(() -> authService.refresh(RAW, "127.0.0.1", "agent"))
                     .isInstanceOf(UnauthorizedException.class)
-                    .hasMessage("Invalid refresh token");
+                    .isNotInstanceOf(RefreshTokenReusedException.class);
+            verify(refreshTokenService, never()).revokeFamily(any(), any());
+            verifyNoInteractions(tokenIssuer);
+        }
+
+        // Two tabs refreshing with the same cookie at once - not theft.
+        @Test
+        void rotatedTokenWithinGracePeriod_isRejectedWithoutRevokingTheFamily() {
+            stubFound(refreshToken(RAW, Instant.now().plus(1, ChronoUnit.DAYS),
+                    Instant.now().minusSeconds(2), RevokeReason.ROTATED));
+
+            assertThatThrownBy(() -> authService.refresh(RAW, "127.0.0.1", "agent"))
+                    .isInstanceOf(UnauthorizedException.class)
+                    .isNotInstanceOf(RefreshTokenReusedException.class);
+            verify(refreshTokenService, never()).revokeFamily(any(), any());
         }
 
         @Test
-        void revokedToken_throwsUnauthorizedExceptionAndDoesNotRotate() {
-            String rawToken = "raw-refresh-token";
-            String hashedToken = opaqueTokenService.hash(rawToken);
-            RefreshTokenDto revoked = refreshTokenDto(
-                    99L, 1L, Instant.now().plus(1, ChronoUnit.DAYS), Instant.now().minus(1, ChronoUnit.HOURS));
-            when(refreshTokenService.findByTokenHash(hashedToken)).thenReturn(Optional.of(revoked));
+        void rotatedTokenAfterGracePeriod_isReuse_revokesTheWholeFamily() {
+            RefreshTokenDto token = refreshToken(RAW, Instant.now().plus(1, ChronoUnit.DAYS),
+                    Instant.now().minus(1, ChronoUnit.MINUTES), RevokeReason.ROTATED);
+            stubFound(token);
 
-            assertThatThrownBy(() -> authService.refresh(rawToken, "127.0.0.1", "test-agent"))
-                    .isInstanceOf(UnauthorizedException.class)
-                    .hasMessage("Refresh token has been revoked");
-
-            verify(refreshTokenService, never()).revokeSession(anyLong(), anyLong());
+            assertThatThrownBy(() -> authService.refresh(RAW, "127.0.0.1", "agent"))
+                    .isInstanceOf(RefreshTokenReusedException.class);
+            verify(refreshTokenService).revokeFamily(token.familyId(), RevokeReason.REUSE_DETECTED);
+            verifyNoInteractions(tokenIssuer);
         }
 
         @Test
-        void expiredToken_throwsUnauthorizedExceptionAndDoesNotRotate() {
-            String rawToken = "raw-refresh-token";
-            String hashedToken = opaqueTokenService.hash(rawToken);
-            RefreshTokenDto expired = refreshTokenDto(99L, 1L, Instant.now().minus(1, ChronoUnit.HOURS), null);
-            when(refreshTokenService.findByTokenHash(hashedToken)).thenReturn(Optional.of(expired));
+        void deletedOrMissingUser_isRejected() {
+            stubFound(refreshToken(RAW, Instant.now().plus(1, ChronoUnit.DAYS), null, null));
+            when(userAccountService.findActiveById(1L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> authService.refresh(rawToken, "127.0.0.1", "test-agent"))
-                    .isInstanceOf(UnauthorizedException.class)
-                    .hasMessage("Refresh token has expired");
+            assertThatThrownBy(() -> authService.refresh(RAW, "127.0.0.1", "agent"))
+                    .isInstanceOf(UnauthorizedException.class);
+            verifyNoInteractions(tokenIssuer);
+        }
 
-            verify(refreshTokenService, never()).revokeSession(anyLong(), anyLong());
+        @Test
+        void serviceAccount_isRejected() {
+            stubFound(refreshToken(RAW, Instant.now().plus(1, ChronoUnit.DAYS), null, null));
+            when(userAccountService.findActiveById(1L))
+                    .thenReturn(Optional.of(user(1L, "hash", PlatformRole.SERVICE)));
+
+            assertThatThrownBy(() -> authService.refresh(RAW, "127.0.0.1", "agent"))
+                    .isInstanceOf(UnauthorizedException.class);
+            verifyNoInteractions(tokenIssuer);
         }
     }
 
-    // ---- logout ---------------------------------------------------------
+    // ---- logout ----------------------------------------------------------
 
     @Nested
-    /** Logout class. */
     class Logout {
 
-        private String issueAccessToken() {
-            User user = persistedUser(1L, "user@sentio.dev", "password123");
-            SecurityUser securityUser =
-                    new SecurityUser(user.getId(), user.getEmail(), user.getPassword(), user.getPlatformRole());
-            return jwtService.generateToken(securityUser, Map.of());
-        }
-
-        private RefreshTokenDto refreshTokenDto(long id) {
-            return new RefreshTokenDto(id, 1L, "hashed", "test-agent", null, Instant.now().plus(1, ChronoUnit.DAYS), null);
+        private String accessToken() {
+            return jwtService.generateToken(
+                    new SecurityUser(1L, "user@sentio.dev", null, PlatformRole.USER), Map.of());
         }
 
         @Test
-        void bothTokensPresent_revokesRefreshAndBlacklistsAccess() {
-            String rawRefreshToken = "raw-refresh-token";
-            String hashedToken = opaqueTokenService.hash(rawRefreshToken);
-            when(refreshTokenService.findByTokenHash(hashedToken)).thenReturn(Optional.of(refreshTokenDto(99L)));
-            String accessToken = issueAccessToken();
+        void bothTokensPresent_revokesTheSessionFamilyAndBlacklistsAccessToken() {
+            String access = accessToken();
+            RefreshTokenDto token = refreshToken("raw", Instant.now().plus(1, ChronoUnit.DAYS), null, null);
+            when(refreshTokenService.findByTokenHash(opaqueTokenService.hash("raw"))).thenReturn(Optional.of(token));
 
-            authService.logout(accessToken, rawRefreshToken);
+            authService.logout(access, "raw");
 
-            verify(refreshTokenService).revokeSession(1L, 99L);
-            verify(jwtBlacklistService).addToBlacklist(eq(accessToken), anyLong());
+            verify(refreshTokenService).revokeFamily(token.familyId(), RevokeReason.LOGOUT);
+            verify(jwtBlacklistService).addToBlacklist(eq(access), any(Long.class));
         }
 
         @Test
         void onlyAccessTokenPresent_blacklistsButSkipsRefreshLookup() {
-            String accessToken = issueAccessToken();
+            String access = accessToken();
 
-            authService.logout(accessToken, null);
+            authService.logout(access, null);
 
-            verify(refreshTokenService, never()).findByTokenHash(any());
-            verify(refreshTokenService, never()).revokeSession(anyLong(), anyLong());
-            verify(jwtBlacklistService).addToBlacklist(eq(accessToken), anyLong());
+            verify(jwtBlacklistService).addToBlacklist(eq(access), any(Long.class));
+            verifyNoInteractions(refreshTokenService);
         }
 
         @Test
         void onlyRefreshTokenPresent_revokesButSkipsBlacklist() {
-            String rawRefreshToken = "raw-refresh-token";
-            String hashedToken = opaqueTokenService.hash(rawRefreshToken);
-            when(refreshTokenService.findByTokenHash(hashedToken)).thenReturn(Optional.of(refreshTokenDto(99L)));
+            RefreshTokenDto token = refreshToken("raw", Instant.now().plus(1, ChronoUnit.DAYS), null, null);
+            when(refreshTokenService.findByTokenHash(opaqueTokenService.hash("raw"))).thenReturn(Optional.of(token));
 
-            authService.logout(null, rawRefreshToken);
+            authService.logout(null, "raw");
 
-            verify(refreshTokenService).revokeSession(1L, 99L);
+            verify(refreshTokenService).revokeFamily(token.familyId(), RevokeReason.LOGOUT);
             verifyNoInteractions(jwtBlacklistService);
         }
 
@@ -518,8 +455,7 @@ class AuthServiceTest {
         void bothTokensNull_isNoOp() {
             authService.logout(null, null);
 
-            verifyNoInteractions(refreshTokenService);
-            verifyNoInteractions(jwtBlacklistService);
+            verifyNoInteractions(refreshTokenService, jwtBlacklistService);
         }
     }
 }

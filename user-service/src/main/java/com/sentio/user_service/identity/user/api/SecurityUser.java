@@ -1,13 +1,13 @@
 package com.sentio.user_service.identity.user.api;
 
 import com.lisovskyi.security.autoconfigure.security.SecurityPrincipal;
-import java.util.Collection;
-
-import com.sentio.user_service.identity.user.api.enums.PlatformRole;
 import com.sentio.user_service.identity.user.api.dto.UserDto;
-import lombok.NonNull;
+import com.sentio.user_service.identity.user.api.enums.PlatformRole;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
+
+import java.util.Collection;
 
 public record SecurityUser(
         long id,

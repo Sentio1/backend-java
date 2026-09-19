@@ -40,3 +40,5 @@ redis_data/
 
 # claude local data
 .claude
+
+ideas.txt

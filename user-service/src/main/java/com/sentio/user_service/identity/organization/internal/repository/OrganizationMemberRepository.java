@@ -1,23 +1,25 @@
 package com.sentio.user_service.identity.organization.internal.repository;
 
-import com.sentio.user_service.identity.organization.internal.entity.OrganizationMember;
 import com.sentio.user_service.identity.organization.api.enums.OrgRole;
-import java.util.List;
-import java.util.Optional;
+import com.sentio.user_service.identity.organization.internal.entity.OrganizationMember;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+import java.util.Optional;
+
 @Repository
 public interface OrganizationMemberRepository extends JpaRepository<OrganizationMember, Long> {
 
-    // AndUserDeletedAtIsNull is explicit on purpose, not relying on User's own
-    // @SQLRestriction propagating through this EntityGraph join - that's exactly
-    // the kind of thing that silently breaks across Hibernate versions.
-    @EntityGraph(attributePaths = {"user", "organization"})
-    Page<OrganizationMember> findAllByOrganizationIdAndUserDeletedAtIsNull(long orgId, Pageable pageable);
+    // OrganizationMember only holds a userId now (no User relation - the user module
+    // owns identity), so a deleted-user filter can't be a join here. It isn't needed:
+    // UserServiceImpl.deleteUser removes all of a user's memberships along with the
+    // soft delete, so a membership of a deleted user doesn't exist.
+    @EntityGraph(attributePaths = {"organization"})
+    Page<OrganizationMember> findAllByOrganizationId(long orgId, Pageable pageable);
 
     List<OrganizationMember> findAllByUserId(long userId);
 

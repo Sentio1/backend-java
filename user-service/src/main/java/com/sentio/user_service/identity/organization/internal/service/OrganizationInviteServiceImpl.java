@@ -4,14 +4,14 @@ import com.lisovskyi.security.autoconfigure.security.jwt.OpaqueTokenService;
 import com.lisovskyi.web.error.autoconfigure.standard.*;
 import com.sentio.shared.dto.PageResponse;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationInviteAcceptResponse;
+import com.sentio.user_service.identity.organization.api.dto.OrganizationInviteResponse;
+import com.sentio.user_service.identity.organization.api.enums.OrgRole;
 import com.sentio.user_service.identity.organization.api.service.OrganizationInviteService;
 import com.sentio.user_service.identity.organization.internal.controller.dto.organization_invite.OrganizationInviteCreatedResponse;
 import com.sentio.user_service.identity.organization.internal.controller.dto.organization_invite.OrganizationInviteRequest;
-import com.sentio.user_service.identity.organization.api.dto.OrganizationInviteResponse;
 import com.sentio.user_service.identity.organization.internal.entity.Organization;
 import com.sentio.user_service.identity.organization.internal.entity.OrganizationInvite;
 import com.sentio.user_service.identity.organization.internal.entity.OrganizationMember;
-import com.sentio.user_service.identity.organization.api.enums.OrgRole;
 import com.sentio.user_service.identity.organization.internal.exception.OrganizationNotFoundException;
 import com.sentio.user_service.identity.organization.internal.mapper.OrganizationInviteMapper;
 import com.sentio.user_service.identity.organization.internal.repository.OrganizationInviteRepository;
@@ -19,14 +19,15 @@ import com.sentio.user_service.identity.organization.internal.repository.Organiz
 import com.sentio.user_service.identity.organization.internal.repository.OrganizationRepository;
 import com.sentio.user_service.identity.user.api.dto.UserDto;
 import com.sentio.user_service.identity.user.api.service.UserService;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 
 @Service
 @Slf4j

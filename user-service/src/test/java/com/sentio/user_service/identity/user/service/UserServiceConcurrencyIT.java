@@ -126,7 +126,7 @@ class UserServiceConcurrencyIT {
             SecurityContextHolder.setContext(context);
             bothReady.countDown();
             go.await();
-            userService.deleteUser(owner1.getId(), null);
+            userService.deleteUser(owner1.getId());
             return null;
         };
 

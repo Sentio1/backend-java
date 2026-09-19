@@ -3,23 +3,28 @@ package com.sentio.user_service.identity.auth.oauth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
-import com.sentio.user_service.identity.auth.service.AuthGuards;
 import com.sentio.user_service.identity.auth.oauth.dto.GoogleIdentity;
-import com.sentio.user_service.identity.user.internal.entity.User;
-import com.sentio.user_service.identity.user.internal.entity.UserIdentity;
+import com.sentio.user_service.identity.auth.oauth.exception.AccountLinkingConflictException;
+import com.sentio.user_service.identity.auth.service.AuthGuards;
+import com.sentio.user_service.identity.user.api.dto.NewExternalUser;
+import com.sentio.user_service.identity.user.api.dto.UserDto;
 import com.sentio.user_service.identity.user.api.enums.AuthProvider;
-import com.sentio.user_service.identity.user.internal.repository.UserIdentityRepository;
-import com.sentio.user_service.identity.user.internal.repository.UserRepository;
+import com.sentio.user_service.identity.user.api.enums.PlatformRole;
+import com.sentio.user_service.identity.user.api.service.UserAccountService;
+import com.sentio.user_service.refresh_token.api.service.RefreshTokenService;
+import java.time.Instant;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -27,143 +32,122 @@ import org.springframework.dao.DataIntegrityViolationException;
 @ExtendWith(MockitoExtension.class)
 class GoogleAccountResolverTest {
 
-    @Mock
-    private UserRepository userRepository;
+    private static final String SUB = "google-sub-1";
+    private static final String EMAIL = "user@sentio.dev";
 
     @Mock
-    private UserIdentityRepository userIdentityRepository;
-
+    private UserAccountService userAccountService;
 
     @Mock
-    private AuthGuards authGuards;
+    private RefreshTokenService refreshTokenService;
 
-    // The actual insert + flush now lives in GoogleNewUserCreator's own
-    // REQUIRES_NEW transaction (see its javadoc) - this test only needs to verify
-    // GoogleAccountResolver delegates to it and handles the two outcomes.
-    @Mock
-    private GoogleNewUserCreator newUserCreator;
-
-    @InjectMocks
+    // Real guards - they're pure checks on the DTO, nothing worth mocking.
     private GoogleAccountResolver googleAccountResolver;
 
+    @BeforeEach
+    void setUp() {
+        googleAccountResolver = new GoogleAccountResolver(new AuthGuards(), userAccountService, refreshTokenService);
+    }
+
     private GoogleIdentity identity(boolean emailVerified) {
-        return new GoogleIdentity("google-sub-1", "user@sentio.dev", "Jane", "Doe", emailVerified);
+        return new GoogleIdentity(SUB, EMAIL, "Jane", "Doe", emailVerified);
+    }
+
+    private static UserDto user(long id, boolean emailVerified, boolean deleted) {
+        return new UserDto(id, EMAIL, null, PlatformRole.USER, emailVerified ? Instant.now() : null, deleted);
     }
 
     @Test
-    void knownGoogleIdentity_returnsItsUserWithoutTouchingUserRepository() {
-        User user = User.builder().email("user@sentio.dev").build();
-        user.setId(1L);
-        UserIdentity existing = UserIdentity.builder()
-                .user(user)
-                .provider(AuthProvider.GOOGLE)
-                .providerUserId("google-sub-1")
-                .build();
-        when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
-                .thenReturn(Optional.of(existing));
+    void knownGoogleIdentity_returnsItsUserWithoutLookingUpByEmail() {
+        UserDto existing = user(1L, true, false);
+        when(userAccountService.findByExternalIdentity(AuthProvider.GOOGLE, SUB)).thenReturn(Optional.of(existing));
 
-        User resolved = googleAccountResolver.resolveOrCreate(identity(true));
+        assertThat(googleAccountResolver.resolveOrCreate(identity(true))).isEqualTo(existing);
 
-        assertThat(resolved).isEqualTo(user);
-        verify(userRepository, never()).findByEmail(any());
-        verify(userIdentityRepository, never()).save(any());
+        verify(userAccountService, never()).findActiveByEmail(any());
+        verify(userAccountService, never()).linkExternalIdentity(anyLong(), any(), anyString());
     }
 
     @Test
-    void verifiedEmailMatchingLocalAccount_linksGoogleIdentityToIt() {
-        User existingLocalUser =
-                User.builder().email("user@sentio.dev").password("bcrypt-hash").build();
-        existingLocalUser.setId(1L);
-        when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
-                .thenReturn(Optional.empty());
-        when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.of(existingLocalUser));
+    void knownGoogleIdentityOfDeletedUser_isRejected() {
+        when(userAccountService.findByExternalIdentity(AuthProvider.GOOGLE, SUB))
+                .thenReturn(Optional.of(user(1L, true, true)));
 
-        User resolved = googleAccountResolver.resolveOrCreate(identity(true));
-
-        assertThat(resolved).isEqualTo(existingLocalUser);
-        ArgumentCaptor<UserIdentity> captor = ArgumentCaptor.forClass(UserIdentity.class);
-        verify(userIdentityRepository).save(captor.capture());
-        assertThat(captor.getValue().getUser()).isEqualTo(existingLocalUser);
-        assertThat(captor.getValue().getProvider()).isEqualTo(AuthProvider.GOOGLE);
-        assertThat(captor.getValue().getProviderUserId()).isEqualTo("google-sub-1");
-        verify(userRepository, never()).save(any());
+        assertThatThrownBy(() -> googleAccountResolver.resolveOrCreate(identity(true)))
+                .isInstanceOf(UnauthorizedException.class);
     }
 
-    // The check is hoisted above both the "link to existing account" and "create new
-    // account" branches, so an unverified Google email is rejected before we ever look
-    // up (or create) a User by email - whether or not user@sentio.dev already exists is
-    // irrelevant, which is exactly the point: without this, an attacker with an
-    // unverified Google identity for someone else's email could register/claim that
-    // email first via the new-user path, since only the "existing account" branch used
-    // to check verification.
     @Test
-    void unverifiedEmail_isRejectedBeforeAnyAccountLookupOrCreation() {
-        when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
-                .thenReturn(Optional.empty());
+    void verifiedLocalAccountWithSameEmail_linksGoogleIdentityAndRevokesItsSessions() {
+        UserDto local = user(1L, true, false);
+        when(userAccountService.findByExternalIdentity(AuthProvider.GOOGLE, SUB)).thenReturn(Optional.empty());
+        when(userAccountService.findActiveByEmail(EMAIL)).thenReturn(Optional.of(local));
 
+        assertThat(googleAccountResolver.resolveOrCreate(identity(true))).isEqualTo(local);
+
+        verify(userAccountService).linkExternalIdentity(1L, AuthProvider.GOOGLE, SUB);
+        verify(refreshTokenService).revokeAllActiveForUser(1L);
+    }
+
+    // Pre-account-takeover: an attacker could have registered this email locally
+    // (no verification yet) - linking the real owner's Google to it would let the
+    // attacker, who knows the local password, into the victim's account.
+    @Test
+    void unverifiedLocalAccountWithSameEmail_isNotLinked() {
+        when(userAccountService.findByExternalIdentity(AuthProvider.GOOGLE, SUB)).thenReturn(Optional.empty());
+        when(userAccountService.findActiveByEmail(EMAIL)).thenReturn(Optional.of(user(1L, false, false)));
+
+        assertThatThrownBy(() -> googleAccountResolver.resolveOrCreate(identity(true)))
+                .isInstanceOf(AccountLinkingConflictException.class);
+
+        verify(userAccountService, never()).linkExternalIdentity(anyLong(), any(), anyString());
+        verify(refreshTokenService, never()).revokeAllActiveForUser(anyLong());
+    }
+
+    @Test
+    void unverifiedGoogleEmail_isRejectedBeforeAnyLookup() {
         assertThatThrownBy(() -> googleAccountResolver.resolveOrCreate(identity(false)))
                 .isInstanceOf(UnauthorizedException.class);
 
-        verify(userRepository, never()).findByEmail(any());
-        verify(userRepository, never()).save(any());
-        verify(userIdentityRepository, never()).save(any());
+        verifyNoInteractions(userAccountService, refreshTokenService);
     }
 
     @Test
-    void noMatchAtAll_delegatesToNewUserCreator() {
-        User created = User.builder()
-                .email("user@sentio.dev")
-                .firstName("Jane")
-                .lastName("Doe")
-                .build();
-        created.setId(5L);
+    void noMatchAtAll_createsUserFromGoogleIdentity() {
+        UserDto created = user(5L, true, false);
+        when(userAccountService.findByExternalIdentity(AuthProvider.GOOGLE, SUB)).thenReturn(Optional.empty());
+        when(userAccountService.findActiveByEmail(EMAIL)).thenReturn(Optional.empty());
+        when(userAccountService.createFromExternalIdentity(
+                new NewExternalUser(AuthProvider.GOOGLE, SUB, EMAIL, "Jane", "Doe")))
+                .thenReturn(created);
 
-        when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
-                .thenReturn(Optional.empty());
-        when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.empty());
-        when(newUserCreator.createAndLink(identity(true))).thenReturn(created);
-
-        User resolved = googleAccountResolver.resolveOrCreate(identity(true));
-
-        assertThat(resolved).isEqualTo(created);
+        assertThat(googleAccountResolver.resolveOrCreate(identity(true))).isEqualTo(created);
     }
 
-    // GoogleNewUserCreator runs the insert in its own REQUIRES_NEW transaction
-    // specifically so this fallback is reachable at all - see its javadoc for why a
-    // plain try/catch around a save() in the caller's own transaction wouldn't work
-    // on Postgres (the whole transaction aborts, poisoning the lookup below too).
+    // createFromExternalIdentity runs in its own REQUIRES_NEW transaction specifically
+    // so this fallback is reachable - on Postgres a failed statement aborts the whole
+    // transaction, which would otherwise poison the lookup below too.
     @Test
     void conflictOnCreate_fallsBackToTheWinnerResolvedByGoogleIdentity() {
-        User winner = User.builder().email("user@sentio.dev").build();
-        winner.setId(7L);
-        UserIdentity winnerIdentity = UserIdentity.builder()
-                .user(winner)
-                .provider(AuthProvider.GOOGLE)
-                .providerUserId("google-sub-1")
-                .build();
+        UserDto winner = user(7L, true, false);
+        when(userAccountService.findByExternalIdentity(AuthProvider.GOOGLE, SUB))
+                .thenReturn(Optional.empty(), Optional.of(winner));
+        when(userAccountService.findActiveByEmail(EMAIL)).thenReturn(Optional.empty());
+        when(userAccountService.createFromExternalIdentity(any()))
+                .thenThrow(new DataIntegrityViolationException("conflict"));
 
-        when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
-                .thenReturn(Optional.empty(), Optional.of(winnerIdentity));
-        when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.empty());
-        when(newUserCreator.createAndLink(identity(true))).thenThrow(new DataIntegrityViolationException("conflict"));
-
-        User resolved = googleAccountResolver.resolveOrCreate(identity(true));
-
-        assertThat(resolved).isEqualTo(winner);
+        assertThat(googleAccountResolver.resolveOrCreate(identity(true))).isEqualTo(winner);
     }
 
     @Test
-    void conflictOnCreate_fallsBackToTheWinnerResolvedByEmail_whenIdentityLinkAlsoLostTheRace() {
-        User winner = User.builder().email("user@sentio.dev").build();
-        winner.setId(7L);
+    void conflictOnCreate_fallsBackToVerifiedAccountWithSameEmail_andLinksIt() {
+        UserDto winner = user(7L, true, false);
+        when(userAccountService.findByExternalIdentity(AuthProvider.GOOGLE, SUB)).thenReturn(Optional.empty());
+        when(userAccountService.findActiveByEmail(EMAIL)).thenReturn(Optional.empty(), Optional.of(winner));
+        when(userAccountService.createFromExternalIdentity(any()))
+                .thenThrow(new DataIntegrityViolationException("conflict"));
 
-        when(userIdentityRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-1"))
-                .thenReturn(Optional.empty());
-        when(userRepository.findByEmail("user@sentio.dev")).thenReturn(Optional.empty(), Optional.of(winner));
-        when(newUserCreator.createAndLink(identity(true))).thenThrow(new DataIntegrityViolationException("conflict"));
-
-        User resolved = googleAccountResolver.resolveOrCreate(identity(true));
-
-        assertThat(resolved).isEqualTo(winner);
+        assertThat(googleAccountResolver.resolveOrCreate(identity(true))).isEqualTo(winner);
+        verify(userAccountService).linkExternalIdentity(7L, AuthProvider.GOOGLE, SUB);
     }
 }

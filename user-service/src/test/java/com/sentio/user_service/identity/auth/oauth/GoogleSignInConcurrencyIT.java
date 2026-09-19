@@ -60,7 +60,7 @@ class GoogleSignInConcurrencyIT {
             go.await();
             TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
             return transactionTemplate.execute(
-                    status -> googleAccountResolver.resolveOrCreate(identity).getId());
+                    status -> googleAccountResolver.resolveOrCreate(identity).id());
         };
 
         ExecutorService executor = Executors.newFixedThreadPool(2);

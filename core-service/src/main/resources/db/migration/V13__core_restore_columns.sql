@@ -4,7 +4,7 @@
 -- core.clients вже має ці колонки (V2). Той самий шаблон
 -- "soft-delete + restore" поширюємо на решту таблиць схеми, що мають
 -- deleted_at, — щоб вони могли успадковувати спільні
--- com.lisovskyi.core_service.entity.CoreEntity / CoreEntityCreatedOnly.
+-- com.sentio.core_service.common.entity.CoreEntity / CoreEntityCreatedOnly.
 -- Довідникові таблиці без deleted_at (courts, deadline_rules, holidays)
 -- свідомо не чіпаються.
 

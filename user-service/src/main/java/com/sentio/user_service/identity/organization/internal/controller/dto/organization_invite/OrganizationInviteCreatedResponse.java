@@ -1,7 +1,7 @@
 package com.sentio.user_service.identity.organization.internal.controller.dto.organization_invite;
 
-import com.sentio.user_service.identity.organization.api.enums.OrgRole;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationInviteResponse;
+import com.sentio.user_service.identity.organization.api.enums.OrgRole;
 
 import java.time.Instant;
 

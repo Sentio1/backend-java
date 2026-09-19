@@ -12,4 +12,8 @@ public record ServiceTokenResult(
 
         @JsonProperty("expires_in")
         long expiresIn
-) {}
+) {
+    public ServiceTokenResult(String accessToken, long expiresIn) {
+        this(accessToken, "Bearer", expiresIn);
+    }
+}

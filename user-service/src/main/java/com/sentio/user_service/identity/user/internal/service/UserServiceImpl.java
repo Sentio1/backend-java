@@ -1,7 +1,5 @@
 package com.sentio.user_service.identity.user.internal.service;
 
-import com.lisovskyi.security.autoconfigure.security.jwt.JwtBlacklistService;
-import com.lisovskyi.security.autoconfigure.security.jwt.JwtService;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationDto;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationInviteResponse;
@@ -11,66 +9,48 @@ import com.sentio.user_service.identity.organization.api.enums.OrgRole;
 import com.sentio.user_service.identity.organization.api.service.OrganizationInviteService;
 import com.sentio.user_service.identity.organization.api.service.OrganizationMemberService;
 import com.sentio.user_service.identity.organization.api.service.OrganizationService;
-import com.sentio.user_service.identity.user.api.dto.UserDto;
-import com.sentio.user_service.identity.user.api.service.UserService;
 import com.sentio.user_service.identity.user.api.dto.UserContextResponse;
+import com.sentio.user_service.identity.user.api.service.UserDeletionService;
+import com.sentio.user_service.identity.user.api.service.UserService;
 import com.sentio.user_service.identity.user.internal.controller.dto.request.UserUpdateRequest;
 import com.sentio.user_service.identity.user.internal.entity.User;
 import com.sentio.user_service.identity.user.internal.exception.UserNotFoundException;
 import com.sentio.user_service.identity.user.internal.mapper.UserMapper;
 import com.sentio.user_service.identity.user.internal.repository.UserRepository;
 import com.sentio.user_service.refresh_token.api.service.RefreshTokenService;
-
-import java.time.Instant;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.List;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class UserServiceImpl implements UserService {
+/**
+ * The current user's own endpoints (/users/me...) - composes the user and organization modules.
+ * Deliberately NOT the {@link UserService} implementation: organization depends on UserService, and
+ * this class depends on organization, so implementing it here closed a bean cycle (user ->
+ * organization -> user). The organization-free UserService lives in UserAccountServiceImpl.
+ */
+public class UserServiceImpl implements UserDeletionService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final UserService userService;
 
     private final OrganizationService organizationService;
     private final OrganizationMemberService organizationMemberService;
     private final OrganizationInviteService organizationInviteService;
     private final RefreshTokenService refreshTokenService;
 
-    private final JwtBlacklistService jwtBlacklistService;
-    private final JwtService jwtService;
-
-    @Override
-    @Transactional(readOnly = true)
-    public UserDto findUserById(long userId) {
-        log.debug("Fetching user dto for userId: {}", userId);
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("id", userId));
-
-        OrganizationMemberDto membership = organizationMemberService.findDefaultMembership(userId)
-                .orElse(null);
-
-        return userMapper.toDto(user, membership);
-    }
 
     @Transactional(readOnly = true)
     public UserContextResponse findUserByIdContext(long userId) {
-        return buildUserContext(userId, organizationMemberService.findDefaultMembership(userId).orElse(null));
+        return userService.buildUserContext(userId, organizationMemberService.findDefaultMembership(userId).orElse(null));
     }
-
-    @Override
-    public UserContextResponse buildUserContext(long userId, OrganizationMemberDto membership) {
-        log.debug("Fetching user context for userId: {}", userId);
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("id", userId));
-
-        return userMapper.toUserContextResponse(user, membership);
-    }
-
 
     @Transactional(readOnly = true)
     public List<OrganizationMemberResponse> getOrganizations(long userId) {
@@ -123,7 +103,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    public void deleteUser(long userId, String accessToken) {
+    @Override
+    public void deleteUser(long userId) {
         log.debug("Attempting to delete userId: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("id", userId));
@@ -153,15 +134,6 @@ public class UserServiceImpl implements UserService {
 
         user.setDeletedAt(Instant.now());
         userRepository.save(user);
-
-        if (accessToken != null) {
-            try {
-                jwtBlacklistService.addToBlacklist(
-                        accessToken, jwtService.extractExpiration(accessToken).toEpochMilli());
-            } catch (Exception e) {
-                log.debug("Could not blacklist access token on logout, skipping", e);
-            }
-        }
 
         organizationMemberService.deleteAllByUserId(userId);
 

@@ -124,7 +124,7 @@ class OrganizationServiceTest {
 
         @Test
         void nonOwner_deletesWithoutCheckingOwnerCount() {
-            when(organizationRepository.existsById(1L)).thenReturn(true);
+            when(organizationRepository.findByIdLocked(1L)).thenReturn(Optional.of(Organization.builder().build()));
             OrganizationMember lawyer = member(1L, 2L, OrgRole.LAWYER);
             when(organizationMemberRepository.findByUserIdAndOrganizationId(2L, 1L))
                     .thenReturn(Optional.of(lawyer));
@@ -139,7 +139,7 @@ class OrganizationServiceTest {
 
         @Test
         void ownerWithCoOwners_deletesSuccessfully() {
-            when(organizationRepository.existsById(1L)).thenReturn(true);
+            when(organizationRepository.findByIdLocked(1L)).thenReturn(Optional.of(Organization.builder().build()));
             OrganizationMember owner = member(1L, 2L, OrgRole.OWNER);
             when(organizationMemberRepository.findByUserIdAndOrganizationId(2L, 1L))
                     .thenReturn(Optional.of(owner));
@@ -153,7 +153,7 @@ class OrganizationServiceTest {
 
         @Test
         void lastOwner_throwsIllegalArgumentExceptionAndNeverDeletes() {
-            when(organizationRepository.existsById(1L)).thenReturn(true);
+            when(organizationRepository.findByIdLocked(1L)).thenReturn(Optional.of(Organization.builder().build()));
             OrganizationMember lastOwner = member(1L, 2L, OrgRole.OWNER);
             when(organizationMemberRepository.findByUserIdAndOrganizationId(2L, 1L))
                     .thenReturn(Optional.of(lastOwner));
@@ -169,7 +169,7 @@ class OrganizationServiceTest {
 
         @Test
         void notAMember_throwsResourceNotFoundExceptionAndNeverDeletes() {
-            when(organizationRepository.existsById(1L)).thenReturn(true);
+            when(organizationRepository.findByIdLocked(1L)).thenReturn(Optional.of(Organization.builder().build()));
             when(organizationMemberRepository.findByUserIdAndOrganizationId(2L, 1L))
                     .thenReturn(Optional.empty());
 
@@ -181,7 +181,7 @@ class OrganizationServiceTest {
 
         @Test
         void unknownOrg_throwsResourceNotFoundExceptionAndNeverChecksMembership() {
-            when(organizationRepository.existsById(1L)).thenReturn(false);
+            when(organizationRepository.findByIdLocked(1L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> organizationService.deleteOrganizationMember(1L, 2L))
                     .isInstanceOf(ResourceNotFoundException.class);
@@ -198,7 +198,7 @@ class OrganizationServiceTest {
 
         @Test
         void existingMember_updatesRoleAndReturnsMappedResponse() {
-            when(organizationRepository.existsById(1L)).thenReturn(true);
+            when(organizationRepository.findByIdLocked(1L)).thenReturn(Optional.of(Organization.builder().build()));
             OrganizationMember member = member(1L, 2L, OrgRole.LAWYER);
             when(organizationMemberRepository.findByUserIdAndOrganizationId(2L, 1L))
                     .thenReturn(Optional.of(member));
@@ -217,7 +217,7 @@ class OrganizationServiceTest {
 
         @Test
         void notAMember_throwsResourceNotFoundException() {
-            when(organizationRepository.existsById(1L)).thenReturn(true);
+            when(organizationRepository.findByIdLocked(1L)).thenReturn(Optional.of(Organization.builder().build()));
             when(organizationMemberRepository.findByUserIdAndOrganizationId(2L, 1L))
                     .thenReturn(Optional.empty());
 
@@ -229,7 +229,7 @@ class OrganizationServiceTest {
 
         @Test
         void unknownOrg_throwsResourceNotFoundExceptionAndNeverChecksMembership() {
-            when(organizationRepository.existsById(1L)).thenReturn(false);
+            when(organizationRepository.findByIdLocked(1L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> organizationService.patchRoleForMember(1L, 2L, OrgRole.ASSISTANT))
                     .isInstanceOf(ResourceNotFoundException.class);
@@ -248,7 +248,7 @@ class OrganizationServiceTest {
         void delegatesToRepositoryAndMapsEachMember() {
             OrganizationMember member = member(1L, 2L, OrgRole.LAWYER);
             Pageable pageable = PageRequest.of(0, 20);
-            when(organizationMemberRepository.findAllByOrganizationIdAndUserDeletedAtIsNull(1L, pageable))
+            when(organizationMemberRepository.findAllByOrganizationId(1L, pageable))
                     .thenReturn(new PageImpl<>(List.of(member), pageable, 1));
             UserContextResponse userContext =
                     UserContextResponse.builder().orgName("Acme Legal").orgRole("LAWYER").build();

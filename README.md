@@ -47,8 +47,35 @@ GET /api/v1/.well-known/jwks.json
 POST /api/v1/auth/service-token
 ```
 
-Client-credentials-подібний флоу: тіло запиту — `{ "clientId": "<email службового юзера>", "secret": "<SERVICE_SECRET>" }`. У відповідь — access-токен (той самий формат, що й звичайний, `roles: ["SERVICE"]`, без `org_id` — службовий юзер не належить жодній організації) і `expiresIn`.
+Client-credentials-подібний флоу: тіло запиту — `{ "clientId": "<email службового юзера>", "secret": "<SERVICE_SECRET>" }`. У відповідь — access-токен (той самий формат, що й звичайний, `roles: ["SERVICE"]`, без `org_id` — службовий юзер не належить жодній організації). Формат відповіді — як у RFC 6749 §5.1:
+
+```json
+{ "access_token": "<jwt>", "token_type": "Bearer", "expires_in": 900 }
+```
+
+`expires_in` — у **секундах**. Токен надсилається як `Authorization: Bearer <jwt>`; refresh-токена для сервісних акаунтів немає — після спливу просто беремо новий. Сервісний акаунт не може залогінитись через `/auth/login`, `/auth/refresh` чи Google.
+
+Секрет виставляється автоматично на старті `user-service` (`ServiceSecretReader`): якщо задано `SERVICE_SECRET`, його bcrypt-хеш записується в `auth.users` (лише коли секрет змінився).
 
 Кожен зовнішній caller (Go-воркер, майбутній `document-service`) має власний службовий `User` з `platform_role = SERVICE` і без жодного `organization_member` — наприклад, `registry-monitor@service.internal` для Registry Monitor (засіяний у `V9__seed_registry_monitor_service_user.sql`). `password_hash` цього юзера навмисно **не** встановлюється міграцією (щоб секрет не потрапив у git-історію навіть хешованим) — його виставляють окремим операційним кроком у кожному оточенні, читаючи `SERVICE_SECRET` з Doppler/env. Поки секрет не виставлено, `password_hash IS NULL` і `POST /auth/service-token` для цього юзера гарантовано відмовляє (а не пускає з будь-яким паролем) — див. коментар у самій міграції.
 
 Рейт-ліміти на цей ендпоінт налаштовані окремо (`RateLimitingService.checkServiceTokenLimits`, по `id` і по IP), як і для `/login`.
+
+### Відкликання access token (blacklist)
+
+Access token живе 15 хв і сам по собі не відкликається — тому при logout / видаленні акаунта `user-service` кладе його в **спільний Redis** blacklist. Go-сервіси, які валідують JWT, мають перевіряти його так само, інакше вихід із системи не діє на них до `exp`:
+
+- ключ: `jwt:blacklist:<sha256(jwt) у hex, lowercase>` — хеш від усього рядка токена (`header.payload.signature`, UTF-8);
+- перевірка: `EXISTS <ключ>` → є ключ = токен відкликано → 401;
+- TTL ключа = час до `exp` токена, прибирати нічого не треба.
+
+`user-service` відмовляється стартувати без Redis-blacklist (`JwtBlacklistBackendCheck`) — in-memory fallback стартера зробив би logout невидимим для інших сервісів.
+
+### Сесії (refresh token)
+
+Refresh token — opaque-рядок у httpOnly cookie (`Path=/api/v1/auth`), у БД лише його SHA-256.
+
+- Кожен `/auth/refresh` ротує токен: старий відкликається, новий живе ще **7 днів** (sliding window).
+- Абсолютна межа сесії — **30 днів** від логіну (`app.session.absolute-lifetime`), ротація її не продовжує.
+- Повторне пред'явлення вже ротованого токена пізніше ніж через 10 с після ротації вважається крадіжкою — відкликається вся сесія (родина токенів). У межах 10 с (дві вкладки рефрешнулись одночасно) — просто 401 без покарання; фронтенду варто один раз повторити запит після 401 з `/auth/refresh`.
+- Logout відкликає всю сесію, а не лише поточний токен.

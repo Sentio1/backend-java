@@ -2,7 +2,7 @@
 	up-observability down-observability logs-observability status-observability \
 	run-user run-core test build build-test build-prod
 
-DOPPLER_EXEC := doppler run --project backend --
+DOPPLER_EXEC := doppler run --project backend-java --
 
 # user-service + core-service compose файли разом (окремі postgres/redis на кожен,
 # спільна core-kafka) - див. коментарі в самих файлах щодо унікальних service keys/портів.

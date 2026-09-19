@@ -1,21 +1,15 @@
 package com.sentio.user_service.identity.organization.internal.controller;
 
 import com.sentio.shared.dto.PageResponse;
-import com.sentio.user_service.identity.organization.internal.OrganizationSecurity;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberResponse;
 import com.sentio.user_service.identity.organization.api.enums.OrgRole;
+import com.sentio.user_service.identity.organization.internal.OrganizationSecurity;
 import com.sentio.user_service.identity.organization.internal.service.OrganizationServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * Membership within an organization: listing members, changing roles, removing members. Every

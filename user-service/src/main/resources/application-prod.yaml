@@ -39,7 +39,6 @@ app:
     success-redirect-uri: ${OAUTH_SUCCESS_REDIRECT_URI}
     failure-redirect-uri: ${OAUTH_FAILURE_REDIRECT_URI}
 
-
 logging:
   level:
     root: WARN

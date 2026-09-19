@@ -40,6 +40,7 @@ dependencies {
     api(libs.jackson.databind.nullable)
     api(libs.aspectjweaver)
     api(libs.vavr)
+    api(libs.guava)
 
     compileOnly(libs.spring.webmvc)
 

@@ -1,19 +1,19 @@
 package com.sentio.user_service.identity.user.internal.entity;
 
-import static com.sentio.user_service.identity.user.internal.UserConstants.*;
-
 import com.lisovskyi.jpa.autoconfigure.entity.TimestampedEntity;
 import com.sentio.user_service.identity.user.api.enums.PlatformRole;
 import jakarta.persistence.*;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.sentio.user_service.identity.user.internal.UserConstants.*;
 
 @Entity
 @Table(name = "users")

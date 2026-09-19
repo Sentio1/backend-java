@@ -4,20 +4,21 @@ import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsExcep
 import com.sentio.shared.dto.PageResponse;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberResponse;
 import com.sentio.user_service.identity.organization.api.service.OrganizationMemberService;
+import com.sentio.user_service.identity.user.api.enums.PlatformRole;
 import com.sentio.user_service.identity.user.internal.controller.dto.response.UserAdminDetailResponse;
 import com.sentio.user_service.identity.user.internal.controller.dto.response.UserAdminSummaryResponse;
 import com.sentio.user_service.identity.user.internal.entity.User;
-import com.sentio.user_service.identity.user.api.enums.PlatformRole;
 import com.sentio.user_service.identity.user.internal.exception.UserNotFoundException;
 import com.sentio.user_service.identity.user.internal.mapper.UserMapper;
 import com.sentio.user_service.identity.user.internal.repository.UserRepository;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @Slf4j

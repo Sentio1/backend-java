@@ -1,19 +1,16 @@
 package com.sentio.user_service.identity.auth.oauth.handlers;
 
-import static com.sentio.user_service.identity.auth.oauth.GoogleOAuth2Constants.ERROR_OAUTH_FAILED;
-
-import com.lisovskyi.security.autoconfigure.cookie.CookieService;
-import com.sentio.user_service.identity.auth.service.AuthService;
-import com.sentio.user_service.identity.auth.dto.response.AuthResult;
-import com.sentio.user_service.identity.auth.dto.response.AuthTokens;
-import com.sentio.user_service.identity.auth.oauth.dto.GoogleIdentity;
 import com.sentio.shared.web.HttpRequestUtils;
+import com.sentio.user_service.identity.auth.cookie.AuthCookieService;
+import com.sentio.user_service.identity.auth.dto.response.AuthResult;
+import com.sentio.user_service.identity.auth.oauth.dto.GoogleIdentity;
+import com.sentio.user_service.identity.auth.service.AuthService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import java.io.IOException;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -21,12 +18,13 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
-import org.springframework.context.annotation.Lazy;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.io.IOException;
+
+import static com.sentio.user_service.identity.auth.oauth.GoogleOAuth2Constants.ERROR_OAUTH_FAILED;
 
 @Component
 @Slf4j
-/** GoogleOAuth2SuccessHandler class. */
+@RequiredArgsConstructor
 public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     @Value("${app.oauth.success-redirect-uri}")
@@ -36,13 +34,7 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     private String failureRedirectUri;
 
     private final AuthService authService;
-    private final CookieService cookieService;
-
-    @Autowired
-    public GoogleOAuth2SuccessHandler(@Lazy AuthService authService, CookieService cookieService) {
-        this.authService = authService;
-        this.cookieService = cookieService;
-    }
+    private final AuthCookieService authCookieService;
 
     @Override
     public void onAuthenticationSuccess(
@@ -79,10 +71,7 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         try {
             AuthResult authResult = authService.loginOrRegisterWithGoogle(
                     identity, HttpRequestUtils.getClientIP(request), request.getHeader("User-Agent"));
-            AuthTokens tokens = authResult.authTokens();
-
-            cookieService.setAccessTokenCookie(response, tokens.accessToken());
-            cookieService.setRefreshTokenCookie(response, tokens.refreshToken());
+            authCookieService.setCookies(response, authResult.authTokens());
 
             invalidateSession(request);
             response.sendRedirect(successRedirectUri);

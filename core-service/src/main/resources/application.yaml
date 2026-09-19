@@ -42,10 +42,10 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
         spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
-        spring.json.value.default.type: com.lisovskyi.core_service.registry_event.dto.RegistryDocumentFoundEvent
+        spring.json.value.default.type: com.sentio.core_service.registry.internal.dto.RegistryDocumentFoundEvent
         # Обов'язково - за замовчуванням десеріалізатор відмовляється десеріалізувати
         # в довільні класи. Тут довіряємо лише своєму DTO-пакету.
-        spring.json.trusted.packages: com.lisovskyi.core_service.registry_event.dto
+        spring.json.trusted.packages: com.sentio.core_service.registry.internal.dto
         # Повідомлення без заголовків типу (Go їх не проставляє) - тип береться
         # з spring.json.value.default.type вище, а не з заголовків.
         spring.json.use.type.headers: false

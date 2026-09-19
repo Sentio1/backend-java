@@ -1,7 +1,7 @@
 package com.sentio.user_service.identity.auth.controller;
 
-import com.lisovskyi.security.autoconfigure.cookie.CookieService;
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
+import com.sentio.shared.web.HttpRequestUtils;
 import com.sentio.shared.web.LocationUtility;
 import com.sentio.user_service.identity.auth.cookie.AuthCookieService;
 import com.sentio.user_service.identity.auth.dto.request.LoginRequest;
@@ -14,15 +14,17 @@ import com.sentio.user_service.identity.auth.rate_limiting.RateLimitingService;
 import com.sentio.user_service.identity.auth.service.AuthService;
 import com.sentio.user_service.identity.auth.service.ServiceToken;
 import com.sentio.user_service.identity.user.api.dto.UserContextResponse;
-import com.sentio.shared.web.HttpRequestUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+
+import static com.sentio.user_service.identity.auth.AuthConstants.INVALID_REFRESH_TOKEN_MSG;
 
 @RestController
 @RequestMapping("/auth")
@@ -30,7 +32,6 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
-    private final CookieService cookieService;
     private final RateLimitingService rateLimitingService;
     private final ServiceToken serviceToken;
 
@@ -39,7 +40,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<UserContextResponse> register(
             @RequestBody @Valid RegistrationRequest registrationRequest,
-            @RequestHeader(HttpHeaders.USER_AGENT) String userAgent,
+            @RequestHeader(value = HttpHeaders.USER_AGENT, defaultValue = "unknown") String userAgent,
             final HttpServletRequest request,
             final HttpServletResponse response
     ) {
@@ -60,7 +61,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<UserContextResponse> login(
             @RequestBody @Valid LoginRequest loginRequest,
-            @RequestHeader(HttpHeaders.USER_AGENT) String userAgent,
+            @RequestHeader(value = HttpHeaders.USER_AGENT, defaultValue = "unknown") String userAgent,
             final HttpServletRequest request,
             final HttpServletResponse response
     ) {
@@ -73,7 +74,7 @@ public class AuthController {
 
         authCookieService.setCookies(response, tokens);
 
-        return ResponseEntity.ok().body(userContext);
+        return ResponseEntity.ok(userContext);
     }
 
     @PostMapping("/service-token")
@@ -91,13 +92,15 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<Void> refresh(
-            @RequestHeader(HttpHeaders.USER_AGENT) String userAgent,
+            @RequestHeader(value = HttpHeaders.USER_AGENT, defaultValue = "unknown") String userAgent,
             final HttpServletRequest request,
             final HttpServletResponse response
     ) {
-        String refreshToken = cookieService
-                .getRefreshTokenCookie(request)
-                .orElseThrow(() -> new UnauthorizedException("Invalid refresh token"));
+        rateLimitingService.checkRefreshLimits(HttpRequestUtils.getClientIP(request));
+
+        String refreshToken = authCookieService
+                .readRefreshToken(request)
+                .orElseThrow(() -> new UnauthorizedException(INVALID_REFRESH_TOKEN_MSG));
 
         AuthTokens tokens = authService.refresh(
                 refreshToken, HttpRequestUtils.getClientIP(request), userAgent
@@ -112,10 +115,8 @@ public class AuthController {
             final HttpServletRequest request,
             final HttpServletResponse response
     ) {
-        String accessToken = cookieService.getAccessTokenCookie(request)
-                .orElse(null);
-        String refreshToken = cookieService.getRefreshTokenCookie(request)
-                .orElse(null);
+        String accessToken = authCookieService.readAccessToken(request).orElse(null);
+        String refreshToken = authCookieService.readRefreshToken(request).orElse(null);
 
         authService.logout(accessToken, refreshToken);
         authCookieService.clearCookies(response);

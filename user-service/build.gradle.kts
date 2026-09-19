@@ -1,53 +1,52 @@
 plugins {
-	java
-	id("org.springframework.boot") version "4.1.0"
-	id("io.spring.dependency-management") version "1.1.7"
+    java
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.spring.dependency.management)
 }
 
 description = "user-service"
 
-
 dependencies {
-	// custom starters
-	implementation("com.lisovskyi:lisovskyi-security-starter:0.2.0")
-	implementation("com.lisovskyi:lisovskyi-jpa-starter:0.2.0")
-	implementation("com.lisovskyi:lisovskyi-web-error-starter:0.1.1")
+    // Спільне ядро з усіма стартерами, метриками та Modulith API
+    implementation(project(":shared-core"))
 
-	implementation("org.springframework.boot:spring-boot-starter-actuator")
-	implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
-	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-	implementation("org.springframework.boot:spring-boot-starter-flyway")
-	implementation("org.springframework.boot:spring-boot-starter-jdbc")
-	implementation("org.springframework.boot:spring-boot-starter-validation")
-	implementation("org.springframework.boot:spring-boot-starter-webmvc")
-	implementation("org.flywaydb:flyway-database-postgresql")
-	implementation("org.mapstruct:mapstruct:1.6.3")
+    // Web & HTTP
+    implementation(libs.spring.boot.starter.web)
+    implementation(libs.spring.oauth2.client)
 
-	compileOnly("org.projectlombok:lombok")
+    // Redis: JWT blacklist (shared with Go services), rate limiting, and the
+    // OAuth2 handshake session (Spring Session) - all replica-safe.
+    implementation(libs.spring.data.redis)
+    implementation(libs.spring.session.data.redis)
 
-	developmentOnly("org.springframework.boot:spring-boot-devtools")
+    // Persistence & Migrations (специфіка user-service)
+    implementation(libs.spring.jdbc)
+    implementation(libs.spring.data.jdbc)
+    implementation(libs.spring.flyway)
+    implementation(libs.flyway.postgresql)
+    runtimeOnly(libs.postgresql)
 
-	runtimeOnly("org.postgresql:postgresql")
+    // Mapping & Utilities
+    implementation(libs.mapstruct.core)
+    compileOnly(libs.lombok)
+    developmentOnly(libs.spring.devtools)
 
-	annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
-	annotationProcessor("org.projectlombok:lombok")
-	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+    // Annotation processors are applied to every subproject via the root
+    // build.gradle.kts (annotation-processors / test-annotation-processors
+    // bundles) - no need to redeclare mapstruct/lombok processors here.
 
-	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-data-jdbc-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-flyway-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-jdbc-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-	testImplementation("org.springframework.boot:spring-boot-testcontainers")
-	testImplementation("org.testcontainers:testcontainers-junit-jupiter")
-	testImplementation("org.testcontainers:testcontainers-postgresql")
-	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-}
-
-tasks.register<Exec>("dopplerRun") {
-	group = "application"
-	description = "Run application with Doppler"
-	commandLine("doppler", "run", "--", "./gradlew", "bootRun")
+    // Testing
+    testImplementation(libs.spring.actuator.test)
+    testImplementation(libs.spring.data.jdbc.test)
+    testImplementation(libs.spring.data.jpa.test)
+    testImplementation(libs.spring.flyway.test)
+    testImplementation(libs.spring.jdbc.test)
+    testImplementation(libs.spring.validation.test)
+    testImplementation(libs.spring.webmvc.test)
+    testImplementation(libs.spring.boot.testcontainers)
+    testImplementation(libs.testcontainers.junit)
+    testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.testcontainers)
+    testImplementation(libs.spring.modulith.starter.test)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }

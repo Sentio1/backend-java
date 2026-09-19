@@ -3,3 +3,11 @@ build/
 .idea/
 *.log
 .DS_Store
+**/redis_data/
+.env*
+gradle.properties
+*.pem
+*.per
+*.key
+private.*
+*.der

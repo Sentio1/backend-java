@@ -1,0 +1,98 @@
+services:
+  # Service keys, not just container_name, must differ from user-service/docker-compose.yaml's -
+  # when both files are composed together (multiple -f flags, or infra/docker-compose.yaml's
+  # include:), Compose merges services that share a key into one instead of running two
+  # containers, and whichever file "wins" the merge silently swallows the other's config
+  # (port, container_name, env). Distinct keys/names/ports here so both stacks can run side by
+  # side locally - separate DB per service now, on purpose.
+  core-postgres:
+    image: postgres:17-alpine
+    container_name: postgres_core_service_container
+
+    ports:
+      - "5433:5432"
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_CORE_SERVICE_DB}
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_CORE_SERVICE_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    volumes:
+      - core_postgres_data:/var/lib/postgresql/data/
+
+  core-redis:
+    image: redis:8-alpine
+    container_name: redis_core_service_container
+    ports:
+      # 0.0.0.0, not 127.0.0.1: a k8s pod (minikube) reaching this via host.minikube.internal
+      # arrives as if from the docker bridge gateway, not from 127.0.0.1 itself - Docker's
+      # loopback-only publish refuses that connection outright (Connection refused). Password
+      # is still required below either way - this widens reachability, not who can auth.
+      # Distinct host port from user-service's redis (6379) - see the note on service keys above.
+      - "6380:6379"
+    # No fallback default - an unset REDIS_PASSWORD must fail `docker compose up`
+    # loudly instead of quietly starting Redis with a well-known password.
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+    restart: unless-stopped
+    volumes:
+      - core_redis_data:/data
+
+  core-kafka:
+    image: apache/kafka:latest
+    container_name: kafka_core_service_container
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      # PLAINTEXT - для будь-яких контейнерів у тій самій Docker-мережі (ім'я сервісу core-kafka).
+      # CONTROLLER - внутрішній координаційний листенер KRaft, ніколи не проброшується назовні.
+      # PLAINTEXT_HOST - те, чим реально користується core-service, запущений через bootRun на хості.
+      # PLAINTEXT_MINIKUBE - core-service, задеплоєний у minikube (infra/k8s/21-core-service.yaml,
+      # KAFKA_BOOTSTRAP_SERVERS=host.minikube.internal:9093). Окремий listener і порт, не
+      # перевикористання PLAINTEXT_HOST: advertised-адреса брокера - те, куди клієнт реально
+      # переключається ПІСЛЯ початкового bootstrap-запиту (metadata response), і вона має
+      # збігатись з тим, як САМЕ цей клієнт бачить мережу. localhost:9092 правильний з хоста
+      # (bootRun), але з пода minikube localhost - це сам под, а не хост, тому й потрібен
+      # третій, окремий listener/порт із власним host.minikube.internal-адресом.
+      #
+      # Advertised-порт для кожного listener'a МАЄ збігатись із портом, на якому брокер
+      # реально слухає (KAFKA_LISTENERS) і який проброшений у ports: вище -
+      # інакше клієнт підключається на bootstrap, отримує від брокера метадані з
+      # іншим advertised-портом і зависає на другому кроці, намагаючись достукатись
+      # туди, куди ніхто не проброшений.
+      KAFKA_LISTENERS: PLAINTEXT://:29092,CONTROLLER://:9094,PLAINTEXT_HOST://:9092,PLAINTEXT_MINIKUBE://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://core-kafka:29092,PLAINTEXT_HOST://localhost:9092,PLAINTEXT_MINIKUBE://host.minikube.internal:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_MINIKUBE:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@core-kafka:9094
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # Single-node dev setup - без реплікації, інакше брокер не підніметься
+      # (дефолт 3 репліки неможливо задовольнити одним вузлом).
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    volumes:
+      - core_kafka_data:/var/lib/kafka/data
+
+volumes:
+  core_postgres_data:
+  core_redis_data:
+  core_kafka_data:

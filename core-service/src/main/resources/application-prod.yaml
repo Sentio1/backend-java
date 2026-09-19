@@ -1,0 +1,58 @@
+spring:
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:core-service/.env[.properties]
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:5432/${POSTGRES_CORE_SERVICE_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+
+  # Без дефолту навмисно (на відміну від dev у application.yaml) - тихий fallback
+  # на localhost:9092 у проді був би гіршим за явний збій старту застосунку.
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+app:
+  jwt:
+    # Без дефолту навмисно, той самий принцип, що й kafka.bootstrap-servers вище -
+    # тихий fallback на localhost:8080 у проді був би гіршим за явний збій старту.
+    jwks-uri: ${JWT_JWKS_URI}
+
+server:
+  # Так само, як у user-service: коректно лише за довіреним reverse-proxy/ingress,
+  # який сам виставляє X-Forwarded-* і зрізає будь-яке клієнтське значення. В
+  # dev/test лишати вимкненим.
+  forward-headers-strategy: framework
+
+logging:
+  level:
+    root: WARN
+
+management:
+  tracing:
+    sampling:
+      # 10% у prod — зменшує навантаження на Tempo
+      probability: ${TRACING_SAMPLE_RATE:0.1}
+  otlp:
+    tracing:
+      # Tempo у тій самій Docker-мережі — звертаємось за іменем контейнера
+      endpoint: ${OTLP_ENDPOINT:http://tempo:4317}
+
+loki:
+  url: ${LOKI_URL:http://loki:3100/loki/api/v1/push}

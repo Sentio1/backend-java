@@ -251,6 +251,8 @@ spring-dependency-management = { id = "io.spring.dependency-management", version
 
 graalvm-native-buildtools = { id = "org.graalvm.buildtools.native", version.ref = "graalvm-native-buildtools" }
 
+flyway = { id = "org.flywaydb.flyway", version.ref = "flyway" }
+
 [bundles]
 annotation-processors = [
     "lombok",

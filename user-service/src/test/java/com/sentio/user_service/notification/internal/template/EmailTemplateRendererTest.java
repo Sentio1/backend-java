@@ -86,4 +86,46 @@ class EmailTemplateRendererTest {
 
         assertThat(html).contains("Посилання діє до");
     }
+
+    private static final String RESET_URL = "http://localhost:5173/reset-password?token=raw-token";
+
+    @Test
+    void passwordReset_withFirstName_greetsByName() {
+        String html = renderer.renderPasswordResetEmail("Олена", RESET_URL, Instant.now());
+
+        assertThat(html).contains("Вітаємо, Олена.");
+    }
+
+    @Test
+    void passwordReset_nullFirstName_fallsBackToGenericGreeting() {
+        String html = renderer.renderPasswordResetEmail(null, RESET_URL, Instant.now());
+
+        assertThat(html).contains("Вітаємо.");
+        assertThat(html).doesNotContain("Вітаємо, null");
+    }
+
+    @Test
+    void passwordReset_resetUrl_isRenderedAsTheLinkTarget() {
+        String html = renderer.renderPasswordResetEmail("Олена", RESET_URL, Instant.now());
+
+        assertThat(html).contains("href=\"" + RESET_URL + "\"");
+        assertThat(html).contains(">" + RESET_URL + "<");
+    }
+
+    @Test
+    void passwordReset_expiresAt_isFormattedInKyivTimeNotUtc() {
+        Instant expiresAt = ZonedDateTime.of(2026, 1, 15, 10, 0, 0, 0, ZoneOffset.UTC).toInstant();
+
+        String html = renderer.renderPasswordResetEmail("Олена", RESET_URL, expiresAt);
+
+        assertThat(html).contains("15.01.2026 12:00 за київським часом");
+        assertThat(html).doesNotContain("UTC");
+    }
+
+    @Test
+    void passwordReset_nullExpiresAt_rendersEmptyInsteadOfThrowing() {
+        String html = renderer.renderPasswordResetEmail("Олена", RESET_URL, null);
+
+        assertThat(html).contains("Посилання діє до");
+    }
 }

@@ -1,13 +1,12 @@
 package com.sentio.user_service.identity.auth.verification;
 
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
-import com.sentio.user_service.identity.event.EmailVerificationRequested;
+import com.sentio.user_service.identity.event.EmailVerificationRequestedEvent;
 import com.sentio.user_service.identity.user.api.dto.IssuedUserActionToken;
 import com.sentio.user_service.identity.user.api.dto.UserDto;
 import com.sentio.user_service.identity.user.api.enums.UserActionTokenType;
 import com.sentio.user_service.identity.user.api.service.UserAccountService;
 import com.sentio.user_service.identity.user.api.service.UserActionTokenService;
-import com.sentio.user_service.identity.user.internal.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -28,13 +27,6 @@ public class EmailVerificationService {
     private final EmailVerificationProperties emailVerificationProperties;
 
     @Transactional
-    public void verifyEmail(@NonNull String rawToken) {
-        long userId = userActionTokenService.consumeToken(rawToken, UserActionTokenType.EMAIL_VERIFICATION);
-        userAccountService.markEmailVerified(userId);
-        log.info("Email successfully verified for user id={}", userId);
-    }
-
-    @Transactional
     public void sendVerificationEmail(@NonNull Long currentUserId) {
         UserDto user = userAccountService.findActiveById(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id %d was not found".formatted(currentUserId)));
@@ -44,12 +36,23 @@ public class EmailVerificationService {
             return;
         }
 
-        IssuedUserActionToken issuedUserActionToken = userActionTokenService.issueToken(currentUserId, UserActionTokenType.EMAIL_VERIFICATION, emailVerificationProperties.tokenTTL());
+        IssuedUserActionToken issuedUserActionToken = userActionTokenService.issueToken(
+                currentUserId,
+                UserActionTokenType.EMAIL_VERIFICATION,
+                emailVerificationProperties.tokenTTL()
+        );
 
         eventPublisher.publishEvent(
-                new EmailVerificationRequested(currentUserId, user.email(), user.firstName(),
+                new EmailVerificationRequestedEvent(currentUserId, user.email(), user.firstName(),
                         issuedUserActionToken.rawToken(), issuedUserActionToken.expiresAt(), emailVerificationProperties.verificationUrl()
                 )
         );
+    }
+
+    @Transactional
+    public void verifyEmail(@NonNull String rawToken) {
+        long userId = userActionTokenService.consumeToken(rawToken, UserActionTokenType.EMAIL_VERIFICATION);
+        userAccountService.markEmailVerified(userId);
+        log.info("Email successfully verified for user id={}", userId);
     }
 }

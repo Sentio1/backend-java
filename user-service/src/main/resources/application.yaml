@@ -15,9 +15,16 @@ spring:
     properties:
       hibernate:
         default_schema: auth
+    open-in-view: false
 
   modulith:
     events:
+      # Default (update) keeps completed rows forever - serialized_event is a JSON dump of the
+      # whole event, including the raw verification/reset token, sitting in plaintext in the DB
+      # indefinitely. delete removes the row right after a successful delivery (window shrinks
+      # back to roughly what the old in-memory registry had); incomplete/failed publications are
+      # untouched until they succeed, so the republish-after-crash guarantee is unaffected.
+      completion-mode: delete
       jdbc:
         # Table lives in auth (V12) alongside everything else - schema-initialization
         # stays disabled (the default), Flyway owns it like every other table here.
@@ -111,6 +118,9 @@ app:
       # behind it) - by-user is the actual anti-spam control against resending to yourself.
       resend-verification-by-ip: { limit: 20, window: 60s }
       resend-verification-by-user: { limit: 3, window: 600s }
+      password-reset-by-ip: { limit: 20, window: 60s }
+      password-reset-by-email: { limit: 5, window: 60s }
+      password-reset-confirm-by-ip: { limit: 20, window: 60s }
 
   security:
     allow-credentials: true
@@ -123,6 +133,8 @@ app:
       - /auth/login
       - /auth/refresh
       - /email-verification/confirm
+      - /password-reset/request
+      - /password-reset/confirm
       - /oauth2/**
       - /login/oauth2/**
       - /actuator/health/**
@@ -141,6 +153,13 @@ app:
     token-ttl: 24h
     # Frontend page that receives the token (?token=...) and POSTs it to /email-verification/confirm.
     verification-url: http://localhost:5173/verify-email
+
+  password-reset:
+    # Shorter than email-verification's 24h on purpose - a sensitive action deserves a
+    # small attack window.
+    token-ttl: 30m
+    # Frontend page that receives the token (?token=...) and POSTs it + the new password to /password-reset/confirm.
+    reset-url: http://localhost:5173/reset-password
 
   oauth:
     success-redirect-uri: http://localhost:5173/dashboard

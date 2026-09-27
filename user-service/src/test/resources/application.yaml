@@ -20,6 +20,7 @@ spring:
 
   modulith:
     events:
+      completion-mode: delete
       jdbc:
         schema: auth
 
@@ -54,6 +55,9 @@ app:
       verify-email-by-ip: { limit: 20, window: 60s }
       resend-verification-by-ip: { limit: 20, window: 60s }
       resend-verification-by-user: { limit: 3, window: 600s }
+      password-reset-by-ip: { limit: 20, window: 60s }
+      password-reset-by-email: { limit: 5, window: 60s }
+      password-reset-confirm-by-ip: { limit: 20, window: 60s }
 
   mail:
     from: no-reply@sentio.test
@@ -61,6 +65,10 @@ app:
   email-verification:
     token-ttl: 24h
     verification-url: http://localhost:5173/verify-email
+
+  password-reset:
+    token-ttl: 30m
+    reset-url: http://localhost:5173/reset-password
 
   security:
     allow-credentials: true
@@ -72,6 +80,8 @@ app:
       - /auth/login
       - /auth/refresh
       - /email-verification/confirm
+      - /password-reset/request
+      - /password-reset/confirm
       - /oauth2/**
       - /login/oauth2/**
       - /actuator/health/**

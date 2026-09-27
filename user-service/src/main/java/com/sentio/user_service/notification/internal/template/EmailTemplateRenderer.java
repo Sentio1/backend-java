@@ -23,8 +23,23 @@ public class EmailTemplateRenderer {
         Context context = new Context();
         context.setVariable("firstName", firstName);
         context.setVariable("confirmationUrl", confirmationUrl);
-        context.setVariable("expiresAt", expiresAt != null ? FORMATTER.format(expiresAt) + " за київським часом" : "");
+        context.setVariable("expiresAt", formatExpiresAt(expiresAt));
 
         return templateEngine.process("mail/email-verification", context);
+    }
+
+    public String renderPasswordResetEmail(String firstName, String resetUrl, Instant expiresAt) {
+        Context context = new Context();
+        context.setVariable("firstName", firstName);
+        context.setVariable("resetUrl", resetUrl);
+        // Залишаємо також confirmationUrl на випадок, якщо шаблон використовує таку ж назву змінної
+        context.setVariable("confirmationUrl", resetUrl);
+        context.setVariable("expiresAt", formatExpiresAt(expiresAt));
+
+        return templateEngine.process("mail/password-reset", context);
+    }
+
+    private String formatExpiresAt(Instant expiresAt) {
+        return expiresAt != null ? FORMATTER.format(expiresAt) + " за київським часом" : "";
     }
 }

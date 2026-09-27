@@ -53,17 +53,20 @@ class RateLimitingServiceIT {
         redisTemplate.getConnectionFactory().getConnection().serverCommands().flushAll();
 
         RateLimitProperties.Rule onePerMinute = new RateLimitProperties.Rule(1, Duration.ofMinutes(1));
-        RateLimitProperties properties = new RateLimitProperties(Map.of(
-                "login-by-email", onePerMinute,
-                "login-by-ip", onePerMinute,
-                "register-by-email", onePerMinute,
-                "register-by-ip", onePerMinute,
-                "service-token-by-email", onePerMinute,
-                "service-token-by-ip", onePerMinute,
-                "refresh-by-ip", onePerMinute,
-                "verify-email-by-ip", onePerMinute,
-                "resend-verification-by-ip", onePerMinute,
-                "resend-verification-by-user", onePerMinute));
+        RateLimitProperties properties = new RateLimitProperties(Map.ofEntries(
+                Map.entry("login-by-email", onePerMinute),
+                Map.entry("login-by-ip", onePerMinute),
+                Map.entry("register-by-email", onePerMinute),
+                Map.entry("register-by-ip", onePerMinute),
+                Map.entry("service-token-by-email", onePerMinute),
+                Map.entry("service-token-by-ip", onePerMinute),
+                Map.entry("refresh-by-ip", onePerMinute),
+                Map.entry("verify-email-by-ip", onePerMinute),
+                Map.entry("resend-verification-by-ip", onePerMinute),
+                Map.entry("resend-verification-by-user", onePerMinute),
+                Map.entry("password-reset-by-ip", onePerMinute),
+                Map.entry("password-reset-by-email", onePerMinute),
+                Map.entry("password-reset-confirm-by-ip", onePerMinute)));
 
         rateLimitingService = new RateLimitingService(redisTemplate, properties);
         rateLimitingService.validateRules();

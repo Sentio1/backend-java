@@ -38,7 +38,9 @@ public class RateLimitingService {
             "service-token-by-email", "service-token-by-ip",
             "refresh-by-ip",
             "verify-email-by-ip",
-            "resend-verification-by-ip", "resend-verification-by-user");
+            "resend-verification-by-ip", "resend-verification-by-user",
+            "password-reset-by-ip", "password-reset-by-email",
+            "password-reset-confirm-by-ip");
 
     // Returns {count, remaining TTL in ms}. The ttl < 0 branch re-arms a key that
     // somehow lost its expiry instead of letting it block that client forever.
@@ -90,6 +92,14 @@ public class RateLimitingService {
     public void checkSendVerificationLimits(long userId, String ip) {
         checkLimits("resend-verification", null, ip);
         check("resend-verification-by-user", String.valueOf(userId));
+    }
+
+    public void checkPasswordRequestLimits(String email, String ip) {
+        checkLimits("password-reset", email, ip);
+    }
+
+    public void checkPasswordResetLimits(String ip) {
+        checkLimits("password-reset-confirm", null, ip);
     }
 
     private void checkLimits(String action, String email, String ip) {

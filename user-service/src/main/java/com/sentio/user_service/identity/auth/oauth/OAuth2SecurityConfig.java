@@ -35,10 +35,13 @@ public class OAuth2SecurityConfig {
                 .requestCache(cache -> cache.requestCache(new NullRequestCache()))
                 // The starter's own CSRF ignore list only covers its built-in auth endpoints
                 // (register/login/refresh/oauth2) - being on app.security.permitted-paths only
-                // exempts a path from authentication, not from CSRF. A click on the email link
-                // has no prior CSRF cookie from this app, so without this the confirm endpoint
-                // is unreachable by design (403 on every first-time visitor).
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/email-verification/confirm"))
+                // exempts a path from authentication, not from CSRF. A click on the email/reset
+                // link has no prior CSRF cookie from this app, so without this these endpoints
+                // are unreachable by design (403 on every first-time visitor).
+                .csrf(csrf -> csrf.ignoringRequestMatchers(
+                        "/email-verification/confirm",
+                        "/password-reset/request",
+                        "/password-reset/confirm"))
                 .oauth2Login(oauth -> oauth
                         .successHandler(successHandler.getObject())
                         .failureHandler(failureHandler.getObject()));

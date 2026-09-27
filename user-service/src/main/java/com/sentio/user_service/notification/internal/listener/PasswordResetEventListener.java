@@ -1,6 +1,6 @@
 package com.sentio.user_service.notification.internal.listener;
 
-import com.sentio.user_service.identity.event.EmailVerificationRequestedEvent;
+import com.sentio.user_service.identity.event.PasswordResetRequestedEvent;
 import com.sentio.user_service.notification.internal.mail.EmailSender;
 import com.sentio.user_service.notification.internal.template.EmailTemplateRenderer;
 import lombok.RequiredArgsConstructor;
@@ -12,24 +12,24 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class EmailVerificationEventListener {
+public class PasswordResetEventListener {
 
-    private static final String VERIFICATION_MESSAGE = "Підтвердження електронної пошти";
+    private static final String PASSWORD_RESET_MESSAGE = "Скидання пароля";
 
     private final EmailSender emailSender;
     private final EmailTemplateRenderer templateRenderer;
 
     @ApplicationModuleListener
-    public void onEmailVerificationRequested(EmailVerificationRequestedEvent event) {
-        log.info("Received EmailVerificationRequested event for userId={}", event.userId());
+    public void onPasswordResetRequested(PasswordResetRequestedEvent event) {
+        log.info("Handling password reset request for userId={}, email={}", event.userId(), event.email());
 
-        String confirmationUrl = UriComponentsBuilder.fromUriString(event.verificationUrl())
+        String confirmationUrl = UriComponentsBuilder.fromUriString(event.resetUrl())
                 .queryParam("token", event.rawToken())
                 .build()
                 .toUriString();
 
-        String htmlBody = templateRenderer.renderVerificationEmail(event.firstName(), confirmationUrl, event.expiresAt());
+        String htmlBody = templateRenderer.renderPasswordResetEmail(event.firstName(), confirmationUrl, event.expiresAt());
 
-        emailSender.sendEmail(event.userId(), event.email(), VERIFICATION_MESSAGE, htmlBody);
+        emailSender.sendEmail(event.userId(), event.email(), PASSWORD_RESET_MESSAGE, htmlBody);
     }
 }

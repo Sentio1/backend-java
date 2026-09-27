@@ -1,0 +1,30 @@
+apiVersion: 1
+
+# Discord webhook URL-и НЕ хардкодяться тут - беруться зі змінних оточення
+# (DISCORD_WEBHOOK_CRITICAL/WARNING, секрети в Doppler - проєкт sentio-backend-java,
+# config dev - прокинуті через `doppler run -- docker compose -f docker-compose.observability.yaml up -d`)
+# завдяки GF_ENABLE_ENVVAR_EXPANSION=true на grafana-контейнері.
+contactPoints:
+  - orgId: 1
+    name: discord-critical
+    receivers:
+      - uid: discord-critical-receiver
+        type: discord
+        settings:
+          url: $__env{DISCORD_WEBHOOK_CRITICAL}
+          use_discord_username: true
+          title: '{{ template "discord.title" . }}'
+          message: '{{ template "discord.message" . }}'
+        disableResolveMessage: false
+
+  - orgId: 1
+    name: discord-warning
+    receivers:
+      - uid: discord-warning-receiver
+        type: discord
+        settings:
+          url: $__env{DISCORD_WEBHOOK_WARNING}
+          use_discord_username: true
+          title: '{{ template "discord.title" . }}'
+          message: '{{ template "discord.message" . }}'
+        disableResolveMessage: false

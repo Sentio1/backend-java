@@ -1,0 +1,71 @@
+auth_enabled: false
+
+# Алертинг зроблено через Grafana Unified Alerting (config/grafana/provisioning/alerting/) -
+# Grafana сама опитує Loki/Prometheus за розкладом і шле в Discord. Тому тут немає
+# секції ruler/alertmanager_url - окремий Alertmanager чи Loki ruler не потрібні.
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+
+common:
+  instance_addr: 127.0.0.1
+  # path_prefix лишається локальним - tsdb-index/tsdb-cache (активний, ще не
+  # відправлений у R2 індекс) і compactor working dir все одно потребують диску,
+  # навіть коли chunks/index-архів ідуть в object storage.
+  path_prefix: /loki
+  storage:
+    # R2 (S3-сумісний) замість filesystem - chunks і зшиті tsdb-індекси йдуть у
+    # бакет sentio-logs замість Docker-volume, тому логи переживають
+    # `docker compose down -v` і не впираються в диск хоста. access_key_id/
+    # secret_access_key НЕ хардкодяться - підставляються через `-config.expand-env=true`
+    # (docker-compose.observability.yaml) зі змінних оточення, які прокидає
+    # `doppler run --` (секрети R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY, той самий
+    # Doppler-проєкт sentio-backend-java/dev, що й для Discord webhook-ів).
+    s3:
+      endpoint: d5172b05291f7a37c3885314a5490f0f.r2.cloudflarestorage.com
+      bucketnames: sentio-logs
+      region: auto
+      access_key_id: ${R2_ACCESS_KEY_ID}
+      secret_access_key: ${R2_SECRET_ACCESS_KEY}
+      # R2 не підтримує virtual-hosted-style (bucket.endpoint) - лише path-style (endpoint/bucket).
+      s3forcepathstyle: true
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+query_range:
+  results_cache:
+    cache:
+      embedded_cache:
+        enabled: true
+        max_size_mb: 100
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: s3
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  # loki4j пушить батчами — збільшуємо ліміт щоб не отримувати 429 при високому логуванні
+  ingestion_rate_mb: 16
+  ingestion_burst_size_mb: 32
+  # Retention застосовних логів (не плутати з юридичним audit-логом - той в Postgres
+  # за окремою схемою). 90 днів - достатньо для ретроспективного розслідування
+  # інциденту, довше без конкретної compliance-причини тільки довше тримає
+  # потенційно чутливі дані (IP/email у логах) в сторажі без потреби.
+  retention_period: 2160h
+
+# Compactor виконує фактичне видалення чанків за retention_period вище.
+# delete_request_store має збігатися з object_store (s3/R2) - інакше Loki
+# відмовляється стартувати, якщо retention_enabled: true.
+compactor:
+  working_directory: /loki/compactor
+  retention_enabled: true
+  delete_request_store: s3

@@ -1,0 +1,13 @@
+arguments=--init-script /home/lisov/.local/share/zed/extensions/work/java/jdtls/1.61.0/configuration/org.eclipse.osgi/57/0/.cp/gradle/init/init.gradle
+auto.sync=true
+build.scans.enabled=false
+connection.gradle.distribution=GRADLE_DISTRIBUTION(LOCAL_INSTALLATION(/home/lisov/.sdkman/candidates/gradle/current))
+connection.project.dir=..
+eclipse.preferences.version=1
+gradle.user.home=
+java.home=/home/lisov/.sdkman/candidates/java/25.0.4-tem
+jvm.arguments=
+offline.mode=false
+override.workspace.settings=true
+show.console.view=true
+show.executions.view=true

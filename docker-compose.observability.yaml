@@ -1,0 +1,100 @@
+# Спільний observability стек для всього проекту.
+# Запуск: doppler run -- docker compose -f docker-compose.observability.yaml up -d
+# (doppler run - той самий спосіб, що й для bootRun нижче по репо; секрети
+# (DISCORD_WEBHOOK_CRITICAL/WARNING, R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY) лежать
+# у Doppler, а не в .env - тому запуск без doppler run впаде на grafana- і
+# loki-контейнерах: змінні оточення будуть порожні)
+#
+# Версії образів запінені (не :latest) навмисно: :latest на Tempo одного разу тихо
+# зʼїхав на v3.0.0 - мажорна архітектурна зміна (ingester/compactor top-level блоки
+# прибрані), tempo.yml під це не написаний і Tempo впав у crash loop непомітно,
+# поки хтось не подивився в docker ps. Оновлювати версію - свідомо, з переглядом
+# CHANGELOG, а не випадково при черговому `docker compose pull`.
+#
+# Сервіси тут — НЕ частина core-service або user-service.
+# Prometheus, Grafana, Tempo, Loki обслуговують обидва мікросервіси одночасно.
+# Spring Boot сервіси запускаються через bootRun на хості → Prometheus
+# дістається до них через host.docker.internal.
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    container_name: prometheus_container
+    ports:
+      - "9090:9090"
+    # host.docker.internal резолвиться "з коробки" лише на Docker Desktop (Mac/Windows).
+    # На звичайному Docker Engine (Linux) без цього прометей ніколи не достукається до
+    # host.docker.internal:8081/8080, де слухають bootRun-нуті сервіси на хості.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Конфіг монтується з кореня проекту, де лежить цей docker-compose файл
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:3.0.3
+    container_name: tempo_container
+    ports:
+      - "3200:3200"   # HTTP API → Grafana datasource
+      - "4317:4317"   # OTLP gRPC (сумісність з іншими клієнтами, не Spring Boot)
+      - "4318:4318"   # OTLP HTTP ← Spring Boot (management.opentelemetry.tracing.export.otlp.endpoint)
+    volumes:
+      - ./config/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/var/tempo
+    command: [ "-config.file=/etc/tempo/tempo.yml" ]
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.7.8
+    container_name: loki_container
+    ports:
+      - "3100:3100"   # HTTP ← loki4j logback appender (loki.url в application.yaml)
+    environment:
+      # R2 (S3-сумісний) backend для chunks/tsdb-index - config/loki.yml.
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:?run via 'doppler run -- docker compose ...' - see comment at top of file}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:?run via 'doppler run -- docker compose ...' - see comment at top of file}
+    volumes:
+      - ./config/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+    # -config.expand-env=true - той самий принцип, що й GF_ENABLE_ENVVAR_EXPANSION
+    # у Grafana: секрети (${R2_ACCESS_KEY_ID}/${R2_SECRET_ACCESS_KEY} у loki.yml)
+    # підставляються з оточення контейнера, а не лежать у git.
+    command: [ "-config.file=/etc/loki/loki.yml", "-config.expand-env=true" ]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.2.2
+    container_name: grafana_container
+    ports:
+      - "3001:3000"   # UI: http://localhost:3001 (admin / admin)
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      # Дозволяє синтаксис $__env{VAR} у provisioning YAML (config/grafana/provisioning/alerting) -
+      # так Discord webhook URL береться зі змінної оточення, яку прокидає `doppler run --`
+      # (секрети DISCORD_WEBHOOK_CRITICAL/WARNING у Doppler, проєкт sentio-backend-java,
+      # config dev) - а не лежить у git разом з конфігом.
+      GF_ENABLE_ENVVAR_EXPANSION: "true"
+      DISCORD_WEBHOOK_CRITICAL: ${DISCORD_WEBHOOK_CRITICAL:?run via 'doppler run -- docker compose ...' - see comment at top of file}
+      DISCORD_WEBHOOK_WARNING: ${DISCORD_WEBHOOK_WARNING:?run via 'doppler run -- docker compose ...' - see comment at top of file}
+    volumes:
+      # Datasources (Prometheus, Tempo, Loki) і дашборди provisioning-ом —
+      # не треба налаштовувати вручну через UI при кожному docker compose up
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  tempo_data:
+  loki_data:
+  grafana_data:

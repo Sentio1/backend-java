@@ -1,0 +1,580 @@
+// ═══════════════════════════════════════════════════════════
+// Sentio — повна схема даних продукту (dbdiagram.io DBML)
+// ═══════════════════════════════════════════════════════════
+//
+// Цей файл замінює загальний чорновик user-service/database-structure.txt
+// (той файл лишається без змін як історичний документ, нічого з нього не
+// видалено). Тут та сама схема, але:
+//   1. розбита по схемах/сервісах-власниках (auth / core / інші),
+//      відповідно до SEN-17 ("Схема core, окремо від auth і documents");
+//   2. секція core доопрацьована під acceptance criteria SEN-17
+//      (case_parties, org_id + org_id-first індекс у кожній таблиці,
+//      софт-делет скрізь, наймінг case_events);
+//   3. FK між схемами різних сервісів (auth ⇄ core ⇄ інші) переведені
+//      з фізичних `ref` на "м'які" bigint-посилання — коли схеми живуть
+//      у різних БД/сервісах, Postgres FK між ними неможливий фізично.
+//
+// ── Власники схем ─────────────────────────────────────────
+//   auth   → user-service (цей репозиторій, Java). Вже змігровано,
+//            V1–V4 у user-service/src/main/resources/db/migration.
+//            Тут наведено без функціональних змін, лише як довідка.
+//   core   → core-service (SEN-17, ще не реалізовано). Repo/модуль ще
+//            не визначено остаточно — окремий сервіс чи новий модуль
+//            цього монорепо, вирішується окремо від схеми.
+//   інше   → documents / notifications / registry-monitor — за CLAUDE.md
+//            це окремі Go/інші репозиторії, тут — тільки для довідки й
+//            узгодження полів, що на них посилаються з core.
+//
+// ⚠ Відкрите питання (не вирішено цим файлом): CLAUDE.md згадує
+//   "case-service" як уже окремий Go/інший репозиторій, а SEN-17 (area:java)
+//   заводить "core-service" з тими ж таблицями (clients/cases/...).
+//   Треба уточнити з командою, чи це той самий сервіс під іншою назвою,
+//   чи core-service свідомо замінює/поглинає case-service. Секція `core`
+//   нижче написана в припущенні, що core-service — нове джерело істини
+//   для цих таблиць.
+//
+// ── Конвенції, застосовані нижче ───────────────────────────
+//   • Назва колонки лишена `organization_id` (не `org_id`) — так вже
+//     названо в реально змігрованих auth-таблицях (organization_members
+//     і т.д.), а JWT-claim `org_id` — це окрема річ (назва claim, не
+//     колонки). AC тікета "org_id" читаємо як вимогу "організація-скоуп
+//     у кожній таблиці", не як буквальну назву колонки.
+//   • Softref-коментар "// soft-ref" — колонка є, значення логічно
+//     посилається на таблицю в іншій БД, але фізичного `ref`/FK немає.
+//   • Довідникові/глобальні таблиці (courts, deadline_rules, holidays) —
+//     свідомо БЕЗ organization_id: вони не належать організації, це
+//     спільні дані для всіх орендарів. Тримати organization_id тут не
+//     має сенсу — позначено окремим коментарем при кожній.
+
+
+// ═══════════════════════════════════════════════════════════
+// СХЕМА auth — user-service, вже реалізовано (без змін)
+// ═══════════════════════════════════════════════════════════
+
+Enum auth.platform_role {
+  ADMIN     // співробітник Sentio
+  USER      // звичайний користувач
+}
+
+Enum auth.org_role {
+  OWNER     // власник бюро, керує підпискою і учасниками
+  LAWYER    // адвокат: повний доступ до своїх справ
+  ASSISTANT // помічник: без доступу до гонорарів
+}
+
+Enum auth.auth_provider {
+  LOCAL
+  GOOGLE
+  APPLE
+}
+
+Enum auth.plan_tier {
+  SOLO
+  BUREAU
+  FIRM
+}
+
+Enum auth.subscription_status {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+Table auth.organizations {
+  id bigserial [pk]
+  name varchar(255) [not null]
+  slug varchar(100) [not null, unique]
+  edrpou varchar(10)
+  plan auth.plan_tier [not null, default: `SOLO`]
+  subscription_status auth.subscription_status [not null, default: `TRIALING`]
+  trial_ends_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+}
+
+Table auth.users {
+  id bigserial [pk]
+  email citext [not null, unique]
+  password_hash varchar(72)
+  phone_number varchar(20) [unique]
+  platform_role auth.platform_role [not null, default: `USER`]
+
+  last_name varchar(100)
+  first_name varchar(100)
+  middle_name varchar(100)
+
+  email_verified_at timestamptz
+  phone_verified_at timestamptz
+  last_login_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+}
+
+Table auth.user_identities {
+  id bigserial [pk]
+  user_id bigint [not null, ref: > auth.users.id]
+  provider auth.auth_provider [not null]
+  provider_user_id varchar(255) [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (provider, provider_user_id) [unique]
+    (user_id, provider) [unique]
+  }
+}
+
+Table auth.organization_members {
+  id bigserial [pk]
+  organization_id bigint [not null, ref: > auth.organizations.id]
+  user_id bigint [not null, ref: > auth.users.id]
+  role auth.org_role [not null, default: `LAWYER`]
+  invited_by bigint [ref: > auth.users.id]
+  joined_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (organization_id, user_id) [unique]
+    organization_id
+    user_id
+  }
+}
+
+Table auth.refresh_tokens {
+  id bigserial [pk]
+  user_id bigint [not null, ref: > auth.users.id]
+  token_hash varchar(64) [not null, unique]
+  user_agent varchar(255)
+  ip inet
+  expires_at timestamptz [not null]
+  revoked_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes { user_id }
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// СХЕМА core — SEN-17, core-service (в розробці)
+// ═══════════════════════════════════════════════════════════
+//
+// Зміни відносно оригінального database-structure.txt:
+//   • Додано case_parties — раніше "сторони" були одним полем
+//     cases.client_role, тепер повноцінна таблиця з множинними сторонами
+//     на справу (AC тікета вимагає окрему таблицю).
+//   • cases.client_id / cases.client_role ПРИБРАНО — цю інформацію тепер
+//     несе case_parties (is_primary = true = основний клієнт справи).
+//   • Усі таблиці схеми отримали organization_id + індекс, де він перший
+//     стовпець (раніше case_events і hearings взагалі не мали org-скоупу).
+//   • case_events: occurred_on/received_on (date) → occurred_at/registered_at
+//     (timestamptz), за назвами й типом з AC тікета. registered_at — коли
+//     подію зафіксували/отримали документ, occurred_at — коли вона
+//     фактично сталася; це свідомо різні моменти (від occurred_at рахується
+//     строк).
+//   • Софт-делет (deleted_at, deleted_by, delete_reason) доданий у ВСІ
+//     таблиці схеми, включно з тими, де його раніше не було (case_events,
+//     hearings, deadlines). Фізичне видалення заборонене на рівні сервісу.
+//   • Посилання на users.id (created_by, responsible_user_id, completed_by,
+//     invited_by-подібні поля) переведені з `ref: >` на м'які bigint —
+//     user-service і core-service мають окремі БД, фізичний FK між ними
+//     неможливий.
+//   • registry_documents прибрано з цієї схеми — за CLAUDE.md це відповідь
+//     окремого сервісу (Registry Monitor), тому case_events.registry_document_id
+//     теж стає м'яким посиланням, не FK.
+
+Enum core.client_type {
+  INDIVIDUAL
+  SOLE_TRADER
+  COMPANY
+}
+
+Enum core.procedure_type {
+  CIVIL
+  ADMINISTRATIVE
+  COMMERCIAL
+  CRIMINAL
+  OTHER
+}
+
+Enum core.case_status {
+  DRAFT
+  PRE_TRIAL
+  FIRST_INSTANCE
+  APPEAL
+  CASSATION
+  ENFORCEMENT
+  CLOSED
+  ARCHIVED
+}
+
+Enum core.case_party_role {
+  // NEW — раніше було вільне поле cases.client_role varchar(50)
+  PLAINTIFF        // позивач
+  DEFENDANT        // відповідач
+  THIRD_PARTY       // третя особа
+  REPRESENTATIVE    // представник сторони
+  OTHER
+}
+
+Enum core.day_kind {
+  CALENDAR
+  WORKING
+}
+
+Enum core.deadline_status {
+  PENDING
+  DONE
+  MISSED
+  SUSPENDED
+  EXTENDED
+}
+
+
+Table core.clients {
+  id bigserial [pk]
+  organization_id bigint [not null]   // soft-ref auth.organizations.id
+  type core.client_type [not null, default: `INDIVIDUAL`]
+
+  last_name varchar(100)
+  first_name varchar(100)
+  middle_name varchar(100)
+  birth_date date
+  rnokpp varchar(10)
+  passport varchar(50)
+
+  company_name varchar(255)
+  edrpou varchar(10)
+  director_name varchar(255)
+
+  email citext                        // узгоджено з auth.users.email — той самий підхід всюди
+  phone_number varchar(20)
+  address text
+  notes text
+
+  created_by bigint [not null]        // soft-ref auth.users.id
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+  deleted_by bigint                   // soft-ref auth.users.id
+  delete_reason varchar(255)
+
+  indexes {
+    (organization_id, last_name)
+    (organization_id, rnokpp)
+    (organization_id, edrpou)
+    organization_id
+  }
+
+  Note: '''
+  CHECK: type = COMPANY  => company_name IS NOT NULL
+         type <> COMPANY => last_name IS NOT NULL AND first_name IS NOT NULL
+  Пошук за прізвищем — окремий GIN-індекс на pg_trgm, бо потрібен нечіткий збіг.
+  '''
+}
+
+
+Table core.courts {
+  // Довідникова/глобальна таблиця — БЕЗ organization_id: суди спільні
+  // для всіх орендарів, це не дані організації.
+  id bigserial [pk]
+  name varchar(255) [not null]
+  code varchar(20) [unique]
+  instance smallint [not null]
+  region varchar(100)
+  address text
+  is_active boolean [not null, default: true]
+}
+
+
+Table core.cases {
+  id bigserial [pk]
+  organization_id bigint [not null]   // soft-ref auth.organizations.id
+  responsible_user_id bigint [not null]   // soft-ref auth.users.id
+
+  case_number varchar(50)
+  internal_number varchar(50)
+  title varchar(255) [not null]
+  procedure core.procedure_type [not null]
+  status core.case_status [not null, default: `DRAFT`]
+  court_id bigint [ref: > core.courts.id]
+  judge_name varchar(255)
+  opened_at date
+  closed_at date
+
+  registry_watch_enabled boolean [not null, default: false]
+  registry_last_checked_at timestamptz
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+  deleted_by bigint                   // soft-ref auth.users.id
+  delete_reason varchar(255)
+
+  indexes {
+    (organization_id, status)
+    (organization_id, case_number)
+    responsible_user_id
+    (registry_watch_enabled, registry_last_checked_at)  // черга поллінгу Go-воркера
+  }
+
+  Note: '''
+  client_id/client_role з оригінального database-structure.txt прибрані —
+  сторони справи тепер у core.case_parties (множинні, з роллю).
+  Основний клієнт справи = case_parties.is_primary = true.
+  '''
+}
+
+
+Table core.case_parties {
+  // NEW — вимога AC SEN-17 ("case_parties" в списку обов'язкових таблиць)
+  id bigserial [pk]
+  organization_id bigint [not null]
+  case_id bigint [not null, ref: > core.cases.id]
+  client_id bigint [not null, ref: > core.clients.id]
+  role core.case_party_role [not null]
+  is_primary boolean [not null, default: false]  // основний клієнт справи (біллінг/головний контакт)
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+  deleted_by bigint
+  delete_reason varchar(255)
+
+  indexes {
+    (organization_id, case_id)
+    (organization_id, client_id)
+    (case_id, client_id, role) [unique]
+  }
+}
+
+
+// Хронологія справи — фіксує події, що запускають відлік строків
+Table core.case_events {
+  id bigserial [pk]
+  organization_id bigint [not null]   // раніше був відсутній у цій таблиці
+  case_id bigint [not null, ref: > core.cases.id]
+  event_code varchar(50) [not null]
+  title varchar(255) [not null]
+  description text
+  occurred_at timestamptz [not null]  // було occurred_on(date) — коли подія фактично сталася, від неї рахується строк
+  registered_at timestamptz           // було received_on(date) — коли зафіксована/отримана (може відрізнятись від occurred_at)
+  source varchar(20) [not null, default: 'MANUAL']  // MANUAL | REGISTRY
+  registry_document_id bigint         // soft-ref на документ у Registry Monitor (окремий сервіс/БД, не FK)
+  created_by bigint                   // soft-ref auth.users.id
+  created_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+  deleted_by bigint
+  delete_reason varchar(255)
+
+  indexes {
+    (organization_id, case_id)
+    (case_id, occurred_at)
+  }
+}
+
+
+Table core.hearings {
+  id bigserial [pk]
+  organization_id bigint [not null]   // раніше був відсутній у цій таблиці
+  case_id bigint [not null, ref: > core.cases.id]
+  scheduled_at timestamptz [not null]
+  kind varchar(50)
+  courtroom varchar(50)
+  outcome text
+  reported_to_client_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+  deleted_by bigint
+  delete_reason varchar(255)
+
+  indexes {
+    (organization_id, case_id)
+    (case_id, scheduled_at)
+  }
+}
+
+
+// ── Строки: ядро продукту ──────────────────────────────────
+
+Table core.deadline_rules {
+  // Довідникова/версіонована таблиця — БЕЗ organization_id: правила
+  // спільні для всіх орендарів (кодекси, а не дані бюро).
+  id bigserial [pk]
+  code varchar(50) [not null]
+  procedure core.procedure_type [not null]
+  trigger_event_code varchar(50) [not null]
+  title varchar(255) [not null]
+  legal_basis varchar(255) [not null]
+  duration_value smallint [not null]
+  duration_unit varchar(10) [not null, default: 'DAY']
+  day_kind core.day_kind [not null, default: `CALENDAR`]
+  count_from varchar(20) [not null, default: 'NEXT_DAY']
+  is_extendable boolean [not null, default: false]
+  valid_from date [not null]
+  valid_to date
+
+  indexes { (code, valid_from) [unique] }
+}
+
+Table core.holidays {
+  // Довідникова/глобальна таблиця — БЕЗ organization_id.
+  date date [pk]
+  name varchar(100) [not null]
+  is_working boolean [not null, default: false]
+}
+
+Table core.deadlines {
+  id bigserial [pk]
+  organization_id bigint [not null]
+  case_id bigint [not null, ref: > core.cases.id]
+  rule_id bigint [ref: > core.deadline_rules.id]
+  triggering_event_id bigint [ref: > core.case_events.id]
+
+  title varchar(255) [not null]
+  legal_basis varchar(255)
+  starts_on date [not null]
+  due_on date [not null]
+  status core.deadline_status [not null, default: `PENDING`]
+  completed_at timestamptz
+  completed_by bigint                 // soft-ref auth.users.id
+  extended_to date
+  note text
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+  deleted_by bigint
+  delete_reason varchar(255)
+
+  indexes {
+    (organization_id, status, due_on)   // головний запит календаря
+    (case_id, due_on)
+    (status, due_on)                    // черга нагадувань
+  }
+
+  Note: 'legal_basis і due_on — денормалізований знімок правила. Зміна кодексу не переписує історію.'
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// ПОЗА core-service — інші сервіси, лише для довідки
+// ═══════════════════════════════════════════════════════════
+//
+// За CLAUDE.md ці таблиці належать окремим Go/іншим репозиторіям
+// (document-service, Notifications, Registry Monitor) і сюди
+// потрапляють лише щоб зафіксувати контракт полів, на які посилається
+// схема core. Перелічені `ref` на core/auth замінені на м'які
+// посилання з тієї ж причини — окремі БД.
+
+Enum other.notification_channel {
+  EMAIL
+  TELEGRAM
+  PUSH
+  IN_APP
+}
+
+Enum other.notification_status {
+  QUEUED
+  SENT
+  FAILED
+  READ
+}
+
+Table other.registry_documents {
+  // Ймовірно власність Registry Monitor (Go), а не core-service.
+  id bigserial [pk]
+  case_number varchar(50) [not null]
+  registry_doc_id varchar(64) [not null, unique]
+  doc_type varchar(100)
+  court_name varchar(255)
+  adjudication_date date
+  publication_date date
+  url text
+  raw_text text
+  fetched_at timestamptz [not null, default: `now()`]
+
+  indexes { case_number }
+}
+
+Table other.document_templates {
+  // Ймовірно власність document-service (Go), а не core-service.
+  id bigserial [pk]
+  organization_id bigint             // soft-ref auth.organizations.id; null = системний шаблон
+  name varchar(255) [not null]
+  procedure core.procedure_type
+  category varchar(50)
+  body text [not null]
+  variables jsonb [not null, default: '[]']
+  legal_basis varchar(255)
+  is_active boolean [not null, default: true]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes { (organization_id, category) }
+}
+
+Table other.documents {
+  // Ймовірно власність document-service (Go), а не core-service.
+  id bigserial [pk]
+  organization_id bigint [not null]  // soft-ref auth.organizations.id
+  case_id bigint                     // soft-ref core.cases.id
+  template_id bigint [ref: > other.document_templates.id]
+  name varchar(255) [not null]
+  storage_key varchar(512) [not null]
+  mime_type varchar(100)
+  size_bytes bigint
+  filled_values jsonb
+  version smallint [not null, default: 1]
+  uploaded_by bigint [not null]      // soft-ref auth.users.id
+  created_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+}
+
+Table other.notification_settings {
+  // Ймовірно власність Notifications-сервісу (Go).
+  id bigserial [pk]
+  user_id bigint [not null]          // soft-ref auth.users.id
+  channel other.notification_channel [not null]
+  destination varchar(255)
+  is_enabled boolean [not null, default: true]
+  lead_days smallint[] [default: `'{14,7,3,1}'`]
+  quiet_hours_start time
+  quiet_hours_end time
+
+  indexes { (user_id, channel) [unique] }
+}
+
+Table other.notifications {
+  // Ймовірно власність Notifications-сервісу (Go).
+  id bigserial [pk]
+  user_id bigint [not null]          // soft-ref auth.users.id
+  deadline_id bigint                 // soft-ref core.deadlines.id
+  case_id bigint                     // soft-ref core.cases.id
+  channel other.notification_channel [not null]
+  status other.notification_status [not null, default: `QUEUED`]
+  subject varchar(255)
+  body text
+  scheduled_for timestamptz [not null]
+  sent_at timestamptz
+  error text
+  dedup_key varchar(128) [unique]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table other.audit_log {
+  // Власник не визначений (platform-wide?) — адвокатська таємниця,
+  // потрібен слід хто до чого звертався. Рішення, чий це сервіс,
+  // не входить в SEN-17.
+  id bigserial [pk]
+  organization_id bigint             // soft-ref auth.organizations.id
+  user_id bigint                     // soft-ref auth.users.id
+  action varchar(50) [not null]      // VIEW | CREATE | UPDATE | DELETE | EXPORT
+  entity_type varchar(50) [not null]
+  entity_id bigint
+  changes jsonb
+  ip inet
+  created_at timestamptz [not null, default: `now()`]
+}

@@ -1,0 +1,1 @@
+ALTER TABLE core.clients ADD COLUMN contact_person_name VARCHAR(255);

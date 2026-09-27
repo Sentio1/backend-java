@@ -54,7 +54,7 @@ class GoogleAccountResolverTest {
     }
 
     private static UserDto user(long id, boolean emailVerified, boolean deleted) {
-        return new UserDto(id, EMAIL, null, PlatformRole.USER, emailVerified ? Instant.now() : null, deleted);
+        return new UserDto(id, EMAIL, null, "Jane", PlatformRole.USER, emailVerified ? Instant.now() : null, deleted);
     }
 
     @Test

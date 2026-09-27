@@ -5,13 +5,12 @@ import com.sentio.user_service.identity.auth.cookie.AuthCookieService;
 import com.sentio.user_service.identity.auth.dto.response.AuthResult;
 import com.sentio.user_service.identity.auth.oauth.dto.GoogleIdentity;
 import com.sentio.user_service.identity.auth.service.AuthService;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -41,7 +40,7 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
             @NonNull Authentication authentication)
-            throws IOException, ServletException {
+            throws IOException {
         if (!(authentication.getPrincipal() instanceof OAuth2User oAuth2User)) {
             log.warn("Google OAuth2 principal is not an OAuth2User");
             invalidateSession(request);
@@ -49,11 +48,11 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             return;
         }
 
-        String googleSub = oAuth2User.getAttribute("sub");
-        String email = oAuth2User.getAttribute("email");
-        String firstName = oAuth2User.getAttribute("given_name");
-        String lastName = oAuth2User.getAttribute("family_name");
-        Boolean emailVerified = oAuth2User.getAttribute("email_verified");
+        final String googleSub = oAuth2User.getAttribute("sub");
+        final String email = oAuth2User.getAttribute("email");
+        final String firstName = oAuth2User.getAttribute("given_name");
+        final String lastName = oAuth2User.getAttribute("family_name");
+        final Boolean emailVerified = oAuth2User.getAttribute("email_verified");
 
         if (googleSub == null || email == null) {
             log.warn(
@@ -85,7 +84,7 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     // JwtAuthFilter re-authenticates every request from the JWT cookie alone -
     // the HttpSession that oauth2Login needed mid-handshake serves no purpose
     // afterward. Left alive, it just sits on the server until it times out.
-    private void invalidateSession(HttpServletRequest request) {
+    private void invalidateSession(@NonNull HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session != null) {
             session.invalidate();

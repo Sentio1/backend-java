@@ -1,7 +1,7 @@
 package com.sentio.user_service.identity.user.internal.repository;
 
 import com.sentio.user_service.identity.user.api.enums.AuthProvider;
-import com.sentio.user_service.identity.user.internal.entity.UserIdentity;
+import com.sentio.user_service.identity.user.internal.model.UserIdentity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

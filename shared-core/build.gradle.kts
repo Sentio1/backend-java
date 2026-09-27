@@ -18,6 +18,11 @@ dependencies {
     api(libs.spring.modulith.events.api)
     // Runtime для Modulith AOT hints підтягується як runtime-залежність бібліотеки
     runtimeOnly(libs.spring.modulith.runtime)
+    // Персистентний event publication registry (auth.event_publication, керується Flyway-міграцією
+    // в user-service) - без цього недоставлені події @ApplicationModuleListener губляться при
+    // рестарті замість пережити його й доставитись повторно.
+    runtimeOnly(libs.spring.modulith.events.jdbc)
+    runtimeOnly(libs.spring.modulith.events.jackson)
 
     // Core Data & Caching
     api(libs.spring.boot.starter.cache)

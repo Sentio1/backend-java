@@ -9,20 +9,20 @@ import java.util.Optional;
 
 public interface OrganizationMemberService {
 
-    List<OrganizationMemberResponse> findAllByUserId(long userId);
+    List<OrganizationMemberResponse> findAllByUserId(Long userId);
 
-    Optional<OrganizationMemberDto> findByUserIdAndOrganizationId(long userId, long orgId);
+    Optional<OrganizationMemberDto> findByUserIdAndOrganizationId(Long userId, Long orgId);
 
     // No default membership is a legitimate state, not just transiently during Google
     // sign-up - registration is always org-less (see AuthService.register), so
     // login/refresh have to tolerate it too, not just Google's fallback path.
-    Optional<OrganizationMemberDto> findDefaultMembership(long userId);
+    Optional<OrganizationMemberDto> findDefaultMembership(Long userId);
 
-    void lockOrganizationOrThrow(long orgId);
+    void lockOrganizationOrThrow(Long orgId);
 
-    long countByOrganizationIdAndRole(long orgId, OrgRole role);
+    long countByOrganizationIdAndRole(Long orgId, OrgRole role);
 
-    int countByUserId(long userId);
+    int countByUserId(Long userId);
 
-    void deleteAllByUserId(long userId);
+    void deleteAllByUserId(Long userId);
 }

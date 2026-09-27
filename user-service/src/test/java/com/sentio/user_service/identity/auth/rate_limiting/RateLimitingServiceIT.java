@@ -60,7 +60,10 @@ class RateLimitingServiceIT {
                 "register-by-ip", onePerMinute,
                 "service-token-by-email", onePerMinute,
                 "service-token-by-ip", onePerMinute,
-                "refresh-by-ip", onePerMinute));
+                "refresh-by-ip", onePerMinute,
+                "verify-email-by-ip", onePerMinute,
+                "resend-verification-by-ip", onePerMinute,
+                "resend-verification-by-user", onePerMinute));
 
         rateLimitingService = new RateLimitingService(redisTemplate, properties);
         rateLimitingService.validateRules();

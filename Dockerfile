@@ -34,7 +34,8 @@ RUN --mount=type=cache,target=/root/.gradle \
 
 WORKDIR /app/${MODULE_NAME}/build/libs
 RUN java -Djarmode=tools -jar $(ls *.jar | grep -v 'plain' | head -n 1) \
-    extract --layers --destination /workspace/extracted
+    extract --layers --destination /workspace/extracted \
+ && mv /workspace/extracted/application/*.jar /workspace/extracted/application/app.jar
 
 # 3. Final JVM image (fast build for local dev/test) - non-root, layered, container-aware heap.
 FROM eclipse-temurin:25-jre-alpine AS runner-jvm
@@ -43,12 +44,11 @@ RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
 COPY --from=jvm-builder /workspace/extracted/dependencies/ ./
-COPY --from=jvm-builder /workspace/extracted/spring-boot-loader/ ./
 COPY --from=jvm-builder /workspace/extracted/snapshot-dependencies/ ./
 COPY --from=jvm-builder /workspace/extracted/application/ ./
 
 EXPOSE 8080
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "org.springframework.boot.loader.launch.JarLauncher"]
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
 
 # 4. Build Native: fresh GraalVM base (not derived from `base`), so re-declare the args.
 FROM ghcr.io/graalvm/native-image-community:25 AS native-builder

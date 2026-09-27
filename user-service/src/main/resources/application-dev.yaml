@@ -27,10 +27,22 @@ spring:
     enabled: true
     baseline-on-migrate: true
 
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
 app:
   cookie:
     # Local dev runs over plain http - Secure cookies would never be sent back.
     secure: false
+  mail:
+    from: no-reply@sentio.com
 
 logging:
   level:

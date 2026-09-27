@@ -6,11 +6,11 @@ import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberD
 
 public interface OrganizationService {
 
-    OrganizationDto getOrganizationById(long orgId);
+    OrganizationDto getOrganizationById(Long orgId);
 
     // Both make the returned membership the caller's default one - the caller is
     // responsible for re-issuing the access token (its org_id/roles claims change).
-    OrganizationMemberDto createOrganization(long userId, CreateOrganizationRequest request);
+    OrganizationMemberDto createOrganization(Long userId, CreateOrganizationRequest request);
 
-    OrganizationMemberDto switchDefaultOrganization(long userId, long targetOrgId);
+    OrganizationMemberDto switchDefaultOrganization(Long userId, Long targetOrgId);
 }

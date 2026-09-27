@@ -9,5 +9,5 @@ public interface OrganizationInviteService {
 
     List<OrganizationInviteResponse> findAllByEmail(String email);
 
-    OrganizationInviteAcceptResponse acceptInvite(String token, long userId);
+    OrganizationInviteAcceptResponse acceptInvite(String token, Long userId);
 }

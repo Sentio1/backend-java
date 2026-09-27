@@ -1,4 +1,4 @@
-package com.sentio.user_service.identity.user.internal.entity;
+package com.sentio.user_service.identity.user.internal.model;
 
 import com.lisovskyi.jpa.autoconfigure.entity.CreationTimestampedEntity;
 import com.sentio.user_service.identity.user.api.enums.AuthProvider;

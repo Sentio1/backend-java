@@ -15,8 +15,8 @@ import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberR
 import com.sentio.user_service.identity.organization.api.enums.OrgRole;
 import com.sentio.user_service.identity.organization.internal.controller.dto.organization.OrganizationResponse;
 import com.sentio.user_service.identity.organization.internal.controller.dto.organization.UpdateOrganizationRequest;
-import com.sentio.user_service.identity.organization.internal.entity.Organization;
-import com.sentio.user_service.identity.organization.internal.entity.OrganizationMember;
+import com.sentio.user_service.identity.organization.internal.model.Organization;
+import com.sentio.user_service.identity.organization.internal.model.OrganizationMember;
 import com.sentio.user_service.identity.organization.internal.mapper.OrganizationMapper;
 import com.sentio.user_service.identity.organization.internal.mapper.OrganizationMemberMapper;
 import com.sentio.user_service.identity.organization.internal.repository.OrganizationMemberRepository;

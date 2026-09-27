@@ -9,9 +9,9 @@ import com.sentio.user_service.identity.organization.api.enums.OrgRole;
 import com.sentio.user_service.identity.organization.api.service.OrganizationInviteService;
 import com.sentio.user_service.identity.organization.internal.controller.dto.organization_invite.OrganizationInviteCreatedResponse;
 import com.sentio.user_service.identity.organization.internal.controller.dto.organization_invite.OrganizationInviteRequest;
-import com.sentio.user_service.identity.organization.internal.entity.Organization;
-import com.sentio.user_service.identity.organization.internal.entity.OrganizationInvite;
-import com.sentio.user_service.identity.organization.internal.entity.OrganizationMember;
+import com.sentio.user_service.identity.organization.internal.model.Organization;
+import com.sentio.user_service.identity.organization.internal.model.OrganizationInvite;
+import com.sentio.user_service.identity.organization.internal.model.OrganizationMember;
 import com.sentio.user_service.identity.organization.internal.exception.OrganizationNotFoundException;
 import com.sentio.user_service.identity.organization.internal.mapper.OrganizationInviteMapper;
 import com.sentio.user_service.identity.organization.internal.repository.OrganizationInviteRepository;
@@ -45,7 +45,7 @@ public class OrganizationInviteServiceImpl implements OrganizationInviteService 
     private final OrganizationInviteMapper organizationInviteMapper;
 
     @Transactional(readOnly = true)
-    public PageResponse<OrganizationInviteResponse> getAllInvites(long orgId, Pageable pageable) {
+    public PageResponse<OrganizationInviteResponse> getAllInvites(Long orgId, final Pageable pageable) {
         log.debug("Fetching invites for orgId: {}", orgId);
         return PageResponse.of(organizationInviteRepository
                 .findAllByOrganizationId(orgId, pageable)
@@ -62,7 +62,8 @@ public class OrganizationInviteServiceImpl implements OrganizationInviteService 
 
     @Transactional
     public OrganizationInviteCreatedResponse inviteUserToOrganization(
-            OrganizationInviteRequest inviteRequest, long orgId, long userId) {
+            OrganizationInviteRequest inviteRequest, Long orgId, Long userId
+    ) {
         log.debug(
                 "Attempting to invite user with email: {} to orgId: {} by userId: {}",
                 inviteRequest.email(),
@@ -75,6 +76,10 @@ public class OrganizationInviteServiceImpl implements OrganizationInviteService 
         }
 
         UserDto owner = userService.findUserById(userId);
+
+        if (!owner.emailVerified()) {
+            throw new ForbiddenOperationException("User's email is not verified");
+        }
 
         OrganizationMember organizationMember = organizationMemberRepository
                 .findByUserIdAndOrganizationId(userId, orgId)
@@ -113,7 +118,7 @@ public class OrganizationInviteServiceImpl implements OrganizationInviteService 
 
     @Override
     @Transactional
-    public OrganizationInviteAcceptResponse acceptInvite(String token, long userId) {
+    public OrganizationInviteAcceptResponse acceptInvite(String token, Long userId) {
         log.debug("Attempting to accept invite for userId: {}", userId);
         String hashedToken = opaqueTokenService.hash(token);
 
@@ -181,11 +186,11 @@ public class OrganizationInviteServiceImpl implements OrganizationInviteService 
     }
 
     @Transactional
-    public OrganizationInviteResponse revokeInvite(long orgId, long inviteId) {
+    public OrganizationInviteResponse revokeInvite(Long orgId, Long inviteId) {
         log.debug("Attempting to revoke inviteId: {} in orgId: {}", inviteId, orgId);
         OrganizationInvite organizationInvite = organizationInviteRepository
                 .findByIdLocked(inviteId)
-                .filter(invite -> invite.getOrganization().getId() == orgId)
+                .filter(invite -> invite.getOrganization().getId().equals(orgId))
                 .orElseThrow(() -> new ResourceNotFoundException("OrganizationInvite", "id", inviteId));
 
         organizationInvite.setRevokedAt(Instant.now());

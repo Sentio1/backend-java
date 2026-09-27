@@ -33,6 +33,12 @@ public class OAuth2SecurityConfig {
                 // ExceptionTranslationFilter save the request into a brand new session -
                 // i.e. a Redis write per anonymous 401. There's no login page to return to.
                 .requestCache(cache -> cache.requestCache(new NullRequestCache()))
+                // The starter's own CSRF ignore list only covers its built-in auth endpoints
+                // (register/login/refresh/oauth2) - being on app.security.permitted-paths only
+                // exempts a path from authentication, not from CSRF. A click on the email link
+                // has no prior CSRF cookie from this app, so without this the confirm endpoint
+                // is unreachable by design (403 on every first-time visitor).
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/email-verification/confirm"))
                 .oauth2Login(oauth -> oauth
                         .successHandler(successHandler.getObject())
                         .failureHandler(failureHandler.getObject()));

@@ -1,6 +1,6 @@
 package com.sentio.user_service.identity.organization.internal.repository;
 
-import com.sentio.user_service.identity.organization.internal.entity.OrganizationInvite;
+import com.sentio.user_service.identity.organization.internal.model.OrganizationInvite;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

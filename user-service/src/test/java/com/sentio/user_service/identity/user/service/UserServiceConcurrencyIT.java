@@ -4,13 +4,13 @@ import com.sentio.user_service.identity.organization.api.exception.LastOwnerExce
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.sentio.user_service.TestcontainersConfiguration;
-import com.sentio.user_service.identity.organization.internal.entity.Organization;
-import com.sentio.user_service.identity.organization.internal.entity.OrganizationMember;
+import com.sentio.user_service.identity.organization.internal.model.Organization;
+import com.sentio.user_service.identity.organization.internal.model.OrganizationMember;
 import com.sentio.user_service.identity.organization.api.enums.OrgRole;
 import com.sentio.user_service.identity.organization.internal.repository.OrganizationMemberRepository;
 import com.sentio.user_service.identity.organization.internal.repository.OrganizationRepository;
 import com.sentio.user_service.identity.organization.internal.service.OrganizationServiceImpl;
-import com.sentio.user_service.identity.user.internal.entity.User;
+import com.sentio.user_service.identity.user.internal.model.User;
 import com.sentio.user_service.identity.user.internal.repository.UserRepository;
 import java.util.List;
 import java.util.concurrent.Callable;

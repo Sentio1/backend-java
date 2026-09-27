@@ -49,7 +49,8 @@ public class TokenIssuer {
             JwtService jwtService,
             OpaqueTokenService opaqueTokenService,
             RefreshTokenService refreshTokenService,
-            @Value("${app.session.absolute-lifetime:30d}") Duration sessionAbsoluteLifetime) {
+            @Value("${app.session.absolute-lifetime:30d}") Duration sessionAbsoluteLifetime
+    ) {
         this.jwtProperties = jwtProperties;
         this.jwtService = jwtService;
         this.opaqueTokenService = opaqueTokenService;

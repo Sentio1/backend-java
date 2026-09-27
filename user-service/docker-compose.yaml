@@ -39,6 +39,14 @@ services:
     volumes:
       - user_redis_data:/data
 
+  user-mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit_user_service_container
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    restart: unless-stopped
+
 volumes:
   user_postgres_data:
   user_redis_data:

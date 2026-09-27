@@ -1,6 +1,5 @@
 package com.sentio.user_service.identity.auth.oauth.handlers;
 
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -17,7 +16,6 @@ import static com.sentio.user_service.identity.auth.oauth.GoogleOAuth2Constants.
 
 @Component
 @Slf4j
-/** GoogleOAuth2FailureHandler class. */
 public class GoogleOAuth2FailureHandler implements AuthenticationFailureHandler {
 
     @Value("${app.oauth.failure-redirect-uri}")
@@ -28,13 +26,13 @@ public class GoogleOAuth2FailureHandler implements AuthenticationFailureHandler 
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
             @NonNull AuthenticationException exception)
-            throws IOException, ServletException {
+            throws IOException {
         log.warn("Google OAuth2 authentication failed: {}", exception.getMessage());
         invalidateSession(request);
         response.sendRedirect(redirectUri + ERROR_OAUTH_FAILED);
     }
 
-    private void invalidateSession(HttpServletRequest request) {
+    private void invalidateSession(@NonNull HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session != null) {
             session.invalidate();

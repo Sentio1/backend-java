@@ -1,4 +1,9 @@
 spring:
+  mail:
+    # Only so the JavaMailSender bean exists; nothing in tests talks to a real SMTP server.
+    host: localhost
+    port: 3025
+
   flyway:
     enabled: true
     # V6__make_users_email_unique.sql mixes a CREATE INDEX CONCURRENTLY (can't run in
@@ -12,6 +17,11 @@ spring:
     properties:
       hibernate:
         default_schema: auth
+
+  modulith:
+    events:
+      jdbc:
+        schema: auth
 
   security:
     oauth2:
@@ -41,6 +51,30 @@ app:
       service-token-by-email: { limit: 5, window: 60s }
       service-token-by-ip: { limit: 20, window: 60s }
       refresh-by-ip: { limit: 60, window: 60s }
+      verify-email-by-ip: { limit: 20, window: 60s }
+      resend-verification-by-ip: { limit: 20, window: 60s }
+      resend-verification-by-user: { limit: 3, window: 600s }
+
+  mail:
+    from: no-reply@sentio.test
+
+  email-verification:
+    token-ttl: 24h
+    verification-url: http://localhost:5173/verify-email
+
+  security:
+    allow-credentials: true
+    allowed-origins:
+      - http://localhost:5173
+    bcrypt-strength: 4
+    public-paths:
+      - /auth/register
+      - /auth/login
+      - /auth/refresh
+      - /email-verification/confirm
+      - /oauth2/**
+      - /login/oauth2/**
+      - /actuator/health/**
 
   cookie:
     refresh-token-path: /auth

@@ -12,6 +12,7 @@ import com.sentio.user_service.identity.auth.exception.RefreshTokenReusedExcepti
 import com.sentio.user_service.identity.auth.oauth.GoogleAccountResolver;
 import com.sentio.user_service.identity.auth.oauth.dto.GoogleIdentity;
 import com.sentio.user_service.identity.auth.token.TokenIssuer;
+import com.sentio.user_service.identity.auth.verification.EmailVerificationService;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberDto;
 import com.sentio.user_service.identity.organization.api.service.OrganizationMemberService;
 import com.sentio.user_service.identity.user.api.dto.NewLocalUser;
@@ -52,6 +53,7 @@ public class AuthService {
     private final UserAccountService userAccountService;
     private final OrganizationMemberService organizationMemberService;
     private final RefreshTokenService refreshTokenService;
+    private final EmailVerificationService emailVerificationService;
 
     private final JwtService jwtService;
     private final OpaqueTokenService opaqueTokenService;
@@ -74,6 +76,8 @@ public class AuthService {
                 request.firstName(),
                 request.lastName(),
                 request.middleName()));
+
+        emailVerificationService.sendVerificationEmail(user.id());
 
         return new AuthResult(
                 tokenIssuer.issue(user, null, ip, userAgent),

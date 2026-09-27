@@ -6,8 +6,8 @@ import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberD
 import com.sentio.user_service.identity.organization.api.enums.OrgRole;
 import com.sentio.user_service.identity.organization.api.enums.PlanTier;
 import com.sentio.user_service.identity.organization.api.enums.SubscriptionStatus;
-import com.sentio.user_service.identity.organization.internal.entity.Organization;
-import com.sentio.user_service.identity.organization.internal.entity.OrganizationMember;
+import com.sentio.user_service.identity.organization.internal.model.Organization;
+import com.sentio.user_service.identity.organization.internal.model.OrganizationMember;
 import com.sentio.user_service.identity.organization.internal.mapper.OrganizationMemberMapper;
 import com.sentio.user_service.identity.organization.internal.repository.OrganizationMemberRepository;
 import com.sentio.user_service.identity.organization.internal.repository.OrganizationRepository;
@@ -21,8 +21,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
+@RequiredArgsConstructor
 public class OrganizationCreationService {
 
     private final OrganizationRepository organizationRepository;

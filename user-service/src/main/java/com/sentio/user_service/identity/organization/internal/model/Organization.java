@@ -1,4 +1,4 @@
-package com.sentio.user_service.identity.organization.internal.entity;
+package com.sentio.user_service.identity.organization.internal.model;
 
 import com.lisovskyi.jpa.autoconfigure.entity.TimestampedEntity;
 import com.sentio.user_service.identity.organization.api.enums.PlanTier;

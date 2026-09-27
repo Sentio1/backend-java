@@ -76,7 +76,7 @@ class TokenIssuerTest {
     }
 
     private UserDto user(long id, String email, PlatformRole platformRole) {
-        return new UserDto(id, email, null, platformRole, null, false);
+        return new UserDto(id, email, null, "FirstName", platformRole,  null, false);
     }
 
     private OrganizationMemberDto membershipFor(OrgRole role) {

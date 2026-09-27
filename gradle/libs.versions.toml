@@ -34,6 +34,7 @@ jackson-databind-nullable = "0.2.11"
 
 aspectjweaver = "1.9.22.1"
 junit = "6.0.0"
+awaitility = "4.3.0"
 
 [libraries]
 
@@ -86,6 +87,14 @@ spring-modulith-runtime = { module = "org.springframework.modulith:spring-moduli
 # Для тестів перевірки архітектури
 spring-modulith-starter-test = { module = "org.springframework.modulith:spring-modulith-starter-test" }
 
+# Персистентний (JDBC, Flyway-керований) event publication registry - без нього async-лістенери
+# (@ApplicationModuleListener) тримають чергу подій лише в пам'яті процесу і губають недоставлені
+# події при рестарті між комітом транзакції-видавця й виконанням лістенера.
+spring-modulith-events-jdbc = { module = "org.springframework.modulith:spring-modulith-events-jdbc" }
+# Serializes events to JSON for the JDBC registry's serialized_event column - JdbcEventPublicationAutoConfiguration
+# fails to start without an EventSerializer bean, and this is the one Modulith ships.
+spring-modulith-events-jackson = { module = "org.springframework.modulith:spring-modulith-events-jackson" }
+
 spring-graphql = { module = "org.springframework.boot:spring-boot-starter-graphql" }
 
 spring-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
@@ -100,6 +109,7 @@ spring-data-elasticsearch = { module = "org.springframework.boot:spring-boot-sta
 spring-kafka = { module = "org.springframework.boot:spring-boot-starter-kafka" }
 
 spring-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
+spring-thymeleaf = { module = "org.springframework.boot:spring-boot-starter-thymeleaf" }
 
 spring-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 
@@ -229,6 +239,8 @@ testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgr
 testcontainers-mongodb = { module = "org.testcontainers:testcontainers-mongodb" }
 
 testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka" }
+
+awaitility = { module = "org.awaitility:awaitility", version.ref = "awaitility" }
 
 
 [plugins]

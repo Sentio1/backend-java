@@ -10,8 +10,8 @@ import static org.mockito.Mockito.when;
 
 import com.sentio.shared.entity.id.user.UserId;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberDto;
-import com.sentio.user_service.identity.organization.internal.entity.Organization;
-import com.sentio.user_service.identity.organization.internal.entity.OrganizationMember;
+import com.sentio.user_service.identity.organization.internal.model.Organization;
+import com.sentio.user_service.identity.organization.internal.model.OrganizationMember;
 import com.sentio.user_service.identity.organization.api.enums.OrgRole;
 import com.sentio.user_service.identity.organization.api.enums.PlanTier;
 import com.sentio.user_service.identity.organization.api.enums.SubscriptionStatus;

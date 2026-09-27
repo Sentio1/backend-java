@@ -9,8 +9,8 @@ import com.sentio.user_service.identity.user.api.dto.UserDto;
 import com.sentio.user_service.identity.user.api.enums.AuthProvider;
 import com.sentio.user_service.identity.user.api.service.UserAccountService;
 import com.sentio.user_service.identity.user.api.service.UserService;
-import com.sentio.user_service.identity.user.internal.entity.User;
-import com.sentio.user_service.identity.user.internal.entity.UserIdentity;
+import com.sentio.user_service.identity.user.internal.model.User;
+import com.sentio.user_service.identity.user.internal.model.UserIdentity;
 import com.sentio.user_service.identity.user.internal.exception.UserNotFoundException;
 import com.sentio.user_service.identity.user.internal.mapper.UserMapper;
 import com.sentio.user_service.identity.user.internal.repository.UserIdentityRepository;
@@ -162,6 +162,17 @@ public class UserAccountServiceImpl implements UserAccountService, UserService {
                 .orElseThrow(() -> new UserNotFoundException("id", userId));
 
         user.setPassword(passwordHash);
+    }
+
+    @Override
+    @Transactional
+    public void markEmailVerified(long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("id", userId));
+
+        if (user.getEmailVerifiedAt() == null) {
+            user.setEmailVerifiedAt(Instant.now());
+        }
     }
 
     private static UserIdentity identity(User user, AuthProvider provider, String providerUserId) {

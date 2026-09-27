@@ -4,7 +4,7 @@ import com.sentio.user_service.identity.user.internal.exception.LastPlatformAdmi
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.sentio.user_service.TestcontainersConfiguration;
-import com.sentio.user_service.identity.user.internal.entity.User;
+import com.sentio.user_service.identity.user.internal.model.User;
 import com.sentio.user_service.identity.user.api.enums.PlatformRole;
 import com.sentio.user_service.identity.user.internal.repository.UserRepository;
 import java.util.List;

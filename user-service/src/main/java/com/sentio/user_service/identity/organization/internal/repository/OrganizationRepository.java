@@ -1,6 +1,6 @@
 package com.sentio.user_service.identity.organization.internal.repository;
 
-import com.sentio.user_service.identity.organization.internal.entity.Organization;
+import com.sentio.user_service.identity.organization.internal.model.Organization;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;

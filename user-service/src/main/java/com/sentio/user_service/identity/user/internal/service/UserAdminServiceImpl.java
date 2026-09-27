@@ -9,7 +9,7 @@ import com.sentio.user_service.identity.organization.api.service.OrganizationMem
 import com.sentio.user_service.identity.user.api.enums.PlatformRole;
 import com.sentio.user_service.identity.user.internal.controller.dto.response.UserAdminDetailResponse;
 import com.sentio.user_service.identity.user.internal.controller.dto.response.UserAdminSummaryResponse;
-import com.sentio.user_service.identity.user.internal.entity.User;
+import com.sentio.user_service.identity.user.internal.model.User;
 import com.sentio.user_service.identity.user.internal.exception.UserNotFoundException;
 import com.sentio.user_service.identity.user.internal.mapper.UserMapper;
 import com.sentio.user_service.identity.user.internal.repository.UserRepository;

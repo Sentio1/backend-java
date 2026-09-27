@@ -12,8 +12,8 @@ import com.sentio.user_service.identity.organization.api.service.OrganizationSer
 import com.sentio.user_service.identity.organization.api.dto.CreateOrganizationRequest;
 import com.sentio.user_service.identity.organization.internal.controller.dto.organization.OrganizationResponse;
 import com.sentio.user_service.identity.organization.internal.controller.dto.organization.UpdateOrganizationRequest;
-import com.sentio.user_service.identity.organization.internal.entity.Organization;
-import com.sentio.user_service.identity.organization.internal.entity.OrganizationMember;
+import com.sentio.user_service.identity.organization.internal.model.Organization;
+import com.sentio.user_service.identity.organization.internal.model.OrganizationMember;
 import com.sentio.user_service.identity.organization.internal.exception.OrganizationMemberNotFoundException;
 import com.sentio.user_service.identity.organization.internal.exception.OrganizationNotFoundException;
 import com.sentio.user_service.identity.organization.internal.mapper.OrganizationMapper;
@@ -46,7 +46,7 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
     private final OrganizationMemberMapper organizationMemberMapper;
 
     @Transactional(readOnly = true)
-    public PageResponse<OrganizationMemberResponse> getAllOrganizationMembers(long orgId, Pageable pageable) {
+    public PageResponse<OrganizationMemberResponse> getAllOrganizationMembers(Long orgId, final Pageable pageable) {
         log.debug("Fetching organization members for orgId: {}", orgId);
 
         return PageResponse.of(organizationMemberRepository
@@ -55,7 +55,7 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
     }
 
     @Transactional
-    public OrganizationResponse updateOrganization(long id, UpdateOrganizationRequest updateRequest) {
+    public OrganizationResponse updateOrganization(Long id, UpdateOrganizationRequest updateRequest) {
         log.debug("Attempting to update organization id: {}", id);
         Organization organization = organizationRepository
                 .findByIdLocked(id)
@@ -76,7 +76,7 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
     // cleared first, or the partial unique index on organization_members rejects it.
     @Override
     @Transactional
-    public OrganizationMemberDto createOrganization(long userId, CreateOrganizationRequest request) {
+    public OrganizationMemberDto createOrganization(Long userId, CreateOrganizationRequest request) {
         log.debug("Attempting to create organization: {} for user: {}", request.orgName(), userId);
 
         organizationMemberRepository.findByUserIdAndIsDefaultTrue(userId)
@@ -96,7 +96,7 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
 
     @Override
     @Transactional
-    public OrganizationMemberDto switchDefaultOrganization(long userId, long targetOrgId) {
+    public OrganizationMemberDto switchDefaultOrganization(Long userId, Long targetOrgId) {
         log.debug("User: {} attempting to switch default organization to targetOrgId: {}", userId, targetOrgId);
         OrganizationMember target = organizationMemberRepository
                 .findByUserIdAndOrganizationId(userId, targetOrgId)
@@ -118,7 +118,7 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
     }
 
     @Transactional
-    public OrganizationMemberResponse patchRoleForMember(long orgId, long userId, OrgRole newRole) {
+    public OrganizationMemberResponse patchRoleForMember(Long orgId, Long userId, OrgRole newRole) {
         log.debug("Attempting to patch platformRole to {} for userId: {} in orgId: {}", newRole, userId, orgId);
 
         // Row lock on the org serializes every "is this the last OWNER?" check-then-act
@@ -146,7 +146,7 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
     }
 
     @Transactional
-    public void deleteOrganizationMember(long orgId, long userId) {
+    public void deleteOrganizationMember(Long orgId, Long userId) {
         log.debug("Attempting to delete userId: {} from orgId: {}", userId, orgId);
 
         // Row lock on the org serializes every "is this the last OWNER?" check-then-act
@@ -173,7 +173,7 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
 
     @Override
     @Transactional(readOnly = true)
-    public List<OrganizationMemberResponse> findAllByUserId(long userId) {
+    public List<OrganizationMemberResponse> findAllByUserId(Long userId) {
         return organizationMemberRepository.findAllByUserId(userId).stream()
                 .map(this::toMemberResponse)
                 .toList();
@@ -181,7 +181,7 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<OrganizationMemberDto> findByUserIdAndOrganizationId(long userId, long orgId) {
+    public Optional<OrganizationMemberDto> findByUserIdAndOrganizationId(Long userId, Long orgId) {
         return organizationMemberRepository.findByUserIdAndOrganizationId(userId, orgId)
                 .map(organizationMemberMapper::toDto);
     }
@@ -191,7 +191,7 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
     // so login/refresh have to tolerate it too, not just Google's fallback path.
     @Override
     @Transactional(readOnly = true)
-    public Optional<OrganizationMemberDto> findDefaultMembership(long userId) {
+    public Optional<OrganizationMemberDto> findDefaultMembership(Long userId) {
         return organizationMemberRepository.findByUserIdAndIsDefaultTrue(userId)
                 .map(organizationMemberMapper::toDto);
     }
@@ -200,36 +200,36 @@ public class OrganizationServiceImpl implements OrganizationMemberService, Organ
     // transaction ends (see UserServiceImpl.deleteUser).
     @Override
     @Transactional
-    public void lockOrganizationOrThrow(long orgId) {
+    public void lockOrganizationOrThrow(Long orgId) {
         lockOrganization(orgId);
     }
 
-    private void lockOrganization(long orgId) {
+    private void lockOrganization(Long orgId) {
         organizationRepository.findByIdLocked(orgId)
                 .orElseThrow(() -> new OrganizationNotFoundException("id", orgId));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public long countByOrganizationIdAndRole(long orgId, OrgRole role) {
+    public long countByOrganizationIdAndRole(Long orgId, OrgRole role) {
         return organizationMemberRepository.countByOrganizationIdAndRole(orgId, role);
     }
 
     @Override
     @Transactional
-    public void deleteAllByUserId(long userId) {
+    public void deleteAllByUserId(Long userId) {
         organizationMemberRepository.deleteAllByUserId(userId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public int countByUserId(long userId) {
+    public int countByUserId(Long userId) {
         return organizationMemberRepository.countByUserId(userId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public OrganizationDto getOrganizationById(long orgId) {
+    public OrganizationDto getOrganizationById(Long orgId) {
         return organizationRepository.findById(orgId)
                 .map(organizationMapper::toDto)
                 .orElseThrow(() -> new OrganizationNotFoundException("id", orgId));

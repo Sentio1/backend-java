@@ -6,8 +6,8 @@ import com.sentio.user_service.identity.user.api.dto.UserContextResponse;
 import com.sentio.user_service.identity.user.api.dto.UserDto;
 import com.sentio.user_service.identity.user.internal.controller.dto.response.UserAdminDetailResponse;
 import com.sentio.user_service.identity.user.internal.controller.dto.response.UserAdminSummaryResponse;
-import com.sentio.user_service.identity.user.internal.entity.User;
-import com.sentio.user_service.identity.user.internal.entity.UserIdentity;
+import com.sentio.user_service.identity.user.internal.model.User;
+import com.sentio.user_service.identity.user.internal.model.UserIdentity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

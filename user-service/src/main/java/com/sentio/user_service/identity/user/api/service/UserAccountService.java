@@ -34,4 +34,6 @@ public interface UserAccountService {
     void linkExternalIdentity(long userId, AuthProvider provider, String providerUserId);
 
     void updatePasswordHash(long userId, String passwordHash);
+
+    void markEmailVerified(long userId);
 }

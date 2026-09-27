@@ -23,6 +23,7 @@ import com.sentio.user_service.identity.auth.dto.response.AuthTokens;
 import com.sentio.user_service.identity.auth.exception.RefreshTokenReusedException;
 import com.sentio.user_service.identity.auth.oauth.GoogleAccountResolver;
 import com.sentio.user_service.identity.auth.oauth.dto.GoogleIdentity;
+import com.sentio.user_service.identity.auth.verification.EmailVerificationService;
 import com.sentio.user_service.identity.auth.service.AuthGuards;
 import com.sentio.user_service.identity.auth.service.AuthService;
 import com.sentio.user_service.identity.auth.service.PasswordVerifier;
@@ -86,6 +87,9 @@ class AuthServiceTest {
     private RefreshTokenService refreshTokenService;
 
     @Mock
+    private EmailVerificationService emailVerificationService;
+
+    @Mock
     private JwtBlacklistService jwtBlacklistService;
 
     @Mock
@@ -112,6 +116,7 @@ class AuthServiceTest {
                 userAccountService,
                 organizationMemberService,
                 refreshTokenService,
+                emailVerificationService,
                 jwtService,
                 opaqueTokenService,
                 jwtBlacklistService,
@@ -125,7 +130,7 @@ class AuthServiceTest {
     // ---- helpers -----------------------------------------------------
 
     private UserDto user(long id, String passwordHash, PlatformRole role) {
-        return new UserDto(id, "user@sentio.dev", passwordHash, role, null, false);
+        return new UserDto(id, "user@sentio.dev", passwordHash, "Jane", role, null, false);
     }
 
     private UserDto localUser(long id) {

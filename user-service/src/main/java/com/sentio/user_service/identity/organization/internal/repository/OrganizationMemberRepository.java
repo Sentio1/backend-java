@@ -1,7 +1,7 @@
 package com.sentio.user_service.identity.organization.internal.repository;
 
 import com.sentio.user_service.identity.organization.api.enums.OrgRole;
-import com.sentio.user_service.identity.organization.internal.entity.OrganizationMember;
+import com.sentio.user_service.identity.organization.internal.model.OrganizationMember;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;

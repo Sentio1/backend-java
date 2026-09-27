@@ -3,7 +3,7 @@ package com.sentio.user_service.identity.user.internal;
 import com.lisovskyi.security.autoconfigure.security.SecurityPrincipal;
 import com.lisovskyi.security.autoconfigure.security.UserByIdDetailsService;
 import com.sentio.user_service.identity.user.api.SecurityUser;
-import com.sentio.user_service.identity.user.internal.entity.User;
+import com.sentio.user_service.identity.user.internal.model.User;
 import com.sentio.user_service.identity.user.internal.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

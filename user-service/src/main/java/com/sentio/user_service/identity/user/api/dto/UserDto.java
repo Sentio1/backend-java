@@ -9,6 +9,7 @@ public record UserDto(
         long id,
         String email,
         @Nullable String password,
+        @Nullable String firstName,
         PlatformRole platformRole,
         @Nullable Instant emailVerifiedAt,
         boolean deleted

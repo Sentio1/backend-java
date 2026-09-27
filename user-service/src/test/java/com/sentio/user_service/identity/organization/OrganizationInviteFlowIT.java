@@ -15,6 +15,7 @@ import com.sentio.user_service.identity.organization.api.enums.OrgRole;
 import com.sentio.user_service.identity.organization.internal.repository.OrganizationMemberRepository;
 import com.sentio.user_service.identity.user.internal.repository.UserRepository;
 import jakarta.servlet.http.Cookie;
+import java.time.Instant;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,6 +79,7 @@ class OrganizationInviteFlowIT {
     // needs the separate onboarding step, same as a real client would do.
     private Session registerOwner(String email, String orgName) throws Exception {
         Session session = register(email);
+        verifyEmail(email);
         MockHttpServletResponse response = mockMvc.perform(authenticated(post("/organizations"), session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateOrganizationRequest(orgName, null, null))))
@@ -99,6 +101,15 @@ class OrganizationInviteFlowIT {
                         new Cookie("access_token", session.accessToken()),
                         new Cookie("XSRF-TOKEN", session.xsrfToken()))
                 .header("X-XSRF-TOKEN", session.xsrfToken());
+    }
+
+    // inviteUserToOrganization now requires the inviting OWNER's own email to be verified
+    // (unverified accounts can't project trust onto a third party via an invite) - bypasses
+    // the confirm endpoint since that flow isn't what this test is about.
+    private void verifyEmail(String email) {
+        var user = userRepository.findByEmail(email).orElseThrow();
+        user.setEmailVerifiedAt(Instant.now());
+        userRepository.save(user);
     }
 
     private long orgIdOwnedBy(String email) {

@@ -1,6 +1,5 @@
 package com.sentio.user_service.identity.auth.rate_limiting;
 
-import com.google.common.hash.Hashing;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,10 +10,11 @@ import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
+
+import static com.sentio.shared.hash.CryptoUtility.sha256;
 
 /**
  * Fixed-window rate limiting shared by every replica: one Redis counter per (rule, key), created
@@ -36,7 +36,9 @@ public class RateLimitingService {
             "login-by-email", "login-by-ip",
             "register-by-email", "register-by-ip",
             "service-token-by-email", "service-token-by-ip",
-            "refresh-by-ip");
+            "refresh-by-ip",
+            "verify-email-by-ip",
+            "resend-verification-by-ip", "resend-verification-by-user");
 
     // Returns {count, remaining TTL in ms}. The ttl < 0 branch re-arms a key that
     // somehow lost its expiry instead of letting it block that client forever.
@@ -81,6 +83,15 @@ public class RateLimitingService {
         checkLimits("refresh", null, ip);
     }
 
+    public void checkVerifyEmailLimits(String ip) {
+        checkLimits("verify-email", null, ip);
+    }
+
+    public void checkSendVerificationLimits(long userId, String ip) {
+        checkLimits("resend-verification", null, ip);
+        check("resend-verification-by-user", String.valueOf(userId));
+    }
+
     private void checkLimits(String action, String email, String ip) {
         if (StringUtils.hasText(ip)) {
             check(action + "-by-ip", ip.strip());
@@ -122,11 +133,5 @@ public class RateLimitingService {
             log.warn("Rate limit exceeded: {} ({} attempts in current window)", ruleName, count);
             throw new RateLimitExceededException(ruleName, Duration.ofMillis(Math.max(ttlMillis, 0)));
         }
-    }
-
-    private static String sha256(String value) {
-        return Hashing.sha256()
-                .hashString(value, StandardCharsets.UTF_8)
-                .toString();
     }
 }

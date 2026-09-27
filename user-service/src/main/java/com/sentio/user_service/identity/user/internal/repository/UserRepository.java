@@ -1,7 +1,7 @@
 package com.sentio.user_service.identity.user.internal.repository;
 
 import com.sentio.user_service.identity.user.api.enums.PlatformRole;
-import com.sentio.user_service.identity.user.internal.entity.User;
+import com.sentio.user_service.identity.user.internal.model.User;
 import lombok.NonNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

@@ -1,0 +1,224 @@
+{
+  "info": {
+    "name": "Sentio user-service: email verification",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1"
+    },
+    {
+      "key": "mailpitUrl",
+      "value": "http://localhost:8025"
+    },
+    {
+      "key": "email",
+      "value": "jane.doe@example.com"
+    },
+    {
+      "key": "password",
+      "value": "Password123!"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "register"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"confirmPassword\": \"{{password}}\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\",\n  \"phoneNumber\": null,\n  \"middleName\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Sets access/refresh cookies (Postman stores them automatically) and publishes EmailVerificationRequested, so a letter should land in Mailpit."
+      }
+    },
+    {
+      "name": "2. Mailpit: latest messages",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{mailpitUrl}}/api/v1/messages",
+          "host": [
+            "{{mailpitUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "messages"
+          ]
+        },
+        "description": "Or just open http://localhost:8025. Copy the token from the link in the letter into the {{token}} collection variable."
+      }
+    },
+    {
+      "name": "3. Confirm email",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/email-verification/confirm",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "email-verification",
+            "confirm"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"{{token}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Public endpoint, 204 on success. Repeat the same call -> 400 INVALID_USER_ACTION_TOKEN."
+      }
+    },
+    {
+      "name": "4. Resend verification (needs login cookies)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/email-verification/resend",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "email-verification",
+            "resend"
+          ]
+        },
+        "description": "202. Requires the access-token cookie from Register/Login. 3 per 10 min per user, then 429 with Retry-After. Invalidates the previous token."
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Confirm email: garbage token (expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/email-verification/confirm",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "email-verification",
+            "confirm"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"not-a-real-token\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Confirm email: blank token (expect 400 validation)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/email-verification/confirm",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "email-verification",
+            "confirm"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,6 +1,12 @@
-build/
-.gradle/
+**/build
+**/bin
+**/graphify-out
+**/.gradle
+.git
 .idea/
+**/.classpath
+**/.project
+**/.settings
 *.log
 .DS_Store
 **/redis_data/

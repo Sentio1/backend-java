@@ -2,7 +2,7 @@ package com.sentio.user_service.identity.organization.internal.mapper;
 
 import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberDto;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberResponse;
-import com.sentio.user_service.identity.organization.internal.entity.OrganizationMember;
+import com.sentio.user_service.identity.organization.internal.model.OrganizationMember;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

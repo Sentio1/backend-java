@@ -16,6 +16,13 @@ spring:
       hibernate:
         default_schema: auth
 
+  modulith:
+    events:
+      jdbc:
+        # Table lives in auth (V12) alongside everything else - schema-initialization
+        # stays disabled (the default), Flyway owns it like every other table here.
+        schema: auth
+
   data:
     redis:
       password: ${REDIS_PASSWORD:}
@@ -99,6 +106,11 @@ app:
       service-token-by-email: { limit: 5, window: 60s }
       service-token-by-ip: { limit: 20, window: 60s }
       refresh-by-ip: { limit: 60, window: 60s }
+      verify-email-by-ip: { limit: 20, window: 60s }
+      # by-ip is only a second layer (shared office/NAT would otherwise starve everyone
+      # behind it) - by-user is the actual anti-spam control against resending to yourself.
+      resend-verification-by-ip: { limit: 20, window: 60s }
+      resend-verification-by-user: { limit: 3, window: 600s }
 
   security:
     allow-credentials: true
@@ -110,6 +122,7 @@ app:
       - /auth/register
       - /auth/login
       - /auth/refresh
+      - /email-verification/confirm
       - /oauth2/**
       - /login/oauth2/**
       - /actuator/health/**
@@ -123,6 +136,11 @@ app:
     # Must match app.jwt.refresh-token-expiration (seconds here, millis there).
     refresh-token-max-age: 604800
     same-site: Lax
+
+  email-verification:
+    token-ttl: 24h
+    # Frontend page that receives the token (?token=...) and POSTs it to /email-verification/confirm.
+    verification-url: http://localhost:5173/verify-email
 
   oauth:
     success-redirect-uri: http://localhost:5173/dashboard

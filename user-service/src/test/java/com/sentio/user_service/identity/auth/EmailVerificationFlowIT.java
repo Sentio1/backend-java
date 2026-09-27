@@ -21,6 +21,7 @@ import com.sentio.user_service.identity.auth.service.AuthService;
 import com.sentio.user_service.identity.user.internal.repository.UserRepository;
 import com.sentio.user_service.notification.internal.mail.EmailSender;
 import java.time.Duration;
+import java.time.ZoneId;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
@@ -131,7 +132,7 @@ class EmailVerificationFlowIT {
 
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         transactionTemplate.executeWithoutResult(status -> {
-            authService.register(request, "127.0.0.1", "test-agent");
+            authService.register(request, "127.0.0.1", "test-agent", ZoneId.of("Europe/Kyiv"));
             // Simulates a failure later in the same request (e.g. an exception after
             // AuthService.register returns but before the controller commits) rolling
             // back everything register() did, verification token included.

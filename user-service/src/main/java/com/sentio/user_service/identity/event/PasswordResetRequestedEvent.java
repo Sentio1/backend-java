@@ -1,16 +1,20 @@
 package com.sentio.user_service.identity.event;
 
+import lombok.Builder;
 import org.jspecify.annotations.NonNull;
 
 import java.time.Instant;
+import java.time.ZoneId;
 
+@Builder
 public record PasswordResetRequestedEvent(
         Long userId,
         String email,
         String firstName,
         String rawToken,
         Instant expiresAt,
-        String resetUrl
+        String resetUrl,
+        ZoneId userZone
 ) {
 
     @Override
@@ -22,6 +26,7 @@ public record PasswordResetRequestedEvent(
                 ", rawToken=[PROTECTED]" +
                 ", expiresAt=" + expiresAt +
                 ", resetUrl='" + resetUrl + '\'' +
+                ", userZone='" + userZone + '\'' +
                 ']';
     }
 }

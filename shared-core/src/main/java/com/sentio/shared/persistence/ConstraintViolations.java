@@ -1,8 +1,9 @@
 package com.sentio.shared.persistence;
 
+import org.springframework.dao.DataIntegrityViolationException;
+
 import java.sql.SQLException;
 import java.util.Arrays;
-import org.springframework.dao.DataIntegrityViolationException;
 
 public final class ConstraintViolations {
 

@@ -28,7 +28,7 @@ public class PasswordResetEventListener {
                 .build()
                 .toUriString();
 
-        String htmlBody = templateRenderer.renderPasswordResetEmail(event.firstName(), confirmationUrl, event.expiresAt());
+        String htmlBody = templateRenderer.renderPasswordResetEmail(event.firstName(), confirmationUrl, event.expiresAt(), event.userZone());
 
         emailSender.sendEmail(event.userId(), event.email(), PASSWORD_RESET_MESSAGE, htmlBody);
     }

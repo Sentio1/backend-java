@@ -1,6 +1,7 @@
 package com.sentio.user_service.identity.auth.controller;
 
 import com.sentio.shared.web.HttpRequestUtils;
+import com.sentio.shared.web.ZoneUtility;
 import com.sentio.user_service.identity.auth.dto.request.PasswordResetConfirmRequest;
 import com.sentio.user_service.identity.auth.dto.request.PasswordResetRequest;
 import com.sentio.user_service.identity.auth.password_reset.PasswordResetService;
@@ -29,7 +30,8 @@ public class PasswordResetController {
     ) {
         rateLimitingService.checkPasswordRequestLimits(request.email(), HttpRequestUtils.getClientIP(httpRequest));
 
-        passwordResetService.requestReset(request.email());
+        passwordResetService.requestReset(request.email(), ZoneUtility.getZone(httpRequest));
+
         return ResponseEntity.noContent().build();
     }
 
@@ -41,6 +43,7 @@ public class PasswordResetController {
         rateLimitingService.checkPasswordResetLimits(HttpRequestUtils.getClientIP(httpRequest));
 
         passwordResetService.resetPassword(request.rawToken(), request.newPassword());
+
         return ResponseEntity.noContent().build();
     }
 }

@@ -39,6 +39,7 @@ dependencies {
     api(libs.micrometer.prometheus)
     api(libs.micrometer.tracing.bridge.otel)
     api(libs.opentelemetry.exporter.otlp)
+    api(libs.spring.boot.micrometer.tracing.opentelemetry)
     api(libs.loki.logback)
 
     // Utilities & Functional

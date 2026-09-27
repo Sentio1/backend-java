@@ -19,6 +19,7 @@ import com.sentio.user_service.identity.user.api.service.UserActionTokenService;
 import com.sentio.user_service.refresh_token.api.service.RefreshTokenService;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,7 +72,8 @@ class PasswordResetServiceTest {
         when(userActionTokenService.issueToken(USER_ID, UserActionTokenType.PASSWORD_RESET, Duration.ofMinutes(30)))
                 .thenReturn(new IssuedUserActionToken(1L, "raw-token", expiresAt));
 
-        passwordResetService.requestReset(EMAIL);
+        ZoneId userZone = ZoneId.of("Europe/Warsaw");
+        passwordResetService.requestReset(EMAIL, userZone);
 
         ArgumentCaptor<PasswordResetRequestedEvent> captor = ArgumentCaptor.forClass(PasswordResetRequestedEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
@@ -83,6 +85,7 @@ class PasswordResetServiceTest {
         assertThat(event.rawToken()).isEqualTo("raw-token");
         assertThat(event.expiresAt()).isEqualTo(expiresAt);
         assertThat(event.resetUrl()).isEqualTo(RESET_URL);
+        assertThat(event.userZone()).isEqualTo(userZone);
     }
 
     // The whole point: a caller probing for which emails are registered must see the same
@@ -92,7 +95,7 @@ class PasswordResetServiceTest {
     void requestReset_unknownEmail_doesNothingObservable() {
         when(userAccountService.findActiveByEmail(EMAIL)).thenReturn(Optional.empty());
 
-        passwordResetService.requestReset(EMAIL);
+        passwordResetService.requestReset(EMAIL, ZoneId.of("Europe/Kyiv"));
 
         verifyNoInteractions(userActionTokenService, eventPublisher);
     }

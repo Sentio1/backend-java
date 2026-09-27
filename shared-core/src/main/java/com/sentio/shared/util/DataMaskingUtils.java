@@ -1,7 +1,8 @@
 package com.sentio.shared.util;
 
-import java.time.LocalDate;
 import org.springframework.util.StringUtils;
+
+import java.time.LocalDate;
 
 public final class DataMaskingUtils {
 

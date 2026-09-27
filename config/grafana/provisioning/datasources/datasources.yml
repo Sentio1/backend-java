@@ -33,8 +33,11 @@ datasources:
     url: http://loki:3100
     jsonData:
       derivedFields:
-        # Якщо в лозі є traceId — Grafana автоматично робить посилання на Tempo
+        # Якщо в лозі є traceId — Grafana автоматично робить посилання на Tempo.
+        # Поле зветься mdc_traceId, не traceId: JsonLayout (logback-spring.xml) пише
+        # MDC-ключі з префіксом mdc_ (com.github.loki4j.logback.json.MdcJsonProvider,
+        # FIELD_MDC_PREFIX) - перевірено емпірично, бо це недокументована поведінка.
         - name: TraceID
-          matcherRegex: '"traceId":"(\w+)"'
+          matcherRegex: '"mdc_traceId":"(\w+)"'
           url: '$${__value.raw}'
           datasourceUid: tempo

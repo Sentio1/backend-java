@@ -2,6 +2,7 @@ package com.sentio.user_service.identity.auth.controller;
 
 import com.sentio.shared.security.CurrentUserId;
 import com.sentio.shared.web.HttpRequestUtils;
+import com.sentio.shared.web.ZoneUtility;
 import com.sentio.user_service.identity.auth.dto.request.VerifyEmailRequest;
 import com.sentio.user_service.identity.auth.rate_limiting.RateLimitingService;
 import com.sentio.user_service.identity.auth.verification.EmailVerificationService;
@@ -30,6 +31,7 @@ public class EmailVerificationController {
         rateLimitingService.checkVerifyEmailLimits(HttpRequestUtils.getClientIP(httpRequest));
 
         emailVerificationService.verifyEmail(request.token());
+
         return ResponseEntity.noContent().build();
     }
 
@@ -40,7 +42,8 @@ public class EmailVerificationController {
     ) {
         rateLimitingService.checkSendVerificationLimits(userId, HttpRequestUtils.getClientIP(httpRequest));
 
-        emailVerificationService.sendVerificationEmail(userId);
+        emailVerificationService.sendVerificationEmail(userId, ZoneUtility.getZone(httpRequest));
+
         return ResponseEntity.accepted().build();
     }
 }

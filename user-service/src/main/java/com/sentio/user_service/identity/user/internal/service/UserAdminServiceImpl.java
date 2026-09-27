@@ -1,7 +1,5 @@
 package com.sentio.user_service.identity.user.internal.service;
 
-import com.sentio.user_service.identity.user.internal.exception.UserNotDeletedException;
-import com.sentio.user_service.identity.user.internal.exception.LastPlatformAdminException;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsException;
 import com.sentio.shared.dto.PageResponse;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberResponse;
@@ -9,9 +7,11 @@ import com.sentio.user_service.identity.organization.api.service.OrganizationMem
 import com.sentio.user_service.identity.user.api.enums.PlatformRole;
 import com.sentio.user_service.identity.user.internal.controller.dto.response.UserAdminDetailResponse;
 import com.sentio.user_service.identity.user.internal.controller.dto.response.UserAdminSummaryResponse;
-import com.sentio.user_service.identity.user.internal.model.User;
+import com.sentio.user_service.identity.user.internal.exception.LastPlatformAdminException;
+import com.sentio.user_service.identity.user.internal.exception.UserNotDeletedException;
 import com.sentio.user_service.identity.user.internal.exception.UserNotFoundException;
 import com.sentio.user_service.identity.user.internal.mapper.UserMapper;
+import com.sentio.user_service.identity.user.internal.model.User;
 import com.sentio.user_service.identity.user.internal.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

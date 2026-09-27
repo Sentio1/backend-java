@@ -11,6 +11,7 @@ import com.sentio.user_service.identity.user.api.service.UserActionTokenService;
 import com.sentio.user_service.identity.user.internal.exception.InvalidUserActionTokenException;
 import com.sentio.user_service.identity.user.internal.repository.UserRepository;
 import java.time.Duration;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -49,7 +50,7 @@ class UserActionTokenConcurrencyIT {
     void consumeToken_calledConcurrentlyWithSameRawToken_exactlyOneSucceeds() throws Exception {
         RegistrationRequest request = new RegistrationRequest(
                 "concurrent-verify@sentio.dev", "Password123!", "Password123!", null, "Doe", "John", null);
-        authService.register(request, "127.0.0.1", "test-agent");
+        authService.register(request, "127.0.0.1", "test-agent", ZoneId.of("Europe/Kyiv"));
         long userId = userRepository.findByEmail("concurrent-verify@sentio.dev").orElseThrow().getId();
 
         // Registration already issued one token as a side effect - issue our own so we

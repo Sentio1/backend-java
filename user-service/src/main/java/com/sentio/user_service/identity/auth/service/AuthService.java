@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Optional;
 
 import static com.sentio.user_service.identity.auth.AuthConstants.*;
@@ -66,7 +67,7 @@ public class AuthService {
     private final GoogleAccountResolver googleAccountResolver;
 
     @Transactional
-    public AuthResult register(RegistrationRequest request, String ip, String userAgent) {
+    public AuthResult register(RegistrationRequest request, String ip, String userAgent, ZoneId currentZone) {
         log.debug("Attempting to register user with email: {}", request.email());
 
         UserDto user = userAccountService.registerLocal(new NewLocalUser(
@@ -77,7 +78,7 @@ public class AuthService {
                 request.lastName(),
                 request.middleName()));
 
-        emailVerificationService.sendVerificationEmail(user.id());
+        emailVerificationService.sendVerificationEmail(user.id(), currentZone);
 
         return new AuthResult(
                 tokenIssuer.issue(user, null, ip, userAgent),

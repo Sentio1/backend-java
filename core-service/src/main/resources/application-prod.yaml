@@ -49,10 +49,12 @@ management:
     sampling:
       # 10% у prod — зменшує навантаження на Tempo
       probability: ${TRACING_SAMPLE_RATE:0.1}
-  otlp:
+  opentelemetry:
     tracing:
-      # Tempo у тій самій Docker-мережі — звертаємось за іменем контейнера
-      endpoint: ${OTLP_ENDPOINT:http://tempo:4317}
+      export:
+        otlp:
+          # Tempo у тій самій Docker-мережі — звертаємось за іменем контейнера
+          endpoint: ${OTLP_ENDPOINT:http://tempo:4318/v1/traces}
 
 loki:
   url: ${LOKI_URL:http://loki:3100/loki/api/v1/push}

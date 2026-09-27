@@ -38,6 +38,9 @@ Thumbs.db
 # Docker data
 redis_data/
 
+# postman data
+user-service/postman/
+
 # claude local data
 .claude
 

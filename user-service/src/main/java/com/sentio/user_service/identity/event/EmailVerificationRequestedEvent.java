@@ -1,16 +1,20 @@
 package com.sentio.user_service.identity.event;
 
+import lombok.Builder;
 import org.jspecify.annotations.NonNull;
 
 import java.time.Instant;
+import java.time.ZoneId;
 
+@Builder
 public record EmailVerificationRequestedEvent(
         Long userId,
         String email,
         String firstName,
         String rawToken,
         Instant expiresAt,
-        String verificationUrl
+        String verificationUrl,
+        ZoneId userZone
 ) {
 
     @Override
@@ -22,6 +26,7 @@ public record EmailVerificationRequestedEvent(
                 ", rawToken=[PROTECTED]" +
                 ", expiresAt=" + expiresAt +
                 ", verificationUrl='" + verificationUrl + '\'' +
+                ", userZone='" + userZone + '\'' +
                 ']';
     }
 }

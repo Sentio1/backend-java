@@ -1,13 +1,14 @@
 package com.sentio.shared.web;
 
 import com.sentio.shared.entity.id.EntityId;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import org.jspecify.annotations.NonNull;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.core.convert.converter.ConverterFactory;
 import org.springframework.stereotype.Component;
+
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 
 @Component
 public class StringToEntityIdConverterFactory implements ConverterFactory<String, EntityId> {

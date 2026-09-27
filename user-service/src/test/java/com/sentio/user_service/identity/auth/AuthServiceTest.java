@@ -42,6 +42,7 @@ import com.sentio.user_service.refresh_token.api.dto.RefreshTokenDto;
 import com.sentio.user_service.refresh_token.api.enums.RevokeReason;
 import com.sentio.user_service.refresh_token.api.service.RefreshTokenService;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
@@ -178,7 +179,7 @@ class AuthServiceTest {
 
             AuthResult result = authService.register(
                     new RegistrationRequest("user@sentio.dev", PASSWORD, PASSWORD, null, "Doe", "John", null),
-                    "127.0.0.1", "agent");
+                    "127.0.0.1", "agent", ZoneId.of("Europe/Kyiv"));
 
             ArgumentCaptor<NewLocalUser> captor = ArgumentCaptor.forClass(NewLocalUser.class);
             verify(userAccountService).registerLocal(captor.capture());

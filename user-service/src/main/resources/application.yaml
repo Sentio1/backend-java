@@ -84,9 +84,15 @@ management:
   tracing:
     sampling:
       probability: ${TRACING_SAMPLE_RATE:0.1}
-  otlp:
+  # Spring Boot 4: spring-boot-micrometer-tracing-opentelemetry шле лише через
+  # OTLP/HTTP (OtlpHttpSpanExporter, немає gRPC-варіанта) - тому 4318, не 4317,
+  # і обов'язковий /v1/traces (сам Spring Boot суфікс не додає, на відміну від
+  # generic OTEL_EXPORTER_OTLP_ENDPOINT).
+  opentelemetry:
     tracing:
-      endpoint: ${OTLP_ENDPOINT:http://localhost:4317}
+      export:
+        otlp:
+          endpoint: ${OTLP_ENDPOINT:http://localhost:4318/v1/traces}
 
 loki:
   url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
@@ -94,8 +100,8 @@ loki:
 
 app:
   jwt:
-    private-key: ${JWT_PRIVATE_KEY}
-    previous-private-key: ${JWT_PREVIOUS_PRIVATE_KEY}
+    private-key: ${JWT_PRIVATE_KEY:}
+    previous-private-key: ${JWT_PREVIOUS_PRIVATE_KEY:}
     issuer: sentio-startup
     # 7 days, sliding: every refresh issues a token valid for another 7 days...
     refresh-token-expiration: 604800000

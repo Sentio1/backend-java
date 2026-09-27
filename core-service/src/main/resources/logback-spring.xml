@@ -45,15 +45,17 @@
                 <pattern>app=${APP_NAME},level=%level,host=${HOSTNAME}</pattern>
                 <readMarkers>true</readMarkers>
             </label>
-            <message>
-                <!--
-                    Повний текст логу + traceId зі Spring MDC.
-                    Grafana Loki datasource налаштований витягувати traceId
-                    з JSON і робити клікабельне посилання на Tempo
-                    (див. datasources.yml: derivedFields).
-                -->
-                <pattern>{"level":"%level","logger":"%logger{36}","thread":"%thread","traceId":"%X{traceId}","spanId":"%X{spanId}","message":"%message"}</pattern>
-            </message>
+            <!--
+                JsonLayout замість ручного %message-pattern: серіалізує через власний
+                JSON-writer loki4j (com.github.loki4j.pkg.dslplatform.json) з коректним
+                екрануванням - ручний pattern ламав JSON, якщо повідомлення чи стек трейс
+                містили лапки/переноси рядків. За замовчуванням пише timestamp_ms,
+                logger_name, level, thread_name, message, stack_trace (при винятку) і
+                весь MDC з префіксом mdc_ (mdc_traceId/mdc_spanId - саме ці імена шукає
+                derivedFields regex у datasources.yml, не traceId/spanId) - без додаткової
+                конфігурації нижче.
+            -->
+            <message class="com.github.loki4j.logback.JsonLayout"/>
         </format>
     </appender>
 

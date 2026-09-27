@@ -6,6 +6,7 @@ import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
 import com.sentio.user_service.TestcontainersConfiguration;
 import com.sentio.user_service.identity.auth.dto.request.RegistrationRequest;
 import com.sentio.user_service.identity.auth.dto.response.AuthTokens;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -75,7 +76,7 @@ class RefreshTokenConcurrencyIT {
         RegistrationRequest request =
                 new RegistrationRequest(email, "Password123!", "Password123!", null, "Doe", "John", null);
         return authService
-                .register(request, "127.0.0.1", "test-agent")
+                .register(request, "127.0.0.1", "test-agent", ZoneId.of("Europe/Kyiv"))
                 .authTokens()
                 .refreshToken();
     }

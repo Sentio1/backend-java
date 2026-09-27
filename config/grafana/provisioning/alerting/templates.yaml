@@ -1,0 +1,21 @@
+apiVersion: 1
+
+# Один шаблон-файл може визначати кілька {{ define }}-блоків - discord.title і
+# discord.message нижче використовуються обома contact points (contactpoints.yaml),
+# щоб у Discord одразу було видно severity/сервіс, а не сирий JSON.
+templates:
+  - orgId: 1
+    name: discord-templates
+    template: |
+      {{ define "discord.title" }}
+      {{ if eq .Status "firing" }}🔴{{ else }}✅{{ end }} [{{ .CommonLabels.severity | toUpper }}] {{ .CommonLabels.alertname }}
+      {{ end }}
+
+      {{ define "discord.message" }}
+      **Сервіс:** {{ .CommonLabels.app }}
+      **Статус:** {{ .Status }}
+      {{ range .Alerts }}
+      • {{ .Annotations.summary }}
+      {{ if .Annotations.description }}  {{ .Annotations.description }}{{ end }}
+      {{ end }}
+      {{ end }}

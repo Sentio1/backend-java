@@ -28,7 +28,7 @@ public class EmailVerificationEventListener {
                 .build()
                 .toUriString();
 
-        String htmlBody = templateRenderer.renderVerificationEmail(event.firstName(), confirmationUrl, event.expiresAt());
+        String htmlBody = templateRenderer.renderVerificationEmail(event.firstName(), confirmationUrl, event.expiresAt(), event.userZone());
 
         emailSender.sendEmail(event.userId(), event.email(), VERIFICATION_MESSAGE, htmlBody);
     }

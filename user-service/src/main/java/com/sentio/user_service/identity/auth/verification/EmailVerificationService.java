@@ -15,6 +15,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZoneId;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -27,7 +29,7 @@ public class EmailVerificationService {
     private final EmailVerificationProperties emailVerificationProperties;
 
     @Transactional
-    public void sendVerificationEmail(@NonNull Long currentUserId) {
+    public void sendVerificationEmail(@NonNull Long currentUserId, ZoneId currentZone) {
         UserDto user = userAccountService.findActiveById(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id %d was not found".formatted(currentUserId)));
 
@@ -43,9 +45,15 @@ public class EmailVerificationService {
         );
 
         eventPublisher.publishEvent(
-                new EmailVerificationRequestedEvent(currentUserId, user.email(), user.firstName(),
-                        issuedUserActionToken.rawToken(), issuedUserActionToken.expiresAt(), emailVerificationProperties.verificationUrl()
-                )
+                EmailVerificationRequestedEvent.builder()
+                        .userId(currentUserId)
+                        .email(user.email())
+                        .firstName(user.firstName())
+                        .rawToken(issuedUserActionToken.rawToken())
+                        .expiresAt(issuedUserActionToken.expiresAt())
+                        .verificationUrl(emailVerificationProperties.verificationUrl())
+                        .userZone(currentZone)
+                        .build()
         );
     }
 

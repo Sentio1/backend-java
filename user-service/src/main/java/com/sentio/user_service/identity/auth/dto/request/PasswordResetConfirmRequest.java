@@ -6,9 +6,7 @@ import com.sentio.user_service.identity.auth.validation.MaxUtf8Bytes;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-import static com.sentio.user_service.identity.auth.AuthConstants.PASSWORD_MAX_BYTES;
-import static com.sentio.user_service.identity.auth.AuthConstants.PASSWORD_MAX_LENGTH;
-import static com.sentio.user_service.identity.auth.AuthConstants.PASSWORD_MIN_LENGTH;
+import static com.sentio.user_service.identity.auth.AuthConstants.*;
 
 @PasswordsMatch(originalPassword = "newPassword", confirmPassword = "confirmPassword")
 public record PasswordResetConfirmRequest(

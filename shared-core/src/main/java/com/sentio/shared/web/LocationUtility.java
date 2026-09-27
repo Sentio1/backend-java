@@ -1,10 +1,10 @@
 package com.sentio.shared.web;
 
-import java.net.URI;
-
 import org.jspecify.annotations.NonNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
 
 public final class LocationUtility {
 

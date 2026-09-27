@@ -3,6 +3,7 @@ package com.sentio.user_service.identity.auth.controller;
 import com.lisovskyi.web.error.autoconfigure.standard.UnauthorizedException;
 import com.sentio.shared.web.HttpRequestUtils;
 import com.sentio.shared.web.LocationUtility;
+import com.sentio.shared.web.ZoneUtility;
 import com.sentio.user_service.identity.auth.cookie.AuthCookieService;
 import com.sentio.user_service.identity.auth.dto.request.LoginRequest;
 import com.sentio.user_service.identity.auth.dto.request.RegistrationRequest;
@@ -39,15 +40,15 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<UserContextResponse> register(
-            @RequestBody @Valid RegistrationRequest registrationRequest,
+            @RequestBody @Valid RegistrationRequest request,
             @RequestHeader(value = HttpHeaders.USER_AGENT, defaultValue = "unknown") String userAgent,
-            final HttpServletRequest request,
+            final HttpServletRequest httpRequest,
             final HttpServletResponse response
     ) {
-        String ip = HttpRequestUtils.getClientIP(request);
-        rateLimitingService.checkRegisterLimits(registrationRequest.email(), ip);
+        String ip = HttpRequestUtils.getClientIP(httpRequest);
+        rateLimitingService.checkRegisterLimits(request.email(), ip);
 
-        AuthResult registerResult = authService.register(registrationRequest, ip, userAgent);
+        AuthResult registerResult = authService.register(request, ip, userAgent, ZoneUtility.getZone(httpRequest));
         AuthTokens tokens = registerResult.authTokens();
         UserContextResponse userContext = registerResult.userContext();
 
@@ -60,15 +61,15 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<UserContextResponse> login(
-            @RequestBody @Valid LoginRequest loginRequest,
+            @RequestBody @Valid LoginRequest request,
             @RequestHeader(value = HttpHeaders.USER_AGENT, defaultValue = "unknown") String userAgent,
-            final HttpServletRequest request,
+            final HttpServletRequest httpRequest,
             final HttpServletResponse response
     ) {
-        String ip = HttpRequestUtils.getClientIP(request);
-        rateLimitingService.checkLoginLimits(loginRequest.email(), ip);
+        String ip = HttpRequestUtils.getClientIP(httpRequest);
+        rateLimitingService.checkLoginLimits(request.email(), ip);
 
-        AuthResult loginResult = authService.login(loginRequest, ip, userAgent);
+        AuthResult loginResult = authService.login(request, ip, userAgent);
         AuthTokens tokens = loginResult.authTokens();
         UserContextResponse userContext = loginResult.userContext();
 
@@ -79,31 +80,31 @@ public class AuthController {
 
     @PostMapping("/service-token")
     public ResponseEntity<ServiceTokenResult> serviceToken(
-            @RequestBody @Valid ServiceTokenRequest serviceTokenRequest,
-            final HttpServletRequest request
+            @RequestBody @Valid ServiceTokenRequest request,
+            final HttpServletRequest httpRequest
     ) {
         rateLimitingService.checkServiceTokenLimits(
-                serviceTokenRequest.clientId(), HttpRequestUtils.getClientIP(request)
+                request.clientId(), HttpRequestUtils.getClientIP(httpRequest)
         );
 
-        ServiceTokenResult accessToken = serviceToken.serviceToken(serviceTokenRequest);
+        ServiceTokenResult accessToken = serviceToken.serviceToken(request);
         return ResponseEntity.ok().body(accessToken);
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<Void> refresh(
             @RequestHeader(value = HttpHeaders.USER_AGENT, defaultValue = "unknown") String userAgent,
-            final HttpServletRequest request,
+            final HttpServletRequest httpRequest,
             final HttpServletResponse response
     ) {
-        rateLimitingService.checkRefreshLimits(HttpRequestUtils.getClientIP(request));
+        rateLimitingService.checkRefreshLimits(HttpRequestUtils.getClientIP(httpRequest));
 
         String refreshToken = authCookieService
-                .readRefreshToken(request)
+                .readRefreshToken(httpRequest)
                 .orElseThrow(() -> new UnauthorizedException(INVALID_REFRESH_TOKEN_MSG));
 
         AuthTokens tokens = authService.refresh(
-                refreshToken, HttpRequestUtils.getClientIP(request), userAgent
+                refreshToken, HttpRequestUtils.getClientIP(httpRequest), userAgent
         );
         authCookieService.setCookies(response, tokens);
 
@@ -112,11 +113,11 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
-            final HttpServletRequest request,
+        final HttpServletRequest httpRequest,
             final HttpServletResponse response
     ) {
-        String accessToken = authCookieService.readAccessToken(request).orElse(null);
-        String refreshToken = authCookieService.readRefreshToken(request).orElse(null);
+        String accessToken = authCookieService.readAccessToken(httpRequest).orElse(null);
+        String refreshToken = authCookieService.readRefreshToken(httpRequest).orElse(null);
 
         authService.logout(accessToken, refreshToken);
         authCookieService.clearCookies(response);

@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.spring.boot) apply false
     alias(libs.plugins.spring.dependency.management) apply false
     alias(libs.plugins.graalvm.native.buildtools) apply false
+    alias(libs.plugins.gradle.versions) apply false
     java
 }
 
@@ -17,9 +18,10 @@ allprojects {
 subprojects {
     pluginManager.apply("java")
     pluginManager.apply("checkstyle")
+    pluginManager.apply("io.github.ben-manes.versions")
 
     extensions.configure<CheckstyleExtension> {
-        toolVersion = "10.17.0"
+        toolVersion = "14.3.0"
         configFile = rootProject.file("config/checkstyle/checkstyle.xml")
         isIgnoreFailures = true
     }

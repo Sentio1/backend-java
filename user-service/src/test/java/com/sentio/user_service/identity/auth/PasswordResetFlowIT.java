@@ -22,6 +22,7 @@ import com.sentio.user_service.identity.auth.service.AuthService;
 import com.sentio.user_service.notification.internal.mail.EmailSender;
 import jakarta.servlet.http.Cookie;
 import java.time.Duration;
+import java.time.ZoneId;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
@@ -187,7 +188,7 @@ class PasswordResetFlowIT {
 
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         transactionTemplate.executeWithoutResult(status -> {
-            passwordResetService.requestReset(email);
+            passwordResetService.requestReset(email, ZoneId.of("Europe/Kyiv"));
             status.setRollbackOnly();
         });
 

@@ -45,6 +45,8 @@ server:
   forward-headers-strategy: framework
 
 app:
+  jwt:
+    private-key: ${JWT_PRIVATE_KEY}
   # No defaults on purpose: application.yaml's localhost:5173 fallback is a dev
   # convenience, not something that should ever silently apply in prod. Missing
   # either of these must fail startup, not redirect real users to localhost.
@@ -66,9 +68,11 @@ management:
   tracing:
     sampling:
       probability: ${TRACING_SAMPLE_RATE:0.1}
-  otlp:
+  opentelemetry:
     tracing:
-      endpoint: ${OTLP_ENDPOINT:http://tempo:4317}
+      export:
+        otlp:
+          endpoint: ${OTLP_ENDPOINT:http://tempo:4318/v1/traces}
 
 loki:
   url: ${LOKI_URL:http://loki:3100/loki/api/v1/push}

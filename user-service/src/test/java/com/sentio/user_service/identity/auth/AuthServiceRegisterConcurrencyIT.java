@@ -6,6 +6,7 @@ import com.lisovskyi.web.error.autoconfigure.standard.ResourceAlreadyExistsExcep
 import com.sentio.user_service.TestcontainersConfiguration;
 import com.sentio.user_service.identity.auth.dto.request.RegistrationRequest;
 import com.sentio.user_service.identity.auth.dto.response.AuthResult;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -53,7 +54,7 @@ class AuthServiceRegisterConcurrencyIT {
         Callable<AuthResult> attempt = () -> {
             bothReady.countDown();
             go.await();
-            return authService.register(request, "127.0.0.1", "test-agent");
+            return authService.register(request, "127.0.0.1", "test-agent", ZoneId.of("Europe/Kyiv"));
         };
 
         ExecutorService executor = Executors.newFixedThreadPool(2);

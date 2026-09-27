@@ -7,7 +7,7 @@ postgresql = "42.7.13"
 
 resilience4j = "2.4.0"
 
-loki-logback = "1.5.2"
+loki-logback = "2.1.0"
 
 grpc = "1.76.0"
 grpc-spring = "1.1.0.RELEASE"
@@ -16,23 +16,24 @@ spring-ai = "2.0.0"
 spring-modulith = "2.1.1"
 spring-cloud = "2025.1.3"
 
-graalvm-native-buildtools = "1.1.12"
+graalvm-native-buildtools = "1.1.14"
+gradle-versions-plugin = "0.64.0"
 
 # Custom starters
-lisovskyi-security = "1.0.2"
+lisovskyi-security = "1.0.4"
 lisovskyi-jpa = "1.0.1"
 lisovskyi-web-error = "1.0.0"
 
 mapstruct = "1.6.3"
 lombok = "1.18.48"
 lombok-mapstruct-binding = "0.2.0"
-caffeine = "3.2.4"
-vavr = "0.11.0"
-guava = "33.5.0-jre"
+caffeine = "3.3.0"
+vavr = "1.0.1"
+guava = "33.7.1-jre"
 
 jackson-databind-nullable = "0.2.11"
 
-aspectjweaver = "1.9.22.1"
+aspectjweaver = "1.9.25.1"
 junit = "6.0.0"
 awaitility = "4.3.0"
 
@@ -171,6 +172,13 @@ micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus
 # Tracing: Micrometer -> OpenTelemetry bridge + OTLP exporter (версії керуються Spring Boot BOM)
 micrometer-tracing-bridge-otel = { module = "io.micrometer:micrometer-tracing-bridge-otel" }
 opentelemetry-exporter-otlp = { module = "io.opentelemetry:opentelemetry-exporter-otlp" }
+# Spring Boot 4 виніс autoconfiguration для tracing (Tracer bean, ObservationRegistry
+# wiring, MDC traceId/spanId listener, OTLP exporter bean) в окремий модуль - на відміну
+# від spring-boot-starter-actuator, який сам тягне spring-boot-starter-micrometer-metrics,
+# тут немає thin-starter аналога, тому автоконфіг-модуль підключається напряму. Без цього
+# рядки вище (bridge/exporter) просто мертві бібліотеки на класпасі - жоден Tracer
+# не створюється, span-и не генеруються взагалі (перевірено: спорожні OTLP-запити).
+spring-boot-micrometer-tracing-opentelemetry = { module = "org.springframework.boot:spring-boot-micrometer-tracing-opentelemetry" }
 
 # Logs -> Loki
 loki-logback = { module = "com.github.loki4j:loki-logback-appender", version.ref = "loki-logback" }
@@ -252,6 +260,8 @@ spring-dependency-management = { id = "io.spring.dependency-management", version
 graalvm-native-buildtools = { id = "org.graalvm.buildtools.native", version.ref = "graalvm-native-buildtools" }
 
 flyway = { id = "org.flywaydb.flyway", version.ref = "flyway" }
+
+gradle-versions = { id = "io.github.ben-manes.versions", version.ref = "gradle-versions-plugin" }
 
 [bundles]
 annotation-processors = [

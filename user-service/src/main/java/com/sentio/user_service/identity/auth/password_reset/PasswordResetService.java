@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZoneId;
 import java.util.Optional;
 
 @Service
@@ -32,7 +33,7 @@ public class PasswordResetService {
     private final RefreshTokenService refreshTokenService;
 
     @Transactional
-    public void requestReset(@NonNull String email) {
+    public void requestReset(@NonNull String email, ZoneId userZone) {
         Optional<UserDto> userOpt = userAccountService.findActiveByEmail(email);
 
         if (userOpt.isEmpty()) {
@@ -49,14 +50,15 @@ public class PasswordResetService {
         );
 
         eventPublisher.publishEvent(
-                new PasswordResetRequestedEvent(
-                        user.id(),
-                        user.email(),
-                        user.firstName(),
-                        issuedUserActionToken.rawToken(),
-                        issuedUserActionToken.expiresAt(),
-                        passwordResetProperties.resetUrl()
-                )
+                PasswordResetRequestedEvent.builder()
+                        .userId(user.id())
+                        .email(user.email())
+                        .firstName(user.firstName())
+                        .rawToken(issuedUserActionToken.rawToken())
+                        .expiresAt(issuedUserActionToken.expiresAt())
+                        .resetUrl(passwordResetProperties.resetUrl())
+                        .userZone(userZone)
+                        .build()
         );
     }
 

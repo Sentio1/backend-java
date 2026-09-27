@@ -1,0 +1,168 @@
+apiVersion: 1
+
+groups:
+  # ── Log-based alerts (Loki) ──────────────────────────────────────────────
+  - orgId: 1
+    name: log-alerts
+    folder: Alerts
+    interval: 1m
+    rules:
+      - uid: log-error-rate
+        title: Забагато ERROR-логів
+        condition: C
+        for: 2m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.app }}: понад 5 ERROR-логів за останні 5 хв"
+          description: "Дивись Loki: {app=\"{{ $labels.app }}\"} | json | level=\"ERROR\""
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: loki
+            model:
+              refId: A
+              queryType: instant
+              editorMode: code
+              expr: 'sum by (app) (count_over_time({app=~".+"} | json | level="ERROR" [5m]))'
+          - refId: B
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: "__expr__"
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: "__expr__"
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [5] }
+
+      - uid: log-warn-rate
+        title: Підвищена частота WARN-логів
+        condition: C
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.app }}: понад 20 WARN-логів за останні 5 хв"
+          description: "Дивись Loki: {app=\"{{ $labels.app }}\"} | json | level=\"WARN\""
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: loki
+            model:
+              refId: A
+              queryType: instant
+              editorMode: code
+              expr: 'sum by (app) (count_over_time({app=~".+"} | json | level="WARN" [5m]))'
+          - refId: B
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: "__expr__"
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: "__expr__"
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [20] }
+
+  # ── Metric-based alerts (Prometheus / actuator) ──────────────────────────
+  - orgId: 1
+    name: metric-alerts
+    folder: Alerts
+    interval: 1m
+    rules:
+      - uid: http-5xx-rate
+        title: 5xx помилки на API
+        condition: C
+        for: 2m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }}: стабільний потік 5xx-відповідей"
+          description: "Дивись Prometheus: rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])"
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              editorMode: code
+              expr: 'sum by (job) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))'
+              instant: true
+              range: false
+          - refId: B
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: "__expr__"
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: "__expr__"
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+
+      - uid: http-p99-latency
+        title: Висока latency на API (p99)
+        condition: C
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }}: p99 latency понад 2s"
+          description: "Дивись Prometheus: histogram_quantile(0.99, rate(http_server_requests_seconds_bucket[5m]))"
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              editorMode: code
+              expr: 'histogram_quantile(0.99, sum by (le, job) (rate(http_server_requests_seconds_bucket[5m])))'
+              instant: true
+              range: false
+          - refId: B
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: "__expr__"
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: "__expr__"
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [2] }

@@ -1,12 +1,12 @@
 package com.sentio.user_service.identity.user.internal.service;
 
-import com.sentio.user_service.identity.organization.api.exception.LastOwnerException;
 import com.lisovskyi.web.error.autoconfigure.standard.ResourceNotFoundException;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationDto;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationInviteResponse;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberDto;
 import com.sentio.user_service.identity.organization.api.dto.OrganizationMemberResponse;
 import com.sentio.user_service.identity.organization.api.enums.OrgRole;
+import com.sentio.user_service.identity.organization.api.exception.LastOwnerException;
 import com.sentio.user_service.identity.organization.api.service.OrganizationInviteService;
 import com.sentio.user_service.identity.organization.api.service.OrganizationMemberService;
 import com.sentio.user_service.identity.organization.api.service.OrganizationService;
@@ -14,9 +14,9 @@ import com.sentio.user_service.identity.user.api.dto.UserContextResponse;
 import com.sentio.user_service.identity.user.api.service.UserDeletionService;
 import com.sentio.user_service.identity.user.api.service.UserService;
 import com.sentio.user_service.identity.user.internal.controller.dto.request.UserUpdateRequest;
-import com.sentio.user_service.identity.user.internal.model.User;
 import com.sentio.user_service.identity.user.internal.exception.UserNotFoundException;
 import com.sentio.user_service.identity.user.internal.mapper.UserMapper;
+import com.sentio.user_service.identity.user.internal.model.User;
 import com.sentio.user_service.identity.user.internal.repository.UserRepository;
 import com.sentio.user_service.refresh_token.api.service.RefreshTokenService;
 import lombok.RequiredArgsConstructor;

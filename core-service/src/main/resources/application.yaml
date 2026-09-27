@@ -87,11 +87,16 @@ management:
     sampling:
       # Перевизначається у application-dev.yaml (1.0) і application-prod.yaml (0.1)
       probability: ${TRACING_SAMPLE_RATE:0.1}
-  otlp:
+  # Spring Boot 4: spring-boot-micrometer-tracing-opentelemetry шле лише через
+  # OTLP/HTTP (OtlpHttpSpanExporter, немає gRPC-варіанта) - тому 4318, не 4317,
+  # і обов'язковий /v1/traces (сам Spring Boot суфікс не додає).
+  opentelemetry:
     tracing:
-      # У dev: localhost:4317 (Tempo запущений через docker-compose.yaml)
-      # У prod: tempo:4317 (Tempo у тій самій Docker-мережі)
-      endpoint: ${OTLP_ENDPOINT:http://localhost:4317}
+      export:
+        otlp:
+          # У dev: localhost:4318 (Tempo запущений через docker-compose.yaml)
+          # У prod: tempo:4318 (Tempo у тій самій Docker-мережі)
+          endpoint: ${OTLP_ENDPOINT:http://localhost:4318/v1/traces}
 
 loki:
   # Підхоплюється logback-spring.xml через <springProperty>

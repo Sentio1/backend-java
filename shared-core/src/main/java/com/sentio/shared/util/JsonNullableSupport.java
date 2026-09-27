@@ -1,7 +1,8 @@
 package com.sentio.shared.util;
 
-import java.util.function.Consumer;
 import org.openapitools.jackson.nullable.JsonNullable;
+
+import java.util.function.Consumer;
 
 /**
  * MapStruct implicit-conversion helper: without this, MapStruct can't map a {@code
